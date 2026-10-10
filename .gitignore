@@ -15,4 +15,5 @@ asset-catalog/
 /ios/*.xcframework/
 /ios/Assets/
 /ios/build/
+/ios/__pycache__/
 xcuserdata/

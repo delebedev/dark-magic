@@ -15,19 +15,43 @@ Upstream baseline: `9d450c5d452198dec4fd9d53f9c6a9e1b0145334`.
 - iOS/arm64 package resolution succeeds. The 410-package graph contains no
   Raylib, FFmpeg/astiav, desktop GLFW, or Bubble Tea dependency. QUIC and pgx
   remain reachable through existing client composition. This is dependency
-  analysis, not successful native compilation.
-- Objective-C binding generation succeeds and confirms the native Configure
-  signature. Xcode project/plist syntax and Swift parsing pass.
+  analysis; native binding compilation also succeeds.
+- Both smoke and real-engine bindings compile into iPhone arm64 and Simulator
+  arm64/x86_64 XCFramework slices with Xcode 26.6 and the iOS 26.5 SDK.
+- Objective-C binding generation confirms the native Configure signature.
+  The Swift/UIKit host type-checks and links with the real binding for arm64
+  iPhone and Simulator. The real-engine Xcode Simulator app builds successfully.
+  The smoke device app builds with a local development signature and passes
+  `codesign --verify --deep --strict`. Device installation is blocked while the
+  paired phone is locked and its Developer Disk Image cannot be mounted.
 - Targeted Go checks cover the application, command, content, input, session,
   hosted lifecycle/error propagation, touch translation, and smoke diagnostic.
   Architecture checks pass. Original-asset cases are not evidence without MPQs.
-- Native bind stops with `gomobile: -target="ios" requires Xcode`.
-- **Nothing has launched on an iPhone or Simulator. M0 and M1 are incomplete.**
+- Xcode builds and installs the smoke app. On an iPhone 17 Pro Simulator running
+  iOS 26.4.1, the 800x600 diagnostic renders with landscape letterboxing, ticks
+  advance, a drag changes touch coordinates to `(205, 202)`, and the white marker
+  follows. Backgrounding for five seconds and returning preserves the process
+  and touch state. This is Simulator input, not a physical-device touch test.
+- Startup logs contain UIKit main-thread assertions from Ebitengine's Metal
+  `addSublayer` call. Rendering continues, but this is an unresolved renderer issue.
+- **No original-asset scene or physical-iPhone launch is verified. M0's desktop
+  scene requirement and M1 remain incomplete.**
 
 The Mac initially had roughly 20 GiB free and only Command Line Tools selected.
 Full Xcode was not found in Applications or the Spotlight application index.
-Go and the pinned ebitenmobile tool were installed for investigation. Free space
-must be addressed before installing Xcode plus an iOS Simulator runtime.
+Go and the pinned ebitenmobile tool were installed for investigation. After
+space was freed, the App Store installed the last compatible Xcode version,
+26.6 (17F113), on macOS 26.5.1. First-launch components are installed. An existing
+iOS 26.4.1 runtime works for smoke testing; iOS 26.5 platform support and its
+Simulator runtime are also installed. About 14 GiB remains free after installation.
+The global developer-directory selection is preserved; builds use
+`DEVELOPER_DIR` explicitly.
+
+Local evidence is ignored under `.local/`: `ios-smoke-touch.png`,
+`ios-smoke-resumed.png`, `ios-smoke-runtime.log`, `ios-real-bind.log`,
+`ios-host-link.log`, `ios-device-host-link.log`, `ios-real-build.log`, and
+`ios-smoke-device-build.log`. Native screenshots retain
+the Simulator display's portrait pixel orientation; the UI window was landscape.
 
 ### Downloaded demo
 
@@ -48,13 +72,47 @@ Their listfiles are readable. They do not provide the required expansion asset
 
 The demo patch lists `data/GLOBAL/UI/FrontEnd/trademark.DC6` and
 `data/global/ui/FrontEnd/3WideButtonBlank.dc6`. Attempts to read either through
-the existing MPQ decoder fail with `decryption of MPQ failed`. The cause has
-not been verified. No codec fix or substitute expansion art is included.
+the existing MPQ decoder fail with `decryption of MPQ failed`. StormLib 9.40
+can read these assets. The cause in the Go decoder has not been verified.
+No engine codec fix or substitute expansion art is included.
 The base archive's `data/global/missiles/arrow.dcc` does decode and produces a
 headless diagnostic PNG with the decoder's fallback palette. That proves some
 real demo content is readable, not that a scene or its authored colors work.
-The demo is useful for archive experiments but currently cannot boot `ui_lab`.
-The supported real-scene path still needs original LoD 1.14d MPQs.
+The host extraction tool below reads 159 original assets into a 13 MiB loose
+directory, including authored fonts, palettes, and the three-wide button.
+116 other literal asset references are absent from this demo. Its generated
+presentation extension points the unused title background at the original
+classic title. It changes no scene or gameplay code.
+
+The normal desktop client then fails with:
+
+```text
+load class movement rates: d2legacy movement: data/global/excel/charstats.txt row 2 class "Amazon" has invalid movement/stamina facts
+```
+
+The demo's older CharStats table has no stamina column. Normal client assembly
+loads the movement catalog even for `ui_lab`. Inventing gameplay values would
+hide incompatibility, so this experiment stops there. The demo profile is not
+wired into the mobile entry point. The supported real-scene path still needs
+compatible original LoD MPQs. Evidence: `.local/desktop-demo-ui-lab.log`.
+
+To reproduce the extraction and desktop compatibility probe:
+
+```sh
+brew install stormlib
+python3 ios/prepare-demo.py /path/to/demo-mpq-symlinks /path/outside/git/demo-loose
+export GOTOOLCHAIN=go1.25.12
+export DARK_MAGIC_MOD_CACHE="$PWD/.local/demo-modcache"
+export DARK_MAGIC_MOD_PROFILE="$PWD/.local/demo-mods.json"
+go run ./internal/dev/tools/demo_profile -source /path/outside/git/demo-loose/demo-profile
+MPQ_DIRECTORY=/path/outside/git/demo-loose \
+  go run -tags ebitengine ./cmd/client --mods d2demo_profile --start-scene ui_lab
+```
+
+StormLib is a host extraction tool, not an iOS dependency. The output must be
+a new directory outside Git or the ignored `ios/Assets` directory. Existing
+assets are never overwritten. The final command currently reports the error
+above; it is a compatibility probe, not a working scene workaround.
 
 ## Implementation decisions
 
@@ -104,7 +162,9 @@ open ios/DarkMagic.xcodeproj
 ```
 
 The script pins Go 1.25.12 and ebitenmobile 2.9.9 to match the engine dependency.
-It builds device and Simulator slices into ignored `ios/DarkMagic.xcframework`.
+It builds device and Simulator slices into ignored `ios/Darkmagicmobile.xcframework`.
+The framework name matches gomobile's generated `Darkmagicmobile` module so
+Swift can discover it without manual module-map flags.
 Do not install `ebitenmobile@latest` independently of an engine upgrade.
 
 Select the shared `DarkMagic` scheme and an installed iPhone Simulator in Xcode.
@@ -165,9 +225,19 @@ Record device/OS, asset version, build revision, screenshot, and observed result
 
 ## Remaining concerns
 
-Xcode installation, iOS compilation/linking, signing, Simulator launch, and
-physical-device behavior are unverified. Package resolution cannot expose native
-linker problems. Asset validation errors are shown by the native host.
+Go's native binding compilation, the UIKit host link, and a signed smoke device
+build succeed. Physical-device behavior remains unverified. Real-client runtime
+assembly still needs compatible MPQs. Asset validation errors are shown by the
+native host. Client bootstrap currently couples even UI-only scenes to gameplay
+catalog validation. A future demo-data adapter would need to address that boundary
+without inventing authoritative movement facts.
+
+The smoke test's runtime log reports
+`Modifying properties of a view's layer off the main thread is not allowed`
+and `Unsupported layout off the main thread` during Ebitengine Metal setup.
+The stack reaches `internal/graphicsdriver/metal/view_ios.go`'s `addSublayer`.
+No upstream dependency patch or version upgrade is included. The test kept
+rendering, but iOS compatibility and stricter future enforcement need investigation.
 
 The existing Ebitengine adapter drains audio muted, lacks a native console
 overlay, rejects final `pal.dat` quantization, and uses CPU quantization for
