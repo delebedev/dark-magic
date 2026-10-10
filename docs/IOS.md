@@ -10,8 +10,10 @@ Observed on 2026-10-10:
 Upstream baseline: `9d450c5d452198dec4fd9d53f9c6a9e1b0145334`.
 
 - Desktop Ebitengine client compiles with Go 1.25.12 and Ebitengine 2.9.9.
-- Desktop `--start-scene ui_lab` stops at asset validation. No real-asset desktop
-  scene has been verified in this checkout.
+- Desktop `--start-scene ui_lab` runs with MPQs extracted from full local
+  installers. The existing capture pipeline records an 800x600 original-art
+  frame with authored buttons, fonts, checkbox, and slider. Its SHA-256 is
+  `64e8c3a1fb3a4b6d5238721c2724118fd0dd9e64b753414e30f4261e5b392528`.
 - iOS/arm64 package resolution succeeds. The 410-package graph contains no
   Raylib, FFmpeg/astiav, desktop GLFW, or Bubble Tea dependency. QUIC and pgx
   remain reachable through existing client composition. This is dependency
@@ -29,9 +31,15 @@ Upstream baseline: `9d450c5d452198dec4fd9d53f9c6a9e1b0145334`.
   title, increasing ticks, a white marker following drag input, changing touch
   coordinates, and successful background/resume. Physical-screen evidence is
   user-reported; no phone screenshot or runtime console capture was collected.
+- The real-engine app then builds, installs, and launches on that same phone
+  with five original MPQs bundled. The user confirms `UI LAB`, the stone
+  `AUTHORED BUTTON`, gold checkbox, skull slider, and working button-release
+  activation and slider drag. It uses the unchanged existing scene and normal
+  in-process authoritative client composition. Offline/resume checks are pending.
 - Targeted Go checks cover the application, command, content, input, session,
   hosted lifecycle/error propagation, touch translation, and smoke diagnostic.
-  Architecture checks pass. Original-asset cases are not evidence without MPQs.
+  Architecture checks pass. With the extracted MPQs, the real-content check
+  reads the patched sets table and lists 263 DT1 and 2,276 DS1 assets.
 - Xcode builds and installs the smoke app. On an iPhone 17 Pro Simulator running
   iOS 26.4.1, the 800x600 diagnostic renders with landscape letterboxing, ticks
   advance, a drag changes touch coordinates to `(205, 202)`, and the white marker
@@ -39,8 +47,10 @@ Upstream baseline: `9d450c5d452198dec4fd9d53f9c6a9e1b0145334`.
   and touch state. This is Simulator input, not a physical-device touch test.
 - Startup logs contain UIKit main-thread assertions from Ebitengine's Metal
   `addSublayer` call. Rendering continues, but this is an unresolved renderer issue.
-- **The smoke app runs on a physical iPhone. No original-asset scene is verified.
-  M0's desktop scene requirement and M1 remain incomplete.**
+- **M0's desktop and Simulator checks now run. M1's existing original-art scene
+  and basic touch input work on the iPhone according to the user.** The installer
+  asset directories identify themselves as 1.14b; 1.14d asset parity, offline
+  acceptance, and the remaining hardware stress checks have not been verified.
 
 The Mac initially had roughly 20 GiB free and only Command Line Tools selected.
 Full Xcode was not found in Applications or the Spotlight application index.
@@ -58,6 +68,39 @@ Local evidence is ignored under `.local/`: `ios-smoke-touch.png`,
 `ios-smoke-device-build.log`, plus `ios-device-install.json` and
 `ios-device-launch.json`. Native screenshots retain
 the Simulator display's portrait pixel orientation; the UI window was landscape.
+Real-scene evidence: `.local/desktop-lod-ui-lab/01-ui_lab.png`, its `report.json`,
+`.local/desktop-lod-capture.log`, `.local/ios-lod-device-build.log`,
+`.local/ios-lod-device-install.json`, `.local/ios-lod-device-launch.json`, and
+`.local/ios-lod-device-processes.json`. Physical visual/input acceptance is the
+user's confirmation in this conversation, not an agent-observed phone screenshot.
+
+### Full installer extraction on the Mac
+
+The user's Downloads folder contains complete base and expansion
+`Installer Tome.mpq` archives. Unlike the small Blizzard downloader EXE, these
+contain the finished game archives under `Common`. `ios/extract-installer.py`
+uses the already-installed StormLib host tool to extract eleven MPQs directly.
+No Wine, CrossOver, Windows, installer execution, or key-file processing is needed.
+
+```sh
+brew install stormlib
+python3 ios/extract-installer.py \
+  '/path/to/Diablo II/Installer Tome.mpq' \
+  '/path/to/LoD/Installer Tome.mpq' \
+  '/path/outside/git/lod'
+```
+
+The output must be new and outside Git. The tool checks extracted sizes, opens
+each nested MPQ, and records SHA-256 hashes. It selects the expansion's
+`patch_d2.mpq` rather than the base patch. Existing assets are never overwritten.
+Failure can leave a partial output for inspection; choose a new output path
+for another attempt. Locally, extraction is saved in `~/src/dark-magic-assets/lod`.
+
+The installer folders identify their asset snapshot as 1.14b. The accompanying
+1.14d patch executable contains binary deltas, not ready-to-copy replacement
+MPQs. It was inspected but not run or applied. Original 1.14d gameplay parity
+is therefore not established by this UI experiment. The normal desktop client
+and real iPhone `ui_lab` do work with the extracted snapshot.
 
 ### Downloaded demo
 
@@ -188,9 +231,12 @@ xcodebuild -project ios/DarkMagic.xcodeproj -scheme DarkMagic \
   -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO build
 ```
 
-For the real scene, place original LoD MPQs into `ios/Assets` with lowercase
+For the real scene, copy extracted original LoD MPQs into `ios/Assets` with lowercase
 archive filenames, including `d2data.mpq`, `d2char.mpq`, `d2exp.mpq`, and
-`patch_d2.mpq`. These files are ignored. Rebuild the framework:
+`patch_d2.mpq`. This UI slice also bundles `d2sfx.mpq`. These five archives total
+834,011,197 bytes. The other six archives remain outside the checkout; native
+audio is disabled and this scene needs no cinematics. These files are ignored.
+Rebuild the framework:
 
 ```sh
 ./ios/build.sh
@@ -238,10 +284,12 @@ Record device/OS, asset version, build revision, screenshot, and observed result
 ## Remaining concerns
 
 Go's native binding compilation, the UIKit host link, and a signed smoke device
-build succeed. Smoke rendering, drag input, and background/resume work on the
-physical phone according to the user. Real-client runtime assembly still needs
-compatible MPQs. Asset validation errors are shown by the native host. Client
-bootstrap currently couples even UI-only scenes to gameplay
+build succeed. The existing original-art UI scene and touch interaction also
+work on the physical phone according to the user. Smoke background/resume works.
+Full installer extraction resolves the earlier asset blocker without adding an
+iOS decoder dependency or changing simulation data. Asset validation errors
+are shown by the native host. Client bootstrap currently couples even UI-only
+scenes to gameplay
 catalog validation. A future demo-data adapter would need to address that boundary
 without inventing authoritative movement facts.
 
