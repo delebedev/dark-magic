@@ -1,8 +1,10 @@
 # Experimental iOS port
 
 This branch explores Ebitengine plus a UIKit host. It is not a playable mobile
-Diablo II release. M1 is demonstrated for the existing `ui_lab` scene. M2
-gameplay work has not begun.
+Diablo II release. M1 is demonstrated for the existing `ui_lab` scene. The first
+M2 slice runs the existing `game_world` scene with a disposable Amazon in Act I
+town. Touch movement, camera follow, and background/resume work in the Simulator.
+The user also confirms town rendering and movement on the physical iPhone.
 
 ## Status and feasibility
 
@@ -40,6 +42,19 @@ Upstream baseline: `9d450c5d452198dec4fd9d53f9c6a9e1b0145334`.
   interaction with Airplane Mode enabled and Wi-Fi disabled, then successful
   rendering and button interaction after backgrounding and returning. No
   separate network service is required for this scene.
+- Desktop `game_world` renders town with the upstream development character and
+  completes the existing `--fixture-pointer-move` acceptance before capture.
+  On an iPhone 17 Pro Simulator running iOS 26.5, the same scene renders original
+  terrain, Amazon animation, and HUD. Ground gestures move the character in both
+  directions while terrain shifts under the centered camera. Backgrounding for
+  at least five seconds and returning preserves process 48726 and the town
+  position; subsequent gestures still move the character. Some very short
+  automated taps require repeating. Input reliability needs hardware checking.
+- The default-town build installs on the same physical iPhone 16 Pro and launches
+  after unlocking it. The user confirms town, Amazon, health/mana HUD, and ground
+  tap/hold movement with camera follow. This is user-reported hardware acceptance;
+  gameplay background/resume, collision boundaries, and performance on the phone
+  remain unverified. Full M2 is not complete because transitions are unchecked.
 - Targeted Go checks cover the application, command, content, input, session,
   hosted lifecycle/error propagation, touch translation, and smoke diagnostic.
   Architecture checks pass. With the extracted MPQs, the real-content check
@@ -78,6 +93,16 @@ Real-scene evidence: `.local/desktop-lod-ui-lab/01-ui_lab.png`, its `report.json
 `.local/ios-lod-device-install.json`, `.local/ios-lod-device-launch.json`, and
 `.local/ios-lod-device-processes.json`. Physical visual/input acceptance is the
 user's confirmation in this conversation, not an agent-observed phone screenshot.
+Town evidence: `.local/desktop-town/01-game_world.png` and `report.json`,
+`.local/desktop-town.log`, `.local/ios-town-before.png`, `ios-town-moved.png`,
+`ios-town-before-resume.png`, `ios-town-resumed.png`, `ios-town-resumed-moved.png`,
+and `.local/ios-world-sim.stderr`. Native town builds and device installation
+are recorded in `.local/ios-world-default-{sim,device}-build.log` and
+`.local/ios-world-default-device-install-retry.json`.
+The default Simulator launch is captured in `.local/ios-town-default.png`.
+The explicit `ui_lab` override also renders in the Simulator. Hardware launch
+is recorded in `.local/ios-town-default-device-launch.json`; visual/movement
+acceptance is the user's confirmation in this conversation.
 
 ### Full installer extraction on the Mac
 
@@ -179,8 +204,12 @@ above; it is a compatibility probe, not a working scene workaround.
 - The desktop executable keeps its signal handling. The hosted client has a
   cancellable context and idempotent cleanup. Scene failures retain their original
   errors and shut down application consumers before closing mounted content.
-- The initial real scene is the unchanged `ui_lab`. It tests existing authored
-  Diablo controls without requiring a gameplay network service.
+- M1 used the unchanged `ui_lab`. The default now starts the unchanged
+  `game_world` with `FixtureCharacters=1` and `FixtureWorldLevel=1`, exactly as
+  desktop development runs do. The existing fixture selects an ephemeral Amazon
+  and activates ordinary offline authority. It disables profile persistence,
+  so this slice resets after process termination and cannot replace real saves.
+  `DARK_MAGIC_START_SCENE=ui_lab` still selects the M1 scene without a fixture.
 - A separate `mobile/smoke` binding is an explicit asset-free M0 diagnostic.
   Its screen identifies itself as a smoke test with no Diablo assets or gameplay.
 - Touch IDs are translated to existing `pointer_primary` press/hold/release
@@ -237,9 +266,9 @@ xcodebuild -project ios/DarkMagic.xcodeproj -scheme DarkMagic \
   -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO build
 ```
 
-For the real scene, copy extracted original LoD MPQs into `ios/Assets` with lowercase
+For the real scenes, copy extracted original LoD MPQs into `ios/Assets` with lowercase
 archive filenames, including `d2data.mpq`, `d2char.mpq`, `d2exp.mpq`, and
-`patch_d2.mpq`. This UI slice also bundles `d2sfx.mpq`. These five archives total
+`patch_d2.mpq`. This experiment also bundles `d2sfx.mpq`. These five archives total
 834,011,197 bytes. The other six archives remain outside the checkout; native
 audio is disabled and this scene needs no cinematics. These files are ignored.
 Rebuild the framework:
@@ -248,6 +277,22 @@ Rebuild the framework:
 ./ios/build.sh
 open ios/DarkMagic.xcodeproj
 ```
+
+The default real binding opens Act I town with the disposable Amazon. Tap ground
+to move, or hold/drag to keep issuing the existing pointer movement command.
+The existing camera follows the character. Audio is muted. Closing the process
+discards this development character and its position.
+
+To repeat M1, set `DARK_MAGIC_START_SCENE=ui_lab` in the Xcode scheme's Run
+environment, or launch the installed Simulator app with:
+
+```sh
+SIMCTL_CHILD_DARK_MAGIC_START_SCENE=ui_lab \
+  xcrun simctl launch --terminate-running-process booted org.darkmagic.experimental
+```
+
+Omit that environment variable for town. The Simulator default launch was also
+checked after terminating and reinstalling the app, without a scene override.
 
 Alternatively, install the app and use Finder file sharing to copy an `Assets`
 folder into Dark Magic's Documents directory. Relaunch the app. An existing
@@ -288,6 +333,12 @@ Record device/OS, asset version, build revision, screenshot, and observed result
 5. Repeat in airplane mode. Inspect Xcode console for scene/render errors.
 
 ## Remaining concerns
+
+The first M2 slice has Simulator movement, camera-follow, and resume evidence,
+plus user-confirmed town movement on the iPhone. World transitions, collision
+edge cases, combat, and phone gameplay performance have not been demonstrated.
+Very short automated Simulator taps sometimes miss; touch timing and multi-touch
+need measured hardware acceptance.
 
 Go's native binding compilation, the UIKit host link, and a signed smoke device
 build succeed. The existing original-art UI scene and touch interaction also

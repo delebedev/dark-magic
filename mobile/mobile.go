@@ -67,7 +67,10 @@ func (g *mobileGame) start() error {
 	if !g.configured {
 		return errors.New("call Configure before creating the Ebitengine view controller")
 	}
-	var err error
+	options, err := hostedOptions(os.Getenv("DARK_MAGIC_START_SCENE"))
+	if err != nil {
+		return err
+	}
 	g.mods, err = distribution.PrepareMods("none")
 	if err != nil {
 		return err
@@ -83,13 +86,25 @@ func (g *mobileGame) start() error {
 	if err != nil {
 		return err
 	}
-	g.client, err = clientapp.NewHostedGame(clientapp.Options{
-		Content: g.content, Mods: &g.mods.Resolved, Packages: g.mods.Packages,
-		AssetSetID: assetSetID, StartScene: "ui_lab", ViewportFit: "contain",
-		DisableNativeAudio: true,
-		PlayerProfilePath:  filepath.Join(g.dataDirectory, "player-profile.json"),
-	})
+	options.Content, options.Mods, options.Packages = g.content, &g.mods.Resolved, g.mods.Packages
+	options.AssetSetID = assetSetID
+	options.PlayerProfilePath = filepath.Join(g.dataDirectory, "player-profile.json")
+	g.client, err = clientapp.NewHostedGame(options)
 	return err
+}
+
+// Direct world launch uses the upstream disposable character and normal authority.
+func hostedOptions(scene string) (clientapp.Options, error) {
+	options := clientapp.Options{StartScene: "ui_lab", ViewportFit: "contain", DisableNativeAudio: true}
+	switch scene {
+	case "ui_lab":
+	case "", "game_world":
+		options.StartScene = "game_world"
+		options.FixtureCharacters, options.FixtureWorldLevel = 1, 1
+	default:
+		return options, fmt.Errorf("unsupported mobile start scene %q", scene)
+	}
+	return options, nil
 }
 
 func (g *mobileGame) Update() error {

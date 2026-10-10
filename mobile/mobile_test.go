@@ -49,3 +49,19 @@ func TestMobileGameRejectsMissingOriginalAssets(t *testing.T) {
 		t.Fatalf("missing-asset update: %v", err)
 	}
 }
+
+func TestHostedOptionsKeepUIProfileAndWorldFixtureSeparate(t *testing.T) {
+	options, err := hostedOptions("ui_lab")
+	if err != nil || options.StartScene != "ui_lab" || options.FixtureCharacters != 0 {
+		t.Fatalf("UI startup acquired a disposable character: %+v, %v", options, err)
+	}
+	for _, scene := range []string{"", "game_world"} {
+		options, err := hostedOptions(scene)
+		if err != nil || options.FixtureCharacters != 1 || options.FixtureWorldLevel != 1 || options.StartScene != "game_world" {
+			t.Fatalf("world startup cannot admit its upstream town fixture: %+v, %v", options, err)
+		}
+	}
+	if _, err := hostedOptions("unknown"); err == nil {
+		t.Fatal("accepted an unsupported direct-start scene")
+	}
+}
