@@ -19,4 +19,4 @@ go install github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile@v2.9.9
 go_bin="$(go env GOPATH)/bin/ebitenmobile"
 if [[ -n "$(go env GOBIN)" ]]; then go_bin="$(go env GOBIN)/ebitenmobile"; fi
 "$go_bin" bind -target ios -iosversion 13.0 -tags ebitengine \
-  -o ios/DarkMagic.xcframework "$package"
+  -o ios/Darkmagicmobile.xcframework "$package"

@@ -10,7 +10,7 @@
 		00000000000000000000000D = { isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "BridgingHeader.h"; sourceTree = "<group>"; };
 		00000000000000000000000E = { isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Info.plist"; sourceTree = "<group>"; };
 		00000000000000000000000F = { isa = PBXFileReference; lastKnownFileType = folder; path = "Assets"; sourceTree = "<group>"; };
-		000000000000000000000010 = { isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = "DarkMagic.xcframework"; sourceTree = "<group>"; };
+		000000000000000000000010 = { isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = "Darkmagicmobile.xcframework"; sourceTree = "<group>"; };
 		00000000000000000000001E = { isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		00000000000000000000001F = { isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		000000000000000000000020 = { isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
