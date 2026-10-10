@@ -1,0 +1,37 @@
+//go:build ebitengine
+
+// Package darkmagicmobile is an asset-free M0 diagnostic, not a Dark Magic scene.
+package darkmagicmobile
+
+import (
+	"fmt"
+	"image/color"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+)
+
+// Configure matches the native host's binding; the diagnostic needs no assets.
+func Configure(assetDirectory, dataDirectory string) error { return nil }
+
+type smokeGame struct {
+	ticks int
+	x, y  int
+}
+
+func (g *smokeGame) Update() error {
+	g.ticks++
+	for _, id := range ebiten.AppendTouchIDs(nil) {
+		g.x, g.y = ebiten.TouchPosition(id)
+		break
+	}
+	return nil
+}
+
+func (g *smokeGame) Draw(screen *ebiten.Image) {
+	screen.Fill(color.RGBA{R: 24, G: 32, B: 48, A: 255})
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("M0: Ebitengine iOS smoke test\nNo Diablo assets or gameplay\nTick: %d\nTouch: %d, %d", g.ticks, g.x, g.y))
+	ebitenutil.DrawRect(screen, float64(g.x)-8, float64(g.y)-8, 16, 16, color.White)
+}
+
+func (*smokeGame) Layout(width, height int) (int, int) { return 800, 600 }

@@ -10,3 +10,9 @@ asset-catalog/
 /captures/
 /dist/*.zip
 /.local/
+*.mpq
+*.MPQ
+/ios/*.xcframework/
+/ios/Assets/
+/ios/build/
+xcuserdata/
