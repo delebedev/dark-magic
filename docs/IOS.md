@@ -1,7 +1,8 @@
 # Experimental iOS port
 
 This branch explores Ebitengine plus a UIKit host. It is not a playable mobile
-Diablo II release. M2 is deferred until M1 has been demonstrated on hardware.
+Diablo II release. M1 is demonstrated for the existing `ui_lab` scene. M2
+gameplay work has not begun.
 
 ## Status and feasibility
 
@@ -35,7 +36,10 @@ Upstream baseline: `9d450c5d452198dec4fd9d53f9c6a9e1b0145334`.
   with five original MPQs bundled. The user confirms `UI LAB`, the stone
   `AUTHORED BUTTON`, gold checkbox, skull slider, and working button-release
   activation and slider drag. It uses the unchanged existing scene and normal
-  in-process authoritative client composition. Offline/resume checks are pending.
+  in-process authoritative client composition. The user also confirms button
+  interaction with Airplane Mode enabled and Wi-Fi disabled, then successful
+  rendering and button interaction after backgrounding and returning. No
+  separate network service is required for this scene.
 - Targeted Go checks cover the application, command, content, input, session,
   hosted lifecycle/error propagation, touch translation, and smoke diagnostic.
   Architecture checks pass. With the extracted MPQs, the real-content check
@@ -47,10 +51,11 @@ Upstream baseline: `9d450c5d452198dec4fd9d53f9c6a9e1b0145334`.
   and touch state. This is Simulator input, not a physical-device touch test.
 - Startup logs contain UIKit main-thread assertions from Ebitengine's Metal
   `addSublayer` call. Rendering continues, but this is an unresolved renderer issue.
-- **M0's desktop and Simulator checks now run. M1's existing original-art scene
-  and basic touch input work on the iPhone according to the user.** The installer
-  asset directories identify themselves as 1.14b; 1.14d asset parity, offline
-  acceptance, and the remaining hardware stress checks have not been verified.
+- **M0 and M1 are demonstrated for this UI slice.** Desktop and Simulator checks
+  run; the user confirms the existing original-art scene, basic touch input,
+  offline interaction, and background/resume on the iPhone. The installer asset
+  directories identify themselves as 1.14b; 1.14d asset parity and the remaining
+  hardware stress checks have not been verified.
 
 The Mac initially had roughly 20 GiB free and only Command Line Tools selected.
 Full Xcode was not found in Applications or the Spotlight application index.
@@ -190,8 +195,9 @@ above; it is a compatibility probe, not a working scene workaround.
   cache go into Application Support, never the read-only bundle.
 - UIKit resign/active callbacks call Ebitengine suspend/resume. Large elapsed gaps
   are discarded for presentation and hosted application stepping. The existing
-  session retains its bounded fixed-tick clock. Smoke background/resume works
-  on hardware; real-client suspension remains unverified.
+  session retains its bounded fixed-tick clock. Smoke and real UI background/resume
+  work on hardware according to the user. Lock/unlock, process termination, and
+  gameplay-state persistence remain unverified.
 
 ## Build and run
 
@@ -285,7 +291,9 @@ Record device/OS, asset version, build revision, screenshot, and observed result
 
 Go's native binding compilation, the UIKit host link, and a signed smoke device
 build succeed. The existing original-art UI scene and touch interaction also
-work on the physical phone according to the user. Smoke background/resume works.
+work on the physical phone according to the user, including offline interaction
+and background/resume. Offline cold launch and gameplay-state persistence have
+not been checked.
 Full installer extraction resolves the earlier asset blocker without adding an
 iOS decoder dependency or changing simulation data. Asset validation errors
 are shown by the native host. Client bootstrap currently couples even UI-only
