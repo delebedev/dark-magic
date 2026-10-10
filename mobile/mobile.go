@@ -23,6 +23,7 @@ type mobileGame struct {
 	mu            sync.Mutex
 	configured    bool
 	dataDirectory string
+	startScene    string
 	client        *clientapp.HostedGame
 	content       *content.FS
 	mods          *distribution.ModSet
@@ -30,7 +31,7 @@ type mobileGame struct {
 
 // Configure must run once before creating the generated view controller.
 // Assets are read-only; all persistent output goes to Application Support.
-func Configure(assetDirectory, dataDirectory string) error {
+func Configure(assetDirectory, dataDirectory, startScene string) error {
 	game.mu.Lock()
 	defer game.mu.Unlock()
 	if game.configured {
@@ -38,6 +39,9 @@ func Configure(assetDirectory, dataDirectory string) error {
 	}
 	if !filepath.IsAbs(assetDirectory) || !filepath.IsAbs(dataDirectory) || strings.Contains(assetDirectory, ",") {
 		return errors.New("asset and data directories must be absolute; asset directory cannot contain commas")
+	}
+	if _, err := hostedOptions(startScene); err != nil {
+		return err
 	}
 	info, err := os.Stat(assetDirectory)
 	if err != nil || !info.IsDir() {
@@ -57,7 +61,7 @@ func Configure(assetDirectory, dataDirectory string) error {
 			return err
 		}
 	}
-	game.dataDirectory, game.configured = dataDirectory, true
+	game.dataDirectory, game.startScene, game.configured = dataDirectory, startScene, true
 	return nil
 }
 
@@ -67,7 +71,7 @@ func (g *mobileGame) start() error {
 	if !g.configured {
 		return errors.New("call Configure before creating the Ebitengine view controller")
 	}
-	options, err := hostedOptions(os.Getenv("DARK_MAGIC_START_SCENE"))
+	options, err := hostedOptions(g.startScene)
 	if err != nil {
 		return err
 	}
@@ -98,6 +102,8 @@ func hostedOptions(scene string) (clientapp.Options, error) {
 	options := clientapp.Options{StartScene: "ui_lab", ViewportFit: "contain", DisableNativeAudio: true}
 	switch scene {
 	case "ui_lab":
+	case "spell_lab", "warp_lab":
+		options.StartScene = scene
 	case "", "game_world":
 		options.StartScene = "game_world"
 		options.FixtureCharacters, options.FixtureWorldLevel = 1, 1

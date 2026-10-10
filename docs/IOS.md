@@ -104,6 +104,45 @@ The explicit `ui_lab` override also renders in the Simulator. Hardware launch
 is recorded in `.local/ios-town-default-device-launch.json`; visual/movement
 acceptance is the user's confirmation in this conversation.
 
+### Advanced labs, 2026-10-11
+
+The mobile entry point also admits upstream `spell_lab` and `warp_lab`. Their
+existing development-scene defaults supply disposable characters, skill loadout,
+monsters, and portal fixtures. No mobile simulation or replacement gameplay was
+added. The Configure binding takes the selected scene explicitly, with matching
+real/smoke signatures and validation before configuration is committed.
+
+Observed in the iOS 26.5 Simulator: Spell Lab renders Blood Moor, the Sorceress,
+three hostiles, and the original HUD. Ground input moves her. Targeted primary
+input produces an orange Fire Bolt effect and dead hostile sprites. After
+backgrounding for five seconds and returning to the same process, another
+cast kills a hostile. Evidence: `.local/ios-spell-combat.mov`,
+`ios-spell-kill.png`, and `ios-spell-resumed-kill.png`.
+
+The upstream real-asset authority tests for production spell families and warp
+movement/transitions pass. Those tests are headless evidence, not live iOS proof
+of other skills or portal crossings. Spell Lab uses a level-30 Sorceress with
+43 implemented exact-ID skills and a deep mana fixture that replenishes mana.
+It does not demonstrate normal retail mana regeneration or progression.
+
+The skill chooser did not open during automated Simulator well taps, including
+some complete press/release events. The cause remains unconfirmed. Secondary
+skill touch input is not mapped. Summons, additional spells, and live portal
+crossings remain unverified. Temporary input/control traces were removed before
+packaging the phone build.
+
+The final native scene picker renders in the Simulator. Choosing Spell Lab
+launches its original scene, and terminating/relaunching returns to the picker.
+Choosing Warp Lab also renders town, the Amazon, the blue portal, and its
+read-only crossing diagnostics.
+The same signed build installs and launches on the paired iPhone 16 Pro.
+Hardware lab interaction is awaiting user testing. Build/install evidence:
+`.local/ios-labs-picker-{sim,device}-build.log`,
+`ios-labs-picker-device-install.json`, and `ios-labs-picker-device-launch.json`.
+Picker/selected-scene evidence: `ios-labs-picker.png` and
+`ios-spell-picker-launch.png`, and `ios-warp-picker-launch.png`.
+Targeted real/smoke binding tests pass.
+
 ### Full installer extraction on the Mac
 
 The user's Downloads folder contains complete base and expansion
@@ -278,7 +317,8 @@ Rebuild the framework:
 open ios/DarkMagic.xcodeproj
 ```
 
-The default real binding opens Act I town with the disposable Amazon. Tap ground
+The UIKit host now opens a scene picker: Town, Spell Lab, Warp Lab, and UI Lab.
+Choose Town for Act I with the disposable Amazon. Tap ground
 to move, or hold/drag to keep issuing the existing pointer movement command.
 The existing camera follows the character. Audio is muted. Closing the process
 discards this development character and its position.
@@ -291,8 +331,10 @@ SIMCTL_CHILD_DARK_MAGIC_START_SCENE=ui_lab \
   xcrun simctl launch --terminate-running-process booted org.darkmagic.experimental
 ```
 
-Omit that environment variable for town. The Simulator default launch was also
-checked after terminating and reinstalling the app, without a scene override.
+Omit that environment variable for the picker. Force-close the app and reopen
+to choose another scene. Backgrounding and returning keeps the running scene.
+Scene selection is passed directly to the Go Configure binding; the native host
+does not change gameplay or restart Ebitengine in-process.
 
 Alternatively, install the app and use Finder file sharing to copy an `Assets`
 folder into Dark Magic's Documents directory. Relaunch the app. An existing

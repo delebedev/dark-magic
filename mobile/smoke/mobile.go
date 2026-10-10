@@ -12,7 +12,7 @@ import (
 )
 
 // Configure matches the native host's binding; the diagnostic needs no assets.
-func Configure(assetDirectory, dataDirectory string) error { return nil }
+func Configure(assetDirectory, dataDirectory, startScene string) error { return nil }
 
 type smokeGame struct {
 	ticks int

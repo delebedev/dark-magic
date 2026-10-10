@@ -18,19 +18,25 @@ func TestConfigureUsesSandboxPathsAndRejectsReconfiguration(t *testing.T) {
 	}
 	assets := t.TempDir()
 	data := filepath.Join(t.TempDir(), "support")
-	if err := Configure("relative", data); err == nil {
+	if err := Configure("relative", data, "spell_lab"); err == nil {
 		t.Fatal("accepted relative asset path")
 	}
-	if err := Configure(assets, data); err != nil {
+	if err := Configure(assets, data, "unknown"); err == nil {
+		t.Fatal("accepted unknown scene during configuration")
+	}
+	if err := Configure(assets, data, "spell_lab"); err != nil {
 		t.Fatal(err)
 	}
 	if os.Getenv("MPQ_DIRECTORY") != assets || os.Getenv("DARK_MAGIC_PREFERENCES") != filepath.Join(data, "preferences.json") {
 		t.Fatal("sandbox paths were not propagated")
 	}
+	if game.startScene != "spell_lab" {
+		t.Fatal("selected scene was not retained")
+	}
 	if info, err := os.Stat(data); err != nil || !info.IsDir() {
 		t.Fatalf("data directory: %v", err)
 	}
-	if err := Configure(assets, data); err == nil {
+	if err := Configure(assets, data, "spell_lab"); err == nil {
 		t.Fatal("accepted repeated configuration")
 	}
 }
@@ -59,6 +65,12 @@ func TestHostedOptionsKeepUIProfileAndWorldFixtureSeparate(t *testing.T) {
 		options, err := hostedOptions(scene)
 		if err != nil || options.FixtureCharacters != 1 || options.FixtureWorldLevel != 1 || options.StartScene != "game_world" {
 			t.Fatalf("world startup cannot admit its upstream town fixture: %+v, %v", options, err)
+		}
+	}
+	for _, scene := range []string{"spell_lab", "warp_lab"} {
+		options, err := hostedOptions(scene)
+		if err != nil || options.StartScene != scene || options.FixtureCharacters != 0 || options.FixtureWorldLevel != 0 {
+			t.Fatalf("lab startup overrides upstream fixture defaults: %+v, %v", options, err)
 		}
 	}
 	if _, err := hostedOptions("unknown"); err == nil {
