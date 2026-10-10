@@ -22,8 +22,13 @@ Upstream baseline: `9d450c5d452198dec4fd9d53f9c6a9e1b0145334`.
   The Swift/UIKit host type-checks and links with the real binding for arm64
   iPhone and Simulator. The real-engine Xcode Simulator app builds successfully.
   The smoke device app builds with a local development signature and passes
-  `codesign --verify --deep --strict`. Device installation is blocked while the
-  paired phone is locked and its Developer Disk Image cannot be mounted.
+  `codesign --verify --deep --strict`. Installation succeeds on a paired physical
+  iPhone 16 Pro running iOS 26.6.2 after unlocking it. Initial launch is denied
+  until the user trusts the developer profile on the phone. After that,
+  `devicectl` launches the app successfully. The user confirms the diagnostic
+  title, increasing ticks, a white marker following drag input, changing touch
+  coordinates, and successful background/resume. Physical-screen evidence is
+  user-reported; no phone screenshot or runtime console capture was collected.
 - Targeted Go checks cover the application, command, content, input, session,
   hosted lifecycle/error propagation, touch translation, and smoke diagnostic.
   Architecture checks pass. Original-asset cases are not evidence without MPQs.
@@ -34,8 +39,8 @@ Upstream baseline: `9d450c5d452198dec4fd9d53f9c6a9e1b0145334`.
   and touch state. This is Simulator input, not a physical-device touch test.
 - Startup logs contain UIKit main-thread assertions from Ebitengine's Metal
   `addSublayer` call. Rendering continues, but this is an unresolved renderer issue.
-- **No original-asset scene or physical-iPhone launch is verified. M0's desktop
-  scene requirement and M1 remain incomplete.**
+- **The smoke app runs on a physical iPhone. No original-asset scene is verified.
+  M0's desktop scene requirement and M1 remain incomplete.**
 
 The Mac initially had roughly 20 GiB free and only Command Line Tools selected.
 Full Xcode was not found in Applications or the Spotlight application index.
@@ -50,7 +55,8 @@ The global developer-directory selection is preserved; builds use
 Local evidence is ignored under `.local/`: `ios-smoke-touch.png`,
 `ios-smoke-resumed.png`, `ios-smoke-runtime.log`, `ios-real-bind.log`,
 `ios-host-link.log`, `ios-device-host-link.log`, `ios-real-build.log`, and
-`ios-smoke-device-build.log`. Native screenshots retain
+`ios-smoke-device-build.log`, plus `ios-device-install.json` and
+`ios-device-launch.json`. Native screenshots retain
 the Simulator display's portrait pixel orientation; the UI window was landscape.
 
 ### Downloaded demo
@@ -141,7 +147,8 @@ above; it is a compatibility probe, not a working scene workaround.
   cache go into Application Support, never the read-only bundle.
 - UIKit resign/active callbacks call Ebitengine suspend/resume. Large elapsed gaps
   are discarded for presentation and hosted application stepping. The existing
-  session retains its bounded fixed-tick clock. Hardware suspension remains unverified.
+  session retains its bounded fixed-tick clock. Smoke background/resume works
+  on hardware; real-client suspension remains unverified.
 
 ## Build and run
 
@@ -203,6 +210,11 @@ xcrun simctl get_app_container booted org.darkmagic.experimental data
 For a physical phone, select a signing team and unique bundle identifier in
 Xcode, connect/pair the phone, enable Developer Mode as required, and run the
 same scheme. Signing credentials and team settings are intentionally not committed.
+Keep the phone unlocked while Xcode mounts its Developer Disk Image. If the
+installed app reports an untrusted developer, open Settings > General > VPN &
+Device Management on the phone and trust/verify your Developer App profile.
+The local Personal Team profile used for this experiment expires on 2026-10-17;
+rebuild and reinstall with a renewed profile after expiry.
 
 First verify the desktop scene with the same asset set:
 
@@ -226,9 +238,10 @@ Record device/OS, asset version, build revision, screenshot, and observed result
 ## Remaining concerns
 
 Go's native binding compilation, the UIKit host link, and a signed smoke device
-build succeed. Physical-device behavior remains unverified. Real-client runtime
-assembly still needs compatible MPQs. Asset validation errors are shown by the
-native host. Client bootstrap currently couples even UI-only scenes to gameplay
+build succeed. Smoke rendering, drag input, and background/resume work on the
+physical phone according to the user. Real-client runtime assembly still needs
+compatible MPQs. Asset validation errors are shown by the native host. Client
+bootstrap currently couples even UI-only scenes to gameplay
 catalog validation. A future demo-data adapter would need to address that boundary
 without inventing authoritative movement facts.
 
