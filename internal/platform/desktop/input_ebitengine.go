@@ -15,6 +15,7 @@ type ebitInput struct {
 	renderer *ebitRenderer
 	frame    inputstate.Frame
 	stop     func()
+	touch    touchPointer
 }
 
 // newEbitInput binds sampling to the renderer owner that schedules frame updates.
@@ -47,6 +48,15 @@ func (i *ebitInput) sample() {
 	x, y := ebiten.CursorPosition()
 	scrollX, scrollY := ebiten.Wheel()
 	pointer := ebitMouseAction(ebiten.MouseButtonLeft)
+	points := make([]touchPoint, 0)
+	for _, id := range ebiten.AppendTouchIDs(nil) {
+		tx, ty := ebiten.TouchPosition(id)
+		points = append(points, touchPoint{id: int(id), x: tx, y: ty})
+	}
+	width, height := i.renderer.Resolution()
+	if tx, ty, action, present := i.touch.sample(points, width, height); present {
+		x, y, pointer = tx, ty, action
+	}
 	pointerSecondary := ebitMouseAction(ebiten.MouseButtonRight)
 	confirm := ebitKeyAction(ebiten.KeyEnter)
 	cancel := ebitKeyAction(ebiten.KeyEscape)

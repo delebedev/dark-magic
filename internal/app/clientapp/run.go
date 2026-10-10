@@ -26,12 +26,15 @@ func Run(options Options) error {
 // newApplication establishes safe zero-state callbacks and a signal-scoped root
 // context so partial assembly and OS shutdown share the same cleanup path.
 func newApplication(options Options) *application {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	return newApplicationWithContext(options, ctx, stop)
+}
+
+func newApplicationWithContext(options Options, ctx context.Context, stop context.CancelFunc) *application {
 	options = applyDevelopmentSceneDefaults(options)
 	if options.AssetSetID == "" {
 		options.AssetSetID = simulation.EmptyAssetSetID
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
 	return &application{
 		options:     options,

@@ -68,7 +68,8 @@ type ebitRenderer struct {
 	backend  *ebitComposition
 	mixer    *audio.Mixer
 
-	currentScreen *ebiten.Image
+	currentScreen                 *ebiten.Image
+	drawableWidth, drawableHeight int
 
 	textureUploadBudget atomic.Uint64
 	textureCacheBudget  atomic.Uint64
@@ -170,6 +171,15 @@ func (r *ebitRenderer) Run(ctx context.Context) error {
 	run := &ebitGame{renderer: r, ctx: ctx, lastUpdate: time.Now()}
 
 	return ebiten.RunGameWithOptions(run, &ebiten.RunGameOptions{SingleThread: true})
+}
+
+// EbitengineGame gives a native host the existing renderer loop without RunGame.
+func EbitengineGame(renderer Renderer, ctx context.Context) (ebiten.Game, error) {
+	r, ok := renderer.(*ebitRenderer)
+	if !ok || !r.started.Load() {
+		return nil, errors.New("ebitengine backend: hosted game requires a started Ebitengine renderer")
+	}
+	return &ebitGame{renderer: r, ctx: ctx, lastUpdate: time.Now(), hosted: true}, nil
 }
 
 // SubscribeFrame registers work that must run before animation advancement for each update tick.
@@ -288,7 +298,14 @@ func (r *ebitRenderer) WindowSize() (int, int) {
 		return r.options.WindowWidth, r.options.WindowHeight
 	}
 
-	return ebiten.WindowSize()
+	width, height := ebiten.WindowSize()
+	if width > 0 && height > 0 {
+		return width, height
+	}
+	if r.drawableWidth > 0 && r.drawableHeight > 0 {
+		return r.drawableWidth, r.drawableHeight
+	}
+	return r.options.WindowWidth, r.options.WindowHeight
 }
 
 // Resolution returns the fixed logical surface, unless native rendering was requested. In native mode every
@@ -365,6 +382,7 @@ type ebitGame struct {
 	renderer   *ebitRenderer
 	ctx        context.Context
 	lastUpdate time.Time
+	hosted     bool
 }
 
 // Update terminates the native loop when the caller's context ends, then runs frame subscribers before advancing
@@ -378,6 +396,10 @@ func (g *ebitGame) Update() error {
 
 	now := time.Now()
 	delta := now.Sub(g.lastUpdate)
+	// A suspended native host must not fast-forward retained animations on resume.
+	if g.hosted && delta > 250*time.Millisecond {
+		delta = 0
+	}
 	g.lastUpdate = now
 	g.renderer.frames.run()
 
@@ -412,6 +434,7 @@ func (g *ebitGame) Draw(screen *ebiten.Image) {
 // Layout keeps the fixed logical surface for game profiles, while native mode keeps the offscreen surface exactly
 // matched to the drawable window. This is Ebitengine's no-scale path.
 func (g *ebitGame) Layout(outsideWidth, outsideHeight int) (int, int) {
+	g.renderer.drawableWidth, g.renderer.drawableHeight = outsideWidth, outsideHeight
 	if g.renderer.options.NativeResolution {
 		return outsideWidth, outsideHeight
 	}
