@@ -27,4 +27,12 @@ function M.request_skill(side, x, y, target_id)
     })
 end
 
+function M.continue(death_tick)
+    intents.submit("player.continue", { death_tick = death_tick })
+end
+
+function M.recover_corpse(target_id)
+    intents.submit("player.corpse.recover", { target_id = target_id })
+end
+
 return M

@@ -16,6 +16,7 @@
 -- player entity, item containers, save system, map decoder, or input device.
 
 local render = require("engine.render/v1")
+local ecs = require("engine.ecs/v1")
 local display = require("engine.display/v1")
 local input = require("engine.input/v1")
 local scenes = require("engine.scene/v1")
@@ -28,6 +29,7 @@ local game_hud = require("d2legacy.ui.game_hud")
 local player_composite = require("d2legacy.gameplay.player_composite")
 local monster_composite = require("d2legacy.gameplay.monster_composite")
 local ground_items = require("d2legacy.gameplay.ground_items")
+local corpse_markers = require("d2legacy.gameplay.corpse_markers")
 local missile_presentation = require("d2legacy.gameplay.missile_presentation")
 local cast_presentation = require("d2legacy.gameplay.cast_presentation")
 local held_skill_input = require("d2legacy.gameplay.held_skill_input")
@@ -141,6 +143,7 @@ local function install_current_world(self)
     destroy_state_overlays(self)
     destroy_warps(self)
     if self.ground_items then self.ground_items:destroy(); self.ground_items = nil end
+    if self.corpse_markers then self.corpse_markers:destroy(); self.corpse_markers = nil end
     -- Selection and held-input state names coordinates/entities in the old
     -- world. It must not survive into the destination presentation.
     self.pending_interaction = nil
@@ -168,6 +171,7 @@ local function install_current_world(self)
         canvas_height = self.world_canvas_height,
     })
     self.ground_items = ground_items.new(self.map.root, next_world, level_id, manifest.palettes.units)
+    self.corpse_markers = corpse_markers.new(self.map.root, next_world, level_id)
     self.hero = render.create("world", self.map.root)
     self.hero:set_visible(false)
     -- The previous render handle belonged to the destroyed map root. Force the
@@ -977,9 +981,18 @@ return {
             update_missiles(self)
             update_warps(self)
             if self.ground_items then self.ground_items:update() end
+            if self.corpse_markers then self.corpse_markers:update() end
             observe_semantic_cues(self)
             update_state_overlays(self, elapsed)
         end
+        local death = self.gameplay.hero and ecs.get(self.gameplay.hero, "d2legacy.player.death")
+        if death and self.death_overlay_tick ~= death:get("tick") then
+            self.death_overlay_tick = death:get("tick")
+            self.pending_interaction, self.held_hostile = nil, nil
+            scenes.push("death")
+            return
+        end
+        if not death then self.death_overlay_tick = nil end
         -- Scene system separates UPDATE from INPUT OWNERSHIP. A transparent panel
         -- may keep the world updating while routing only certain input below.
         --
@@ -1287,7 +1300,7 @@ return {
                         self.held_hostile = { id = selected.id }
                         request_left_skill(self, selected.x, selected.y, selected.id)
                     end
-                elseif selected.kind == "item" or selected.kind == "static-object" or selected.kind == "dynamic-object" then
+                elseif selected.kind == "item" or selected.kind == "player_corpse" or selected.kind == "static-object" or selected.kind == "dynamic-object" then
                     self.pending_interaction = selected
                     request_move(self, selected.x, selected.y, 3.5)
                 else
@@ -1324,6 +1337,7 @@ return {
                 -- object on the command's eventual apply tick.
                 input_diagnostics.record(self.input_diagnostic, "interact", selected.x, selected.y, selected.id)
                 if selected.kind == "item" then self.items.pickup(selected.id)
+                elseif selected.kind == "player_corpse" then self.player.recover_corpse(selected.id)
                 else self.interaction.open(selected.id) end
             end
             if finished then
@@ -1360,6 +1374,7 @@ return {
         destroy_state_overlays(self)
         destroy_warps(self)
         if self.ground_items then self.ground_items:destroy() end
+        if self.corpse_markers then self.corpse_markers:destroy() end
         chunked_map.destroy(self.map)
     end,
 }
