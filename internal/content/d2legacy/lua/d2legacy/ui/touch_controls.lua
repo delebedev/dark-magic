@@ -52,16 +52,20 @@ end
 
 function M.skills(state, snapshot)
     if not state then return end
+    local external = state.assigned ~= nil and state.assigned ~= snapshot.right_skill
+        and state.assignment ~= snapshot.right_skill
     state.assigned = snapshot.right_skill
     if state.assignment == state.assigned then state.assignment = nil end
-    -- shortcut: retain the first admitted loadout; rebuild when skill-learning UI is supported.
-    if #state.slots > 0 or #snapshot.learned_skills == 0 then return end
+    -- HUD selection changes the main pad; direct pad assignment keeps its loadout.
+    if not external and #state.slots > 0 or #snapshot.learned_skills == 0 then return end
+    if state.job then render.preload_release(state.job); state.job = nil end
+    state.slots = {}
     local learned = {}
     for _, skill in ipairs(snapshot.learned_skills) do
         if skill.right_allowed ~= false then learned[skill.id or skill.skill_id] = skill end
     end
     local chosen = {}
-    for _, id in ipairs({47,45,48,snapshot.right_skill}) do
+    for _, id in ipairs(external and {snapshot.right_skill,47,45,48} or {47,45,48,snapshot.right_skill}) do
         if learned[id] and not chosen[id] and #state.slots < 3 then
             state.slots[#state.slots+1], chosen[id] = learned[id], true
         end

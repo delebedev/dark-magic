@@ -20,6 +20,7 @@ type realD2LegacyFixtureConfig struct {
 	startScene         string
 	fixtureCharacters  int
 	fixtureWorldLevel  int
+	fixtureWorldSpawn  string
 	applySceneDefaults bool
 }
 
@@ -59,6 +60,7 @@ func newRealD2LegacyFixture(t *testing.T, config realD2LegacyFixtureConfig) *rea
 	options.FixtureCharacters = config.fixtureCharacters
 
 	options.FixtureWorldLevel = config.fixtureWorldLevel
+	options.FixtureWorldSpawn = config.fixtureWorldSpawn
 	if config.applySceneDefaults {
 		options = applyDevelopmentSceneDefaults(options)
 	}

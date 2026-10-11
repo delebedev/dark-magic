@@ -5,6 +5,9 @@ Diablo II release. M1 is demonstrated for the existing `ui_lab` scene. The first
 M2 slice runs the existing `game_world` scene with a disposable Amazon in Act I
 town. Touch movement, camera follow, and background/resume work in the Simulator.
 The user also confirms town rendering and movement on the physical iPhone.
+The next [Game World parity slice](IOS_GAME_WORLD.md) adds native access to
+existing panel hotkeys and verifies ordinary exit travel and Amazon melee in
+the Simulator.
 
 ## Status and feasibility
 
@@ -440,8 +443,9 @@ was installed and launched on the paired iPhone 16 Pro. The final build, includi
 prevention of chooser-tap movement, was installed afterward. Its remote launch was
 blocked by the phone lock; unlock and open DarkMagic to resume physical acceptance.
 
-This is a world-viewport experiment. Legacy inventory and other fixed-layout
-panels still need a separate responsive-layout pass. Finite isometric zone edges
+This is a world-viewport experiment. Inventory and Skills now align their fixed
+art and touch regions to the right edge, as described in [IOS_GAME_WORLD.md](IOS_GAME_WORLD.md).
+Other legacy panels still need a separate responsive-layout pass. Finite isometric zone edges
 can expose black beyond the authored map boundary, even when the drawable is filled.
 
 ## Remaining concerns
@@ -449,8 +453,9 @@ can expose black beyond the authored map boundary, even when the drawable is fil
 The first M2 slice has Simulator movement, camera-follow, and resume evidence,
 plus user-confirmed town movement on the iPhone. Spell Lab also has Simulator
 combat evidence and direct touch controls described in [IOS_TOUCH.md](IOS_TOUCH.md).
-World transitions, collision edge cases, broader combat parity, and phone
-gameplay performance still need measurements. Native raw-contact probes make
+Ordinary town/Blood Moor exit travel and starting-skill melee now have Simulator
+evidence in [IOS_GAME_WORLD.md](IOS_GAME_WORLD.md). Collision edge cases, broader
+combat parity, and phone gameplay performance still need measurements. Native raw-contact probes make
 Simulator gestures reproducible. Physical two-thumb comfort remains unverified.
 
 Go's native binding compilation, the UIKit host link, and a signed smoke device

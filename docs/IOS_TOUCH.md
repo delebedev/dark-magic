@@ -3,7 +3,9 @@
 The iOS world scenes use a left movement pad and three direct skill buttons.
 Spell Lab selects Fire Ball (47), Ice Blast (45), and Nova (48) from its ordinary
 admitted learned-skill snapshot. Other characters receive available learned
-skills instead. No skill is granted by the controls.
+skills instead. No skill is granted by the controls. Choosing a right-hand skill through the
+original HUD rebinds the large touch pad. Assignments made by the direct touch
+pads keep their existing three-button layout.
 
 - Drag the left pad to move. Its 14-pixel logical dead zone prevents drift.
   Release to stop. Casting retains the game's existing stationary action rules.
@@ -65,12 +67,12 @@ Spell Lab with `DARK_MAGIC_START_SCENE=spell_lab` and
 raw contact sequences through the same frame/gesture path as real fingers:
 
 - Move east: hold the movement pad for two seconds, then release.
-- Hold fire: hold the large skill button for two seconds, then release.
-- Move + fire: move, add the casting finger, release casting while movement
+- Hold main: hold the large skill button for two seconds, then release.
+- Move + main: move, add the casting finger, release casting while movement
   stays held, then release movement.
-- Aim ice: press the second skill, drag toward the upper left, release.
-- Cancel ice: drag that skill beyond the cancellation radius and release.
-- Nova: tap the third skill and release.
+- Aim second: press the second skill, drag toward the upper left, release.
+- Cancel second: drag that skill beyond the cancellation radius and release.
+- Third skill: tap the third skill and release.
 
 Hide/show probes collapses the native panel for unobstructed captures. Probe
 input is labelled `probe`, bounded to the current viewport, limited to ten

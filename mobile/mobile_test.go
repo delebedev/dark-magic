@@ -77,3 +77,21 @@ func TestHostedOptionsKeepUIProfileAndWorldFixtureSeparate(t *testing.T) {
 		t.Fatal("accepted an unsupported direct-start scene")
 	}
 }
+
+func TestHostedOptionsRestrictSeamFixtureToDiagnostics(t *testing.T) {
+	t.Setenv("DARK_MAGIC_FIXTURE_WORLD_SPAWN", "seam")
+	t.Setenv("DARK_MAGIC_INPUT_DIAGNOSTICS", "0")
+	options, _ := hostedOptions("game_world")
+	if options.FixtureWorldSpawn != "" {
+		t.Fatal("normal Game World moved to the seam")
+	}
+	t.Setenv("DARK_MAGIC_INPUT_DIAGNOSTICS", "1")
+	options, _ = hostedOptions("game_world")
+	if options.FixtureWorldSpawn != "seam" {
+		t.Fatal("diagnostic seam fixture was ignored")
+	}
+	options, _ = hostedOptions("spell_lab")
+	if options.FixtureWorldSpawn != "" {
+		t.Fatal("overrode lab fixture")
+	}
+}

@@ -101,6 +101,7 @@ type CaptureFactory func(string, string, int, Screenshotter) (Capture, error)
 // mirrors startup/shutdown phases so dependencies are released after their consumers.
 type application struct {
 	pointerProbe *pointerTapProbe
+	actionInput  hostedActionInput
 	options      Options
 	ctx          context.Context
 	stop         context.CancelFunc

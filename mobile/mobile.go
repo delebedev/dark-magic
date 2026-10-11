@@ -112,7 +112,19 @@ func hostedOptions(scene string) (clientapp.Options, error) {
 	}
 	options.ExpandViewport = options.StartScene != "ui_lab"
 	options.TouchControls = options.StartScene != "ui_lab"
+	if options.InputDiagnostics && options.StartScene == "game_world" {
+		options.FixtureWorldSpawn = os.Getenv("DARK_MAGIC_FIXTURE_WORLD_SPAWN")
+	}
 	return options, nil
+}
+
+func PressAction(action string) error {
+	game.mu.Lock()
+	defer game.mu.Unlock()
+	if game.client == nil {
+		return errors.New("game is not ready")
+	}
+	return game.client.PressAction(action)
 }
 
 // ProbeTap queues a labelled development tap through ordinary logical input.

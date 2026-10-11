@@ -31,6 +31,12 @@ return test.suite({name="touch controls",profile="module",tier="fast",cases={
             test.expect(output.skill.id):equals(45)
             test.expect(output.skill_pressed):equals(true)
             test.expect(output.consumed):equals(true)
+            state.assignment=45
+            controls.skills(state,{right_skill=45,learned_skills=skills})
+            test.expect(state.slots[1].id):equals(47)
+            controls.skills(state,{right_skill=66,learned_skills=skills})
+            test.expect(state.slots[1].id):equals(66)
+            test.expect(state.slots[2].id):equals(47)
             controls.destroy(state)
         end)
     end),

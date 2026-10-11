@@ -43,7 +43,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             let controller = GameViewController()
             gameController = controller
             window.rootViewController = controller
-            if ProcessInfo.processInfo.environment["DARK_MAGIC_INPUT_DIAGNOSTICS"] == "1" {
+            if scene != "ui_lab" || ProcessInfo.processInfo.environment["DARK_MAGIC_INPUT_DIAGNOSTICS"] == "1" {
                 let host = UIViewController()
                 host.addChild(controller)
                 controller.view.translatesAutoresizingMaskIntoConstraints = false
@@ -55,13 +55,23 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
                     controller.view.bottomAnchor.constraint(equalTo: host.view.bottomAnchor)
                 ])
                 controller.didMove(toParent: host)
-                let probe = TapProbeView()
-                host.view.addSubview(probe)
-                NSLayoutConstraint.activate([
-                    probe.leadingAnchor.constraint(equalTo: host.view.safeAreaLayoutGuide.leadingAnchor, constant: 8),
-                    probe.topAnchor.constraint(equalTo: host.view.safeAreaLayoutGuide.topAnchor, constant: 48),
-                    probe.widthAnchor.constraint(equalToConstant: 210)
-                ])
+                if scene != "ui_lab" {
+                    let controls = WorldActionsView(controller: host)
+                    host.view.addSubview(controls)
+                    NSLayoutConstraint.activate([
+                        controls.trailingAnchor.constraint(equalTo: host.view.safeAreaLayoutGuide.trailingAnchor, constant: -8),
+                        controls.topAnchor.constraint(equalTo: host.view.safeAreaLayoutGuide.topAnchor, constant: 8)
+                    ])
+                }
+                if ProcessInfo.processInfo.environment["DARK_MAGIC_INPUT_DIAGNOSTICS"] == "1" {
+                    let probe = TapProbeView()
+                    host.view.addSubview(probe)
+                    NSLayoutConstraint.activate([
+                        probe.leadingAnchor.constraint(equalTo: host.view.safeAreaLayoutGuide.leadingAnchor, constant: 8),
+                        probe.topAnchor.constraint(equalTo: host.view.safeAreaLayoutGuide.topAnchor, constant: 48),
+                        probe.widthAnchor.constraint(equalToConstant: 210)
+                    ])
+                }
                 window.rootViewController = host
             }
         } catch {
@@ -88,7 +98,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 
 private final class ScenePickerViewController: UIViewController {
     private let scenes = [
-        ("Town · Amazon movement", "game_world"),
+        ("Game World · Amazon", "game_world"),
         ("Spell Lab · Sorceress in Blood Moor", "spell_lab"),
         ("Warp Lab · Town and wilderness portals", "warp_lab"),
         ("UI Lab · Buttons and slider", "ui_lab")
@@ -143,6 +153,67 @@ private final class ScenePickerViewController: UIViewController {
     }
 }
 
+// These buttons emit the same logical actions as desktop hotkeys.
+private final class WorldActionsView: UIStackView {
+    private let status = UILabel()
+    private weak var controller: UIViewController?
+
+    init(controller: UIViewController) {
+        self.controller = controller
+        super.init(frame: .zero)
+        translatesAutoresizingMaskIntoConstraints = false
+        spacing = 8
+        alignment = .center
+        backgroundColor = UIColor.black.withAlphaComponent(0.75)
+        layer.cornerRadius = 8
+        isLayoutMarginsRelativeArrangement = true
+        layoutMargins = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 8)
+        let back = UIButton(type: .system)
+        back.setTitle("Back", for: .normal)
+        back.accessibilityHint = "Close the current game panel or open pause"
+        back.addTarget(self, action: #selector(closePanel), for: .touchUpInside)
+        let panels = UIButton(type: .system)
+        panels.setTitle("Panels", for: .normal)
+        panels.addTarget(self, action: #selector(choosePanel(_:)), for: .touchUpInside)
+        for button in [back, panels] {
+            button.heightAnchor.constraint(equalToConstant: 44).isActive = true
+            button.widthAnchor.constraint(greaterThanOrEqualToConstant: 64).isActive = true
+            addArrangedSubview(button)
+        }
+        status.font = .preferredFont(forTextStyle: .caption2)
+        status.textColor = .systemRed
+        status.isHidden = true
+        addArrangedSubview(status)
+    }
+
+    required init(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    @objc private func closePanel() { send("cancel") }
+
+    @objc private func choosePanel(_ sender: UIButton) {
+        let menu = UIAlertController(title: "Game controls", message: nil, preferredStyle: .actionSheet)
+        for (title, action) in [
+            ("Inventory", "inventory"), ("Character", "character"), ("Skills", "skills"),
+            ("Quests", "quests"), ("Map", "automap"), ("Options", "options"),
+            ("Help", "help"), ("Run / walk", "toggle_run"), ("Swap weapons", "swap_weapons")
+        ] {
+            menu.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in self?.send(action) })
+        }
+        menu.addAction(UIAlertAction(title: "Dismiss", style: .cancel))
+        menu.popoverPresentationController?.sourceView = sender
+        menu.popoverPresentationController?.sourceRect = sender.bounds
+        controller?.present(menu, animated: true)
+    }
+
+    private func send(_ action: String) {
+        var error: NSError?
+        let sent = DarkmagicmobilePressAction(action, &error)
+        status.text = sent ? nil : error?.localizedDescription
+        status.isHidden = sent
+        if !sent { UIAccessibility.post(notification: .announcement, argument: status.text) }
+    }
+}
+
 // Diagnostic taps enter the ordinary frame input path, not gameplay commands.
 private final class TapProbeView: UIStackView {
     private let x = UITextField()
@@ -192,7 +263,7 @@ private final class TapProbeView: UIStackView {
         tap.heightAnchor.constraint(equalToConstant: 44).isActive = true
         addArrangedSubview(tap)
         var row = UIStackView()
-        for (index, title) in ["Move east", "Hold fire", "Move + fire", "Aim ice", "Cancel ice", "Nova"].enumerated() {
+        for (index, title) in ["Move east", "Hold main", "Move + main", "Aim second", "Cancel second", "Third skill"].enumerated() {
             if index % 2 == 0 {
                 row = UIStackView()
                 row.axis = .horizontal

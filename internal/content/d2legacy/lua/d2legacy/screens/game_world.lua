@@ -142,6 +142,10 @@ local function install_current_world(self)
     -- world. It must not survive into the destination presentation.
     self.pending_interaction = nil
     self.held_hostile = nil
+    if self.touch_controls then
+        self.touch_controls.pending_cast, self.touch_controls.locked_id = nil, nil
+        self.touch_controls.gate, self.touch_controls.stop_pending = nil, nil
+    end
     self.collision_node, self.collision_region_key = nil, nil
     self.tile_debug_node, self.tile_debug_region_key = nil, nil
     self.hero_origin = nil
@@ -1332,7 +1336,7 @@ return {
 
         -- Hero screen position is target anchor plus hero-to-camera relative offset.
         self.hero:set_position(hero_screen_x, hero_screen_y)
-        input_diagnostics.update(self.input_diagnostic, hero_x, hero_y)
+        input_diagnostics.update(self.input_diagnostic, hero_x, hero_y, self.world_level_id)
     end,
 
     destroy = function(self)

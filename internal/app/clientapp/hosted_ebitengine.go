@@ -41,6 +41,11 @@ type HostedGame struct {
 	closeErr  error
 }
 
+// PressAction sends a native host button through normal input and focus routing.
+func (g *HostedGame) PressAction(action string) error {
+	return g.app.actionInput.queue(action)
+}
+
 func (g *HostedGame) ProbeTap(x, y int) error {
 	if g.app.pointerProbe == nil {
 		return errors.New("enable input diagnostics to use the tap probe")

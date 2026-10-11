@@ -34,7 +34,7 @@ function M.record(state, kind, x, y, target)
     state.intent = string.format("%s %.1f,%.1f %s", kind, x, y, target or "ground")
 end
 
-function M.update(state, hero_x, hero_y)
+function M.update(state, hero_x, hero_y, level_id)
     if not state then return end
     local width, height = display.size()
     if state.width ~= width then
@@ -56,10 +56,10 @@ function M.update(state, hero_x, hero_y)
     state.marker:set_visible(state.presses > 0)
     local trace = state.controls and state.controls.pointer_trace or {}
     local value = string.format(
-        "%dx%d  %s %.0f,%.0f  PRESS %d RELEASE %d HELD %s CONTACTS %d\nUI %s  ACTIVATED %s (%d)\nINTENT %s  PLAYER %.1f,%.1f",
+        "%dx%d  %s %.0f,%.0f  PRESS %d RELEASE %d HELD %s CONTACTS %d\nUI %s  ACTIVATED %s (%d)\nINTENT %s  LEVEL %d PLAYER %.1f,%.1f",
         width, height, state.source or "native", state.x or x, state.y or y, state.presses, state.releases, tostring(input.down("pointer_primary")), #contacts,
         trace.hover or "none", trace.activation or "none", trace.activations or 0,
-        state.intent, hero_x, hero_y)
+        state.intent, level_id or 0, hero_x, hero_y)
     if value ~= state.value then
         text.set(state.label, "font_lab_color", value, state.width - 100, "center")
         state.value = value
