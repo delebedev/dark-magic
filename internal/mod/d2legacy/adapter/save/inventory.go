@@ -2,23 +2,35 @@ package save
 
 // Inventory contains portable item facts, never runtime entity references or ground loot.
 type Inventory struct {
-	InventoryWidth  int64  `json:"inventory_width"`
-	InventoryHeight int64  `json:"inventory_height"`
-	StashWidth      int64  `json:"stash_width"`
-	StashHeight     int64  `json:"stash_height"`
-	CubeWidth       int64  `json:"cube_width"`
-	CubeHeight      int64  `json:"cube_height"`
-	BeltCapacity    int64  `json:"belt_capacity"`
-	ActiveWeaponSet int64  `json:"active_weapon_set"`
-	VendorWidth     int64  `json:"vendor_width"`
-	VendorHeight    int64  `json:"vendor_height"`
-	CarriedGold     int64  `json:"carried_gold"`
-	StashedGold     int64  `json:"stashed_gold"`
-	Items           []Item `json:"items"`
+	InventoryWidth  int64    `json:"inventory_width"`
+	InventoryHeight int64    `json:"inventory_height"`
+	StashWidth      int64    `json:"stash_width"`
+	StashHeight     int64    `json:"stash_height"`
+	CubeWidth       int64    `json:"cube_width"`
+	CubeHeight      int64    `json:"cube_height"`
+	BeltCapacity    int64    `json:"belt_capacity"`
+	ActiveWeaponSet int64    `json:"active_weapon_set"`
+	VendorWidth     int64    `json:"vendor_width"`
+	VendorHeight    int64    `json:"vendor_height"`
+	CarriedGold     int64    `json:"carried_gold"`
+	StashedGold     int64    `json:"stashed_gold"`
+	Items           []Item   `json:"items"`
+	Corpses         []Corpse `json:"corpses,omitempty"`
+}
+
+type Corpse struct {
+	ID string `json:"id"`
+}
+
+// Death retains consequences already committed, without persisting a session tick.
+type Death struct {
+	Hardcore          bool `json:"hardcore"`
+	CapacityExhausted bool `json:"capacity_exhausted,omitempty"`
 }
 
 type Item struct {
 	ID               string          `json:"id"`
+	CorpseID         string          `json:"corpse_id,omitempty"`
 	Code             string          `json:"code"`
 	ItemTypes        string          `json:"item_types"`
 	BodySlots        string          `json:"body_slots"`

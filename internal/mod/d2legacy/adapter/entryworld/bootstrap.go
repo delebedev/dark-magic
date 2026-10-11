@@ -28,7 +28,18 @@ func (world *Prepared) InitialData(owner string, developmentItems bool) map[stri
 		},
 		"d2legacy.interactions":      InteractionData(world.Worlds, world.Zones, owner, ""),
 		"d2legacy.world_transitions": TransitionData(world.Seam, world.AdditionalSeams...),
+		"d2legacy.respawn":           world.RespawnData(),
 	}
+}
+
+// RespawnData uses the same prepared town anchor as initial admission.
+func (world *Prepared) RespawnData() map[string]any {
+	destination, err := world.Destination(1)
+	if err != nil {
+		return nil
+	}
+	return map[string]any{"act": destination.Act, "level_id": destination.LevelID,
+		"x": destination.X, "y": destination.Y, "width": destination.Width, "height": destination.Height}
 }
 
 // TransitionData serializes both directions of the prepared seam. Explicit reverse data lets Lua perform transitions

@@ -26,6 +26,7 @@ func registerRemoteViewSchemas(t *testing.T, engine *gameecs.Engine) {
 func remoteViewTestSchemas() []akara.Schema {
 	schemas := remoteIdentityAndMonsterTestSchemas()
 	schemas = append(schemas, remoteTestSchema("d2legacy.quest.progress", append(remoteTestFields(akara.FieldInt64, "quest_id", "stage"), remoteTestFields(akara.FieldBool, "completed", "rewarded")...)))
+	schemas = append(schemas, remoteTestSchema("d2legacy.player.death", remoteTestFields(akara.FieldInt64, "tick", "experience_lost"), remoteTestFields(akara.FieldString, "stage", "killer_id", "credited_id"), remoteTestFields(akara.FieldBool, "hardcore", "consequences_pending")))
 	schemas = append(schemas, remotePlayerAndPresentationTestSchemas()...)
 	schemas = append(schemas, remoteItemAndInteractionTestSchemas()...)
 	schemas = append(schemas, remoteWorldTestSchemas()...)

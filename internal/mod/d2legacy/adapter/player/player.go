@@ -19,6 +19,7 @@ type Entry struct {
 	CharacterID string              `json:"character_id"`
 	Inventory   *d2save.Inventory   `json:"inventory,omitempty"`
 	Progression *d2save.Progression `json:"progression,omitempty"`
+	Death       *d2save.Death       `json:"death,omitempty"`
 	Player      string              `json:"player"`
 	Name        string              `json:"name"`
 	Class       string              `json:"class"`
@@ -103,6 +104,7 @@ func EntryFromCharacter(character d2save.Character, player string, x, y, width, 
 		CharacterID: character.ID,
 		Inventory:   character.Inventory,
 		Progression: character.Progression,
+		Death:       character.Death,
 		Player:      player,
 		Name:        character.Name,
 		Class:       character.Class,
@@ -146,7 +148,7 @@ func Command(
 	sequence, tick uint64,
 	authority simulation.Authority,
 ) (simulation.Command, error) {
-	if err := d2save.ValidateCharacterContent(d2save.Character{Inventory: entry.Inventory, Progression: entry.Progression}); err != nil {
+	if err := d2save.ValidateCharacterContent(d2save.Character{Inventory: entry.Inventory, Progression: entry.Progression, Death: entry.Death, Hardcore: entry.Hardcore, Stats: &d2save.Stats{Health: int(entry.Health)}}); err != nil {
 		return simulation.Command{}, err
 	}
 	payload, err := json.Marshal(entry)

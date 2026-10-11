@@ -9,6 +9,9 @@ import (
 // ValidateCharacterContent bounds optional portable state before it becomes authority.
 func ValidateCharacterContent(character Character) error {
 	invalid := func(reason string) error { return fmt.Errorf("%w: %s", ErrProfile, reason) }
+	if character.Death != nil && (character.Death.Hardcore != character.Hardcore || character.Stats != nil && character.Stats.Health != 0) {
+		return invalid("death state contradicts character mode or life")
+	}
 	if inventory := character.Inventory; inventory != nil {
 		dimensions := []int64{inventory.InventoryWidth, inventory.InventoryHeight, inventory.StashWidth,
 			inventory.StashHeight, inventory.CubeWidth, inventory.CubeHeight, inventory.VendorWidth, inventory.VendorHeight}
@@ -21,6 +24,16 @@ func ValidateCharacterContent(character Character) error {
 			inventory.ActiveWeaponSet < 0 || inventory.ActiveWeaponSet > 1 || inventory.CarriedGold < 0 || inventory.CarriedGold > 2147483647 || inventory.StashedGold < 0 || inventory.StashedGold > 2147483647 {
 			return invalid("inventory layout exceeds bounds")
 		}
+		if len(inventory.Corpses) > 16 {
+			return invalid("corpse count exceeds bounds")
+		}
+		corpses := make(map[string]bool)
+		for _, corpse := range inventory.Corpses {
+			if corpse.ID == "" || len(corpse.ID) > 114 || strings.ContainsRune(corpse.ID, 0) || corpses[corpse.ID] {
+				return invalid("invalid or duplicate corpse identity")
+			}
+			corpses[corpse.ID] = true
+		}
 		ids := make(map[string]bool)
 		for _, item := range inventory.Items {
 			if item.ID == "" || len(item.ID) > 128 || item.Code == "" || len(item.Code) > 64 || ids[item.ID] || item.Width < 1 || item.Height < 1 ||
@@ -29,6 +42,9 @@ func ValidateCharacterContent(character Character) error {
 				return invalid("invalid or duplicate durable item")
 			}
 			ids[item.ID] = true
+			if item.Container == "corpse" && !corpses[item.CorpseID] || item.Container != "corpse" && item.CorpseID != "" {
+				return invalid("item corpse relationship is invalid")
+			}
 			for _, text := range []string{item.ID, item.Code, item.ItemTypes, item.BodySlots, item.AppliedServices,
 				item.Slot, item.InventoryDC6, item.WorldDC6, item.Composite, item.WeaponClass, item.MeleeWeaponClass} {
 				if len(text) > 512 || strings.ContainsRune(text, 0) {
@@ -54,7 +70,7 @@ func ValidateCharacterContent(character Character) error {
 				width, height = inventory.StashWidth, inventory.StashHeight
 			case "cube":
 				width, height = inventory.CubeWidth, inventory.CubeHeight
-			case "equipment", "hireling":
+			case "equipment", "hireling", "corpse":
 				if !strings.Contains(","+item.BodySlots+",", ","+item.Slot+",") || item.Slot == "" ||
 					(item.Slot != "rarm" && item.Slot != "larm" || item.Container == "hireling") && item.WeaponSet != 0 {
 					return invalid("item cannot occupy durable body slot")
@@ -96,6 +112,9 @@ func ValidateCharacterContent(character Character) error {
 				if item.Container != other.Container {
 					continue
 				}
+				if item.Container == "corpse" && item.CorpseID != other.CorpseID {
+					continue
+				}
 				occupied := false
 				switch item.Container {
 				case "inventory", "stash", "cube":
@@ -106,7 +125,7 @@ func ValidateCharacterContent(character Character) error {
 				case "held":
 					occupied = true
 				default:
-					occupied = item.Slot == other.Slot && (item.Container != "equipment" ||
+					occupied = item.Slot == other.Slot && (item.Container != "equipment" && item.Container != "corpse" ||
 						item.Slot != "rarm" && item.Slot != "larm" || item.WeaponSet == other.WeaponSet)
 				}
 				if occupied {

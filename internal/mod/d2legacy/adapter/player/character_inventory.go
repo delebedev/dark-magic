@@ -11,6 +11,11 @@ import (
 // projectPossessions reads mechanical facts from authority, never a presentation mirror.
 func projectPossessions(playerID string, checkpoint simulation.Checkpoint, result *d2save.Character) error {
 	snapshot := *checkpoint.Snapshot
+	identities, _ := findComponent(snapshot, "d2legacy.player.identity")
+	entity, _, present := findString(identities, "player", playerID)
+	if !present {
+		return ErrHUDPlayer
+	}
 	layouts, found := findComponent(snapshot, "d2legacy.items.layout")
 	if found {
 		if layoutEntity, fields, present := findString(layouts, "owner", playerID); present {
@@ -42,13 +47,20 @@ func projectPossessions(playerID string, checkpoint simulation.Checkpoint, resul
 				inventory.Items = append(inventory.Items, durableItem(snapshot, instance.Entity, identity, placement))
 			}
 			sort.Slice(inventory.Items, func(i, j int) bool { return inventory.Items[i].ID < inventory.Items[j].ID })
+			corpses, _ := findComponent(snapshot, "d2legacy.player.corpse")
+			for _, instance := range corpses.Instances {
+				fields, _ := findInstance(corpses, instance.Entity)
+				if entityField(fields, "owner") == entity {
+					inventory.Corpses = append(inventory.Corpses, d2save.Corpse{ID: stringField(fields, "id")})
+				}
+			}
+			sort.Slice(inventory.Corpses, func(i, j int) bool { return inventory.Corpses[i].ID < inventory.Corpses[j].ID })
 			result.Inventory = inventory
 		}
 	}
-	identities, _ := findComponent(snapshot, "d2legacy.player.identity")
-	entity, _, present := findString(identities, "player", playerID)
-	if !present {
-		return ErrHUDPlayer
+	result.Death = nil
+	if death := durableFields(snapshot, "d2legacy.player.death", entity); len(death) > 0 {
+		result.Death = &d2save.Death{Hardcore: boolField(death, "hardcore"), CapacityExhausted: stringField(death, "stage") == "capacity_exhausted"}
 	}
 	progress := durableFields(snapshot, "d2legacy.player.progress", entity)
 	difficulty := durableFields(snapshot, "d2legacy.player.difficulty", entity)
@@ -139,6 +151,9 @@ func durableItem(snapshot gameecs.Snapshot, entity uint64, identity, placement m
 		SpeedPenalty:     intField(armor, "speed_penalty"),
 		MeleeRange:       floatField(melee, "range"),
 		MeleeWeaponClass: stringField(melee, "weapon_class"),
+	}
+	if corpse := durableFields(snapshot, "d2legacy.item.corpse", entity); len(corpse) > 0 {
+		item.CorpseID = stringField(corpse, "id")
 	}
 	if facts := durableFields(snapshot, "d2legacy.item.generation", entity); len(facts) > 0 {
 		item.Generation = &d2save.ItemGeneration{Quality: stringField(facts, "quality"), Level: intField(facts, "level"), Facts: stringField(facts, "facts")}

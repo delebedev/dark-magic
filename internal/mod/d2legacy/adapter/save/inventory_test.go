@@ -78,3 +78,53 @@ func TestPortableStateIsClonedAndRejectedBeforeProfileReplacement(t *testing.T) 
 		})
 	}
 }
+
+func TestCorpseGearRelationshipsAreDurableAndRejectWithoutReplacingProfile(t *testing.T) {
+	c := Character{ID: "hero", Stats: &Stats{Health: 0, MaxHealth: 50}, Death: &Death{}, Inventory: &Inventory{Corpses: []Corpse{{ID: "body"}}, Items: []Item{{ID: "sword", Code: "ssd", Width: 1, Height: 3, BodySlots: "rarm,larm", Slot: "rarm", Container: "corpse", CorpseID: "body"}}}}
+	store := New(c)
+	if err := store.Select(c.ID); err != nil {
+		t.Fatal(err)
+	}
+	copy, _ := store.Selected()
+	copy.Death.Hardcore = true
+	copy.Inventory.Corpses[0].ID = "changed"
+	copy, _ = store.Selected()
+	if copy.Death.Hardcore || copy.Inventory.Corpses[0].ID != "body" {
+		t.Fatal("corpse state aliases store")
+	}
+	path := filepath.Join(t.TempDir(), "profile.json")
+	if err := WriteProfileFile(path, store.Profile()); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, mutate := range map[string]func(*Character){
+		"missing corpse":    func(c *Character) { c.Inventory.Corpses = nil },
+		"duplicate corpse":  func(c *Character) { c.Inventory.Corpses = append(c.Inventory.Corpses, c.Inventory.Corpses[0]) },
+		"stranded link":     func(c *Character) { c.Inventory.Items[0].Container = "equipment" },
+		"alive death":       func(c *Character) { c.Stats.Health = 1 },
+		"hardcore mismatch": func(c *Character) { c.Death.Hardcore = true },
+		"slot conflict": func(c *Character) {
+			item := c.Inventory.Items[0]
+			item.ID = "other"
+			c.Inventory.Items = append(c.Inventory.Items, item)
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			c, _ := store.Selected()
+			mutate(&c)
+			if err := WriteProfileFile(path, Profile{Version: ProfileVersion, Selected: c.ID, Characters: []Character{c}}); err == nil {
+				t.Fatal("invalid corpse state saved")
+			}
+			after, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(before, after) {
+				t.Fatal("failed corpse save replaced profile")
+			}
+		})
+	}
+}

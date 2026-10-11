@@ -22,6 +22,7 @@ type Character struct {
 	Stats       *Stats       `json:"stats,omitempty"`
 	Inventory   *Inventory   `json:"inventory,omitempty"`
 	Progression *Progression `json:"progression,omitempty"`
+	Death       *Death       `json:"death,omitempty"`
 }
 
 // Stats is an immutable character-sheet snapshot. Authoritative simulation and
@@ -212,6 +213,10 @@ func (s *Store) UpdateSelected(character Character) error {
 
 // cloneCharacter deep-copies optional pointer and map fields so Store snapshots never alias caller-owned state.
 func cloneCharacter(character Character) Character {
+	if character.Death != nil {
+		death := *character.Death
+		character.Death = &death
+	}
 	if character.Stats != nil {
 		stats := *character.Stats
 		character.Stats = &stats
@@ -219,6 +224,7 @@ func cloneCharacter(character Character) Character {
 
 	if character.Inventory != nil {
 		inventory := *character.Inventory
+		inventory.Corpses = append([]Corpse(nil), inventory.Corpses...)
 		inventory.Items = append([]Item(nil), inventory.Items...)
 		for i := range inventory.Items {
 			item := &inventory.Items[i]

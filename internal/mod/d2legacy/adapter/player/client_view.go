@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const ClientViewVersion uint32 = 13
+const ClientViewVersion uint32 = 14
 
 const (
 	MaxHUDLearnedSkills  = 256
@@ -57,6 +57,10 @@ func ValidateClientView(view ClientView, tick uint64) error {
 
 	if err := validatePrivateView(view.Private); err != nil {
 		return err
+	}
+	if death := view.Private.Death; death != nil && (view.HUD.Vitals.Health != 0 ||
+		view.Private.Character != nil && view.Private.Character.Death != nil && view.Private.Character.Death.Hardcore != death.Hardcore) {
+		return ErrClientView
 	}
 
 	if err := validateEventView(view.Events, tick); err != nil {
@@ -217,6 +221,9 @@ func validatePrivateView(private PrivateView) error {
 		return err
 	}
 	if q := private.Quest; q != nil && (q.QuestID < 1 || q.QuestID > 256 || q.Stage < 0 || q.Stage > 256 || (q.Rewarded && !q.Completed)) {
+		return ErrClientView
+	}
+	if d := private.Death; d != nil && (d.Tick <= 0 || uint64(d.Tick) > private.Tick || d.Stage != "dead" && d.Stage != "capacity_exhausted") {
 		return ErrClientView
 	}
 	layout := private.Items.Layout

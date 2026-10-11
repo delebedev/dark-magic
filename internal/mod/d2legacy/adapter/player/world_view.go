@@ -12,7 +12,7 @@ import (
 	"github.com/gravestench/dark-magic/internal/game/simulation"
 )
 
-const WorldViewVersion uint32 = 6
+const WorldViewVersion uint32 = 7
 
 const (
 	WorldViewRadius         = 80.0
@@ -682,6 +682,9 @@ func validateWorldEntity(entity WorldEntity) error {
 	}
 
 	if entity.Kind == "corpse" && (entity.SpawnID == "" || entity.Token == "" || entity.Mode != "DT") {
+		return ErrWorldView
+	}
+	if entity.Kind == "player_corpse" && (entity.Owner == "" || !strings.HasPrefix(entity.ID, "player_corpse:")) {
 		return ErrWorldView
 	}
 

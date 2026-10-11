@@ -12,6 +12,7 @@ type CharacterState struct {
 	Progression            *d2save.Progression `json:"progression,omitempty"`
 	DefenseBeforeEquipment *int64              `json:"defense_before_equipment,omitempty"`
 	Vitality               *int64              `json:"vitality,omitempty"`
+	Death                  *d2save.Death       `json:"death,omitempty"`
 }
 
 func projectCharacterState(playerID string, checkpoint simulation.Checkpoint) (*CharacterState, error) {
@@ -20,11 +21,12 @@ func projectCharacterState(playerID string, checkpoint simulation.Checkpoint) (*
 	if !found {
 		return nil, nil
 	}
-	character := d2save.Character{Stats: &d2save.Stats{}}
+	death := durableFields(*checkpoint.Snapshot, "d2legacy.player.death", entity)
+	character := d2save.Character{Stats: &d2save.Stats{}, Hardcore: boolField(death, "hardcore")}
 	if err := projectPossessions(playerID, checkpoint, &character); err != nil {
 		return nil, err
 	}
-	state := &CharacterState{Inventory: character.Inventory, Progression: character.Progression}
+	state := &CharacterState{Inventory: character.Inventory, Progression: character.Progression, Death: character.Death}
 	if combat := durableFields(*checkpoint.Snapshot, "d2legacy.player.combat_stats", entity); combat["base_defense"].Int != nil {
 		value := intField(combat, "base_defense")
 		state.DefenseBeforeEquipment = &value
@@ -55,6 +57,7 @@ func MergePrivateCharacter(baseline d2save.Character, hud HUD, private PrivateVi
 		if state.Progression != nil {
 			result.Progression = state.Progression
 		}
+		result.Death = state.Death
 		if state.DefenseBeforeEquipment != nil {
 			result.Stats.Defense = int(*state.DefenseBeforeEquipment) - result.Stats.Dexterity/4
 			if result.Stats.Defense < 0 {
@@ -64,6 +67,9 @@ func MergePrivateCharacter(baseline d2save.Character, hud HUD, private PrivateVi
 		if state.Vitality != nil {
 			result.Stats.Vitality = int(*state.Vitality)
 		}
+	}
+	if err := d2save.ValidateCharacterContent(result); err != nil {
+		return d2save.Character{}, ErrClientView
 	}
 	return cloneDurableCharacter(result), nil
 }
@@ -76,7 +82,8 @@ func validateCharacterState(state *CharacterState) error {
 		state.Vitality != nil && (*state.Vitality < 0 || *state.Vitality > 2147483647) {
 		return ErrClientView
 	}
-	if err := d2save.ValidateCharacterContent(d2save.Character{Inventory: state.Inventory, Progression: state.Progression}); err != nil {
+	hardcore := state.Death != nil && state.Death.Hardcore
+	if err := d2save.ValidateCharacterContent(d2save.Character{Inventory: state.Inventory, Progression: state.Progression, Death: state.Death, Hardcore: hardcore}); err != nil {
 		return ErrClientView
 	}
 	return nil
@@ -87,8 +94,8 @@ func CloneCharacterState(state *CharacterState) *CharacterState {
 	if state == nil {
 		return nil
 	}
-	character := cloneDurableCharacter(d2save.Character{Inventory: state.Inventory, Progression: state.Progression})
-	result := &CharacterState{Inventory: character.Inventory, Progression: character.Progression}
+	character := cloneDurableCharacter(d2save.Character{Inventory: state.Inventory, Progression: state.Progression, Death: state.Death})
+	result := &CharacterState{Inventory: character.Inventory, Progression: character.Progression, Death: character.Death}
 	if state.DefenseBeforeEquipment != nil {
 		value := *state.DefenseBeforeEquipment
 		result.DefenseBeforeEquipment = &value

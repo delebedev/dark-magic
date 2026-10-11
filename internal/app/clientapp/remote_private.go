@@ -21,6 +21,17 @@ func installPrivateProjection(
 		return err
 	}
 
+	if deaths, found := akara.GetDynamicStore(world, "d2legacy.player.death"); found {
+		deaths.Remove(hero)
+		if death := private.Death; death != nil {
+			if _, err := deaths.Set(hero, map[string]any{"tick": death.Tick, "hardcore": death.Hardcore, "stage": death.Stage, "killer_id": "", "credited_id": "", "experience_lost": int64(0), "consequences_pending": false}); err != nil {
+				return err
+			}
+		}
+	} else if private.Death != nil {
+		return fmt.Errorf("remote presentation: death store is unavailable")
+	}
+
 	questStore, found := akara.GetDynamicStore(world, "d2legacy.quest.progress")
 	if !found {
 		return fmt.Errorf("remote presentation: quest store is unavailable")

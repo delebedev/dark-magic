@@ -182,6 +182,10 @@ func (session *Session) PrivateView() playeradapter.PrivateView {
 
 	view := session.Private
 	view.Character = playeradapter.CloneCharacterState(view.Character)
+	if view.Death != nil {
+		death := *view.Death
+		view.Death = &death
+	}
 	if view.Quest != nil {
 		quest := *view.Quest
 		view.Quest = &quest
