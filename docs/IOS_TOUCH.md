@@ -103,8 +103,9 @@ panel. Local evidence: `.local/ios-touch-nova-fixed.mp4`,
 The earlier movement/Fire Ball recording is `.local/ios-touch-demo.mp4`.
 The corrected signed build installs and launches on the paired iPhone with
 diagnostics disabled. Evidence: `.local/ios-touch-nova-fixed-phone-install.json`
-and `.local/ios-touch-nova-fixed-phone-launch.json`. Physical Nova acceptance is
-awaiting the user's retest. The landscape recording for review is
+and `.local/ios-touch-nova-fixed-phone-launch.json`. The user confirms repeated
+Nova and background/resume work on the iPhone without the error panel. The
+landscape recording for review is
 `.local/ios-touch-nova-demo-landscape.mp4`.
 
 ## Limits
