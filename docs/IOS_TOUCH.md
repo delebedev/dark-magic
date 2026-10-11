@@ -1,4 +1,4 @@
-# Touch combat experiment
+# Mobile input
 
 The iOS world scenes use a left movement pad and three direct skill buttons.
 Spell Lab selects Fire Ball (47), Ice Blast (45), and Nova (48) from its ordinary
@@ -18,29 +18,37 @@ pads keep their existing three-button layout.
   the other finger to another control. Panels cancel control ownership.
 - Ground taps and the original HUD remain available for existing interactions.
 
-## Decisions and sources
+## World panels
 
-[Riiablo's GameScreen](https://github.com/collinsmith/riiablo/blob/59aa8d5021c457e8d2891bb23c9e3a0ef724c6b3/core/src/main/java/com/riiablo/screen/GameScreen.java)
-uses a dead-zone touchpad, normalized direction, and inverse isometric
-projection. Adopt those interaction ideas. Its direct ECS velocity writes do
-not fit Dark Magic's client/authority split. Its
-[README](https://github.com/collinsmith/riiablo/blob/59aa8d5021c457e8d2891bb23c9e3a0ef724c6b3/README.md)
-explicitly calls the game incomplete. No Java code, assets, or dependencies are
-copied.
+- **Panels** opens a native menu for Inventory, Character, Skills, Quests, Map,
+  Options, Help, Run / walk, and Swap weapons. Each emits its existing desktop
+  logical input action. The game still owns panel routing and command policy.
+- **Back** emits Cancel: close the focused panel, or open pause in the world.
+- Walk through the normal town exit to enter Blood Moor. Walk back through its
+  corresponding exit to return. Game World has no Warp Lab portal fixture.
 
-[Blizzard's D2R console design](https://news.blizzard.com/en-us/article/23722094/bringing-the-original-diablo-ii-experience-to-console)
-uses direct skill activation and prioritized cone targeting without a cursor.
-Adopt direct activation and show one target. This experiment scores only live,
-visible hostiles, with a directional cone and a modest current-target preference.
-Corpse, loot, NPC, and class-specific targeting need separate work.
+Native controls occupy the upper-right safe area. They work without diagnostics
+and have UIKit accessibility labels. The rendered game canvas still lacks
+VoiceOver elements. Full-width world rendering retains the original fixed HUD. Inventory and
+Skills translate their authored art and pointer hit regions to the right edge.
+Held item art subtracts the same offset so it stays beneath the finger.
 
-[GGG's PoE2 0.3 targeting notes](https://www.pathofexile.com/forum/view-thread/3826682/filter-account-type/staff)
-distinguish directional projectile aiming from ground-location targeting.
-[The official console developer diary](https://www.youtube.com/watch?v=GqYTZHX-QVE)
-is a useful wider controller reference. Our proposal keeps movement and aiming
-separate, but does not import PoE2 movement-while-casting or dodge mechanics.
-These are source-based design observations, not a hands-on commercial-controller
-comparison.
+## Boundaries
+
+The host queues one validated input press followed by a release at the ordinary
+frame-input seam, before console and scene focus routing. It cannot submit
+simulation commands. A connected keyboard retains ownership of held actions.
+The bridge rejects unknown names and overlapping pending presses.
+
+Changing levels clears pending touch casts, target IDs, and casting gates from
+the old world. Holding movement can continue against the destination map's
+existing navigation policy. Touch skill assignments wait for authority feedback.
+HUD changes rebind the main pad, while direct-pad assignment acknowledgements
+preserve its loadout.
+
+The retained composer stamps nodes with immutable creation order. Ebitengine
+uses that order after layer/Z sorting, matching Raylib. Recycled handle slots
+do not change painter order after a world teardown.
 
 ## Architecture
 
@@ -79,42 +87,15 @@ input is labelled `probe`, bounded to the current viewport, limited to ten
 seconds, and must finish with all contacts released. It cannot submit gameplay
 commands directly. Diagnostics are disabled on normal phone launches.
 
-## Observed evidence, 2026-10-11
+## Fixture diagnostics and limits
 
-The iOS 26.5 Simulator shows Fire Ball impact and dead hostile sprites. The
-two-contact probe moves the Sorceress and camera, casts while both contacts
-remain owned, resumes movement after the casting contact releases, and stops
-at `(16.4, 196.6)` when movement releases. Ice Blast's aimed release submits a
-ground cast. Its cancellation submits no cast and leaves the hero stationary.
-These observations use raw contact probes, not physical two-thumb input.
+`DARK_MAGIC_INPUT_DIAGNOSTICS=1` enables native raw-contact probes and read-only
+world diagnostics. With Game World diagnostics only,
+`DARK_MAGIC_FIXTURE_WORLD_SPAWN=seam` forwards the existing desktop exit fixture
+position. Normal phone launches leave both overrides disabled.
 
-The first Nova build later displayed `context deadline exceeded` in
-`game_world.lua:784` while processing semantic sound cues. The phone user also
-reported Nova producing the native black error panel. Each sound cue copied
-all 4,699 Sounds.txt records into Lua and searched them again. The sound adapter
-now retains one catalog and case-insensitive index, preserving grouped variants
-and redirect selection. A targeted regression exercises repeated playback with
-one catalog load. The runtime deadline is unchanged.
-
-After that change, Nova renders its expanding lightning ring and dead hostile
-sprites on a fresh Simulator process. Repeated Nova and another Nova after
-Home/background/resume complete in the same process (`91956`) without an error
-panel. Local evidence: `.local/ios-touch-nova-fixed.mp4`,
-`.local/ios-touch-nova-fix.stderr`, `.local/ios-touch-audio-tests.log`,
-`.local/ios-touch-go-tests.log`, and `.local/ios-touch-ui-tests.log`.
-The earlier movement/Fire Ball recording is `.local/ios-touch-demo.mp4`.
-The corrected signed build installs and launches on the paired iPhone with
-diagnostics disabled. Evidence: `.local/ios-touch-nova-fixed-phone-install.json`
-and `.local/ios-touch-nova-fixed-phone-launch.json`. The user confirms repeated
-Nova and background/resume work on the iPhone without the error panel. The
-landscape recording for review is
-`.local/ios-touch-nova-demo-landscape.mp4`.
-
-## Limits
-
-These controls do not provide VoiceOver elements for the rendered canvas.
-The native diagnostic panel is accessible. Physical two-thumb feel, safe-area
-comfort, long sessions, audio, and broader skill targeting remain unverified.
-Spell Lab retains its upstream disposable level-30 character, generous mana,
-and nearby hostiles. It demonstrates existing gameplay implementations rather
-than full Diablo II parity. Original asset captures stay in ignored `.local/`.
+The native controls and probe panel have UIKit accessibility labels. Rendered
+canvas elements do not have VoiceOver equivalents. Target scoring currently
+covers live visible hostiles. Corpse, loot, NPC and class-specific targeting need
+separate work. The controls do not implement progression, durable saves or new
+abilities. Use existing Game World exits for town/Blood Moor travel.
