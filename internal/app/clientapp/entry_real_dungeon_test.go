@@ -77,6 +77,16 @@ func TestGameWorldWalksIntoPopulatedDenAndReturns(t *testing.T) {
 		}
 		if leg.level == 8 {
 			fixture.advanceGame(t, 2)
+			quests := requireRealStore(t, fixture, "d2legacy.quest.progress", "no natural Den objective")
+			quest, ok := quests.Get(controls.Entities()[0])
+			if !ok {
+				t.Fatal("ordinary Den entry did not track participation")
+			}
+			questID, _ := quest.Get("quest_id")
+			completed, _ := quest.Get("completed")
+			if questID != int64(1) || completed != false {
+				t.Fatalf("natural Den objective id=%v completed=%v", questID, completed)
+			}
 			monsters := requireRealStore(t, fixture, "d2legacy.monster.identity", "no monsters")
 			count := 0
 			for _, entity := range monsters.Entities() {

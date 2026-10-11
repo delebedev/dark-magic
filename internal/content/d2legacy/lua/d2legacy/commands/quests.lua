@@ -27,26 +27,44 @@ local function active_npc(player)
     return ""
 end
 
+function M.complete_player(player, structural)
+    local progress=ecs.get(player,"d2legacy.quest.progress")
+    if progress and progress:get("quest_id")==1 and progress:get("completed") then return end
+    local values={quest_id=1,stage=#assert(quest(1)).stages,completed=true,rewarded=false}
+    if structural then structural:set(player,"d2legacy.quest.progress",values)
+    else ecs.set(player,"d2legacy.quest.progress",values) end
+end
+
 function M.complete(command)
-    local quest=assert(quest(command.payload.quest_id),"unknown recovered quest")
+    assert(quest(command.payload.quest_id),"unknown recovered quest")
     local player=player_for(command.payload.player)
-    local stage=#quest.stages
-    ecs.set(player,"d2legacy.quest.progress",{quest_id=quest.id,stage=stage,
-        completed=true,rewarded=false})
+    if command.payload.quest_id==1 then return M.complete_player(player) end
+    local progress=ecs.get(player,"d2legacy.quest.progress")
+    if progress and progress:get("quest_id")==command.payload.quest_id and progress:get("completed") then return end
+    ecs.set(player,"d2legacy.quest.progress",{quest_id=command.payload.quest_id,
+        stage=#quest(command.payload.quest_id).stages,completed=true,rewarded=false})
+end
+
+function M.claim_available(owner, tick)
+    local player=player_for(owner)
+    local progress=ecs.get(player,"d2legacy.quest.progress")
+    if not progress or progress:get("quest_id")~=1 or not progress:get("completed") or progress:get("rewarded") then return false end
+    return M.reward({player=owner,tick=tick})
 end
 
 function M.reward(command)
     local player=player_for(command.player)
-    local progress=assert(ecs.get(player,"d2legacy.quest.progress"),"quest is not complete")
+    local progress=ecs.get(player,"d2legacy.quest.progress")
+    if not progress or not progress:get("completed") or progress:get("rewarded") then return false end
     local quest=assert(quest(progress:get("quest_id")),"unknown recovered quest")
-    assert(progress:get("completed") and not progress:get("rewarded"),"quest reward is unavailable")
     local npc=active_npc(command.player)
-    assert(quest.id==1 and npc=="akara","quest reward requires its recovered NPC relationship")
+    if quest.id~=1 or npc~="akara" or not require("d2legacy.commands.interactions").context_in_range(command.player) then return false end
     local player_progress=ecs.get(player,"d2legacy.player.progress")
     player_progress:set("unspent_skill_points",player_progress:get("unspent_skill_points")+1)
     progress:set("rewarded",true)
     ecs.create({["d2legacy.quest.event"]={kind="quest_rewarded",tick=command.tick,
         player=command.player,quest_id=quest.id,npc=npc,reward="skill_point:1"}})
+    return true
 end
 
 -- Completing Act V unlocks the next difficulty for the character only; the

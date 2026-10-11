@@ -21,6 +21,16 @@ func installPrivateProjection(
 		return err
 	}
 
+	questStore, found := akara.GetDynamicStore(world, "d2legacy.quest.progress")
+	if !found {
+		return fmt.Errorf("remote presentation: quest store is unavailable")
+	}
+	questStore.Remove(hero)
+	if q := private.Quest; q != nil {
+		if _, err := questStore.Set(hero, map[string]any{"quest_id": q.QuestID, "stage": q.Stage, "completed": q.Completed, "rewarded": q.Rewarded}); err != nil {
+			return err
+		}
+	}
 	if err := installLearnedSkills(world, hero, learned); err != nil {
 		return err
 	}

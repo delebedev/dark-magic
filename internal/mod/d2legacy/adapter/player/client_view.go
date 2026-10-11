@@ -213,6 +213,9 @@ func validateDecodedWorldView(world WorldView) error {
 // validatePrivateView bounds inventory shapes, strings, and interaction values.
 // This is a trust boundary because all fields may originate from a remote host.
 func validatePrivateView(private PrivateView) error {
+	if q := private.Quest; q != nil && (q.QuestID < 1 || q.QuestID > 256 || q.Stage < 0 || q.Stage > 256 || (q.Rewarded && !q.Completed)) {
+		return ErrClientView
+	}
 	layout := private.Items.Layout
 	if len(private.Items.Items) > MaxPrivateItems ||
 		!boundedDimension(layout.InventoryWidth) || !boundedDimension(layout.InventoryHeight) ||

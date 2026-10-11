@@ -1,10 +1,11 @@
--- Expansion quest-log presentation.
+-- Quest-log presentation reads the authenticated player's durable progress.
 --
 -- This file demonstrates reading GAME CATALOG data without owning game state.
 -- `d2legacy.quest_catalog/v1` tells presentation what quests exist and which localized
 -- title keys they use. The panel arranges those facts into recovered sockets.
--- Quest completion/progression is a separate authority problem.
+-- Lua authority owns quest completion and rewards.
 
+local ecs = require("engine.ecs/v1")
 local render = require("engine.render/v1")
 local input = require("engine.input/v1")
 local scenes = require("engine.scene/v1")
@@ -70,8 +71,24 @@ return {
             end
         end
 
-        -- Current UI is still a catalog/presentation shell, so say that clearly.
-        text.create(self.root, "disabled", assert(locale.text("d2legacy.quests.unavailable")), screen.unavailable.x + offset_x, screen.unavailable.y + offset_y, screen.unavailable.width)
+        local status="Den of Evil: explore every chamber and defeat its monsters."
+        local owner="local-player"
+        local available,network=pcall(require,"engine.network/v1")
+        if available then
+            local id=network.status().player_id
+            if id and id~="" then owner=id end
+        end
+        for _,entity in ipairs(ecs.query({all={"d2legacy.player.identity"}})) do
+            if ecs.get(entity,"d2legacy.player.identity"):get("player")==owner then
+                local progress=ecs.get(entity,"d2legacy.quest.progress")
+                if progress and progress:get("quest_id")==1 then
+                    if progress:get("rewarded") then status="Den of Evil: rewarded. Akara granted one skill point."
+                    elseif progress:get("completed") then status="Den of Evil: cleared. Return to Akara for one skill point."
+                    else status="Den of Evil: in progress. Explore every chamber and defeat its monsters." end
+                end
+            end
+        end
+        text.create(self.root, "formal_small", status, screen.unavailable.x + offset_x, screen.unavailable.y + offset_y, screen.unavailable.width)
 
         local close = screen.close
         local close_placement = {

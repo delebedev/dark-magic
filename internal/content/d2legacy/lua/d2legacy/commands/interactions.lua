@@ -94,12 +94,19 @@ local function in_range(owner, entity, target)
     end
     local position = ecs.get(player, "d2legacy.world.position")
     local player_location = ecs.get(player, "d2legacy.world.location")
-    local target_location = ecs.get(entity, "d2legacy.world.location")
+    local target_location = ecs.get(entity, "d2legacy.world.location") or ecs.get(entity,"d2legacy.world.room_resident")
     if player_location and target_location and player_location:get("level_id") ~= target_location:get("level_id") then
         return false
     end
     local distance = squared_distance(position:get("x"), position:get("y"), target:get("x"), target:get("y"))
     return distance <= target:get("radius") * target:get("radius")
+end
+
+function M.context_in_range(owner)
+    local context=interaction_context(owner)
+    local entity=context:get("target")
+    local target=ecs.get(entity,"d2legacy.interaction.target")
+    return target and not ecs.get(entity,"d2legacy.world.inactive") and in_range(owner,entity,target)
 end
 
 local function target_at(owner, x, y)
@@ -158,6 +165,9 @@ function M.open(command)
     local context = interaction_context(owner)
     destroy_null_target(context)
     context:set("target", entity)
+    if string.lower(target:get("npc"))=="akara" then
+        require("d2legacy.commands.quests").claim_available(owner,command.tick)
+    end
 end
 
 function M.close(command)

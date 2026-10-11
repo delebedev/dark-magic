@@ -14,8 +14,10 @@ func TestValidateClientViewRejectsUnboundedOrInvalidNetworkState(t *testing.T) {
 	}
 
 	tests := map[string]func(*ClientView){
-		"wrong nested tick": func(view *ClientView) { view.Private.Tick++ },
-		"non-finite owner":  func(view *ClientView) { view.HUD.Position.X = math.NaN() },
+		"rewarded unfinished quest": func(view *ClientView) { view.Private.Quest = &QuestView{QuestID: 1, Stage: 1, Rewarded: true} },
+		"unbounded quest":           func(view *ClientView) { view.Private.Quest = &QuestView{QuestID: 1, Stage: 257} },
+		"wrong nested tick":         func(view *ClientView) { view.Private.Tick++ },
+		"non-finite owner":          func(view *ClientView) { view.HUD.Position.X = math.NaN() },
 		"excess entities": func(view *ClientView) {
 			view.World.Entities = make([]WorldEntity, MaxWorldViewEntities+1)
 		},

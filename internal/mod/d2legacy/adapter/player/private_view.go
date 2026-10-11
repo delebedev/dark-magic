@@ -17,6 +17,14 @@ type PrivateView struct {
 	Tick        uint64          `json:"tick"`
 	Items       ItemView        `json:"items"`
 	Interaction InteractionView `json:"interaction"`
+	Quest       *QuestView      `json:"quest,omitempty"`
+}
+
+type QuestView struct {
+	QuestID   int64 `json:"quest_id"`
+	Stage     int64 `json:"stage"`
+	Completed bool  `json:"completed"`
+	Rewarded  bool  `json:"rewarded"`
 }
 
 type ItemView struct {
@@ -102,6 +110,15 @@ func ProjectPrivateView(playerID string, checkpoint simulation.Checkpoint) (Priv
 	}
 
 	view.Interaction = projectInteraction(snapshot, playerID)
+	if identities, found := findComponent(snapshot, "d2legacy.player.identity"); found {
+		if entity, _, present := findString(identities, "player", playerID); present {
+			if quests, found := findComponent(snapshot, "d2legacy.quest.progress"); found {
+				if fields, present := findInstance(quests, entity); present {
+					view.Quest = &QuestView{QuestID: intField(fields, "quest_id"), Stage: intField(fields, "stage"), Completed: boolField(fields, "completed"), Rewarded: boolField(fields, "rewarded")}
+				}
+			}
+		}
+	}
 
 	return view, nil
 }
