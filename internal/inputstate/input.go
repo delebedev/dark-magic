@@ -22,9 +22,16 @@ const (
 	FocusDebug = "debug"
 )
 
+// Contact is one active touch in logical viewport coordinates.
+type Contact struct {
+	ID   int
+	X, Y float64
+}
+
 // Frame is an immutable input snapshot published by a native backend.
 type Frame struct {
 	PointerSource string
+	Contacts      []Contact
 	Actions       map[string]ActionState
 	Text          string
 	CursorX       float64
@@ -48,6 +55,7 @@ func Route(frame Frame, owner FocusOwner, captured, gameplay bool, worldView str
 	if captured {
 		frame.Actions = make(map[string]ActionState)
 		frame.Text = ""
+		frame.Contacts = nil
 		frame.ScrollX, frame.ScrollY = 0, 0
 	}
 
@@ -71,6 +79,7 @@ func (s *Store) Publish(frame Frame) {
 	}
 
 	frame.Actions = cloneActions(frame.Actions)
+	frame.Contacts = append([]Contact(nil), frame.Contacts...)
 	s.current.Store(frame)
 }
 
@@ -83,10 +92,12 @@ func (s *Store) Snapshot() Frame {
 	}
 
 	frame := value.(Frame)
+	frame.Contacts = append([]Contact(nil), frame.Contacts...)
 	if s.suppressed.Load() > 0 {
 		frame.Actions = make(map[string]ActionState)
 		frame.Text = ""
 		frame.CursorX, frame.CursorY = 0, 0
+		frame.Contacts = nil
 		frame.ScrollX, frame.ScrollY = 0, 0
 
 		return frame
@@ -101,11 +112,15 @@ func (s *Store) Snapshot() Frame {
 			s.allPointer.Load() > 0,
 		)
 		frame.Text = ""
+		if frame.WorldView == "none" {
+			frame.Contacts = nil
+		}
 
 		return frame
 	}
 
 	if s.pointerOnly.Load() > 0 {
+		frame.Contacts = nil
 		frame.Actions = pointerActions(frame.Actions)
 		frame.Text = ""
 

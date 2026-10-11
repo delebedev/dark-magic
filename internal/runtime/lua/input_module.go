@@ -31,6 +31,7 @@ func InputModule(input *inputstate.Store) Module {
 				"engine.input.pointer_source()",
 				"Return native or probe for the current pointer frame.",
 			),
+			"contacts": commandHelp("engine.input.contacts()", "Return copied active touches with stable IDs and logical x/y coordinates."),
 			"cursor": commandHelp(
 				"engine.input.cursor()",
 				"Return the current cursor coordinates.",
@@ -74,6 +75,18 @@ func InputModule(input *inputstate.Store) Module {
 						source = "native"
 					}
 					state.Push(lua.LString(source))
+					return 1
+				},
+				"contacts": func(state *lua.LState) int {
+					contacts := state.NewTable()
+					for _, point := range input.Snapshot().Contacts {
+						entry := state.NewTable()
+						entry.RawSetString("id", lua.LNumber(point.ID))
+						entry.RawSetString("x", lua.LNumber(point.X))
+						entry.RawSetString("y", lua.LNumber(point.Y))
+						contacts.Append(entry)
+					}
+					state.Push(contacts)
 					return 1
 				},
 				"cursor": func(state *lua.LState) int {

@@ -224,3 +224,36 @@ func TestStoreGameplayAndPointerKeepsHUDPointerOutsideWorldView(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestContactsAreCopiedAndRespectFocus(t *testing.T) {
+	var store Store
+	contacts := []Contact{{ID: 7, X: 10, Y: 20}, {ID: 8, X: 30, Y: 40}}
+	store.Publish(Frame{Contacts: contacts})
+	contacts[0].X = 999
+	frame := store.Snapshot()
+	if frame.Contacts[0].X != 10 {
+		t.Fatal("backend mutated published contacts")
+	}
+	frame.Contacts[1].X = 999
+	if store.Snapshot().Contacts[1].X != 30 {
+		t.Fatal("reader mutated published contacts")
+	}
+	if err := store.Suppress(func() error {
+		if len(store.Snapshot().Contacts) != 0 {
+			t.Fatal("contacts leaked through focus suppression")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if got := Route(Frame{Contacts: contacts}, FocusOwner{}, true, true, "full"); len(got.Contacts) != 0 {
+		t.Fatal("console capture leaked contacts")
+	}
+	store.Publish(Frame{Contacts: contacts, WorldView: "none"})
+	_ = store.GameplayOnly(func() error {
+		if len(store.Snapshot().Contacts) != 0 {
+			t.Fatal("modal leaked contacts")
+		}
+		return nil
+	})
+}

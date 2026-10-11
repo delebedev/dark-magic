@@ -18,6 +18,7 @@ func TestInputModuleReadsLogicalFrameSnapshot(t *testing.T) {
 	input.Publish(
 		inputstate.Frame{
 			PointerSource: "probe",
+			Contacts:      []inputstate.Contact{{ID: 7, X: 12, Y: 34}, {ID: 8, X: 50, Y: 60}},
 			Actions:       map[string]inputstate.ActionState{"confirm": {Pressed: true}},
 			Text:          "hé",
 			CursorX:       12,
@@ -43,6 +44,10 @@ func TestInputModuleReadsLogicalFrameSnapshot(t *testing.T) {
 		fstest.MapFS{"test.lua": &fstest.MapFile{Data: []byte(`
 local input = require("engine.input/v1")
 pointer_source = input.pointer_source()
+local contacts=input.contacts()
+assert(#contacts==2 and contacts[1].id==7 and contacts[2].x==50)
+contacts[1].x=999
+assert(input.contacts()[1].x==12)
 confirmed = input.pressed("confirm")
 cursor_x, cursor_y = input.cursor()
 scroll_x, scroll_y = input.scroll()

@@ -53,8 +53,14 @@ func (i *ebitInput) sample() {
 		tx, ty := ebiten.TouchPosition(id)
 		points = append(points, touchPoint{id: int(id), x: tx, y: ty})
 	}
+	contacts := make([]inputstate.Contact, 0, len(points))
+	for _, point := range points {
+		contacts = append(contacts, inputstate.Contact{ID: point.id, X: float64(point.x), Y: float64(point.y)})
+	}
 	width, height := i.renderer.Resolution()
+	source := "native"
 	if tx, ty, action, present := i.touch.sample(points, width, height); present {
+		source = "touch"
 		x, y, pointer = tx, ty, action
 	}
 	pointerSecondary := ebitMouseAction(ebiten.MouseButtonRight)
@@ -64,11 +70,13 @@ func (i *ebitInput) sample() {
 	control := mergeEbitActions(ebitKeyAction(ebiten.KeyControlLeft), ebitKeyAction(ebiten.KeyControlRight))
 	shift := mergeEbitActions(ebitKeyAction(ebiten.KeyShiftLeft), ebitKeyAction(ebiten.KeyShiftRight))
 	i.frame = inputstate.Frame{
-		CursorX: float64(x),
-		CursorY: float64(y),
-		ScrollX: scrollX,
-		ScrollY: scrollY,
-		Text:    string(ebiten.AppendInputChars(nil)),
+		Contacts:      contacts,
+		PointerSource: source,
+		CursorX:       float64(x),
+		CursorY:       float64(y),
+		ScrollX:       scrollX,
+		ScrollY:       scrollY,
+		Text:          string(ebiten.AppendInputChars(nil)),
 		Actions: map[string]inputstate.ActionState{
 			"shell_toggle":      ebitKeyAction(ebiten.KeyGraveAccent),
 			"shell_lua":         ebitKeyAction(ebiten.KeyF1),
