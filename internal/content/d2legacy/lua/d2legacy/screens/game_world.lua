@@ -39,6 +39,7 @@ local chunked_map = require("d2legacy.presentation.chunked_map")
 local tooltip = require("d2legacy.ui.tooltip")
 local text = require("d2legacy.ui.text")
 local input_diagnostics = require("d2legacy.dev.input_diagnostics")
+local click_indicator = require("d2legacy.dev.click_indicator")
 local touch_controls = require("d2legacy.ui.touch_controls")
 local touch_input = require("d2legacy.gameplay.touch_input")
 local locale = require("engine.locale/v1")
@@ -934,6 +935,7 @@ return {
         end
 
         self.input_diagnostic = input_diagnostics.create(self.root, self.hud and self.hud.controls)
+        self.click_indicator = click_indicator.create(self.root)
         if self.hud then self.touch_controls = touch_controls.create(self.root, self.hud.palette) end
 
         -- These are capability QUERIES: Lua gets provenance/availability facts,
@@ -951,6 +953,7 @@ return {
     end,
 
     update = function(self, elapsed, focused, input_allowed, world_view)
+        click_indicator.update(self.click_indicator, elapsed)
         local viewport_width, viewport_height = display.size()
         local hud_offset = (viewport_width - manifest.resolution.width) / 2
         if self.hud then
@@ -1345,6 +1348,7 @@ return {
     end,
 
     destroy = function(self)
+        click_indicator.destroy(self.click_indicator)
         input_diagnostics.destroy(self.input_diagnostic)
         touch_controls.destroy(self.touch_controls)
         -- gameplay.world owns only its presentation camera entity; its destroy

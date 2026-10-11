@@ -56,6 +56,7 @@ type Options struct {
 	FixtureWorldLevel      int
 	FixtureWorldSpawn      string
 	InputDiagnostics       bool
+	ShowClicks             bool
 	TouchControls          bool
 	FixturePointerMove     bool
 	OutputPalette          string

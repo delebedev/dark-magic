@@ -65,6 +65,7 @@ func run(
 		CaptureDirectory:       config.captureDirectory,
 		CaptureScenes:          config.captureScenes,
 		CaptureSettle:          config.captureSettle,
+		ShowClicks:             config.showClicks,
 		StartScene:             config.startScene,
 		StartOverlays:          config.startOverlays,
 		FixtureCharacters:      config.fixtureCharacters,
