@@ -12,7 +12,7 @@ import (
 	"github.com/gravestench/dark-magic/internal/game/simulation"
 )
 
-const WorldViewVersion uint32 = 5
+const WorldViewVersion uint32 = 6
 
 const (
 	WorldViewRadius         = 80.0

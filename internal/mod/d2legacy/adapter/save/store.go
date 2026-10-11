@@ -12,14 +12,16 @@ import (
 // in account ownership, revision, compatibility, and lease checks; copying this
 // value never grants authority to update an account-owned realm character.
 type Character struct {
-	ID         string      `json:"id"`
-	Name       string      `json:"name"`
-	Class      string      `json:"class"`
-	Level      int         `json:"level"`
-	Expansion  bool        `json:"expansion"`
-	Hardcore   bool        `json:"hardcore"`
-	Appearance *Appearance `json:"appearance,omitempty"`
-	Stats      *Stats      `json:"stats,omitempty"`
+	ID          string       `json:"id"`
+	Name        string       `json:"name"`
+	Class       string       `json:"class"`
+	Level       int          `json:"level"`
+	Expansion   bool         `json:"expansion"`
+	Hardcore    bool         `json:"hardcore"`
+	Appearance  *Appearance  `json:"appearance,omitempty"`
+	Stats       *Stats       `json:"stats,omitempty"`
+	Inventory   *Inventory   `json:"inventory,omitempty"`
+	Progression *Progression `json:"progression,omitempty"`
 }
 
 // Stats is an immutable character-sheet snapshot. Authoritative simulation and
@@ -215,6 +217,28 @@ func cloneCharacter(character Character) Character {
 		character.Stats = &stats
 	}
 
+	if character.Inventory != nil {
+		inventory := *character.Inventory
+		inventory.Items = append([]Item(nil), inventory.Items...)
+		for i := range inventory.Items {
+			item := &inventory.Items[i]
+			item.StatModifiers = append([]ItemModifier(nil), item.StatModifiers...)
+			if item.Generation != nil {
+				generation := *item.Generation
+				item.Generation = &generation
+			}
+		}
+		character.Inventory = &inventory
+	}
+	if character.Progression != nil {
+		progression := *character.Progression
+		progression.Skills = append([]LearnedSkill(nil), progression.Skills...)
+		if progression.Quest != nil {
+			quest := *progression.Quest
+			progression.Quest = &quest
+		}
+		character.Progression = &progression
+	}
 	if character.Appearance == nil {
 		return character
 	}

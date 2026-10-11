@@ -50,7 +50,7 @@ function M.components(layout, item)
             owner = layout,
             id = item.id,
             code = item.code,
-            item_types = item_type_closure(item),
+            item_types = item.item_types or item_type_closure(item),
             material_flags = item.material_flags or 0,
             identified = item.identified ~= false,
             width = item.width,

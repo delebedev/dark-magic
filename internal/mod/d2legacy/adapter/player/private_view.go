@@ -7,12 +7,13 @@ import (
 	"github.com/gravestench/dark-magic/internal/game/simulation"
 )
 
-const PrivateViewVersion uint32 = 1
+const PrivateViewVersion uint32 = 2
 
 // PrivateView is owner-only state needed by connected presentation. It is an
 // explicit allowlist rather than a serialized ECS snapshot, so another
 // player's inventory or interaction context cannot cross the protocol boundary.
 type PrivateView struct {
+	Character   *CharacterState `json:"character,omitempty"`
 	Version     uint32          `json:"version"`
 	Tick        uint64          `json:"tick"`
 	Items       ItemView        `json:"items"`
@@ -120,6 +121,11 @@ func ProjectPrivateView(playerID string, checkpoint simulation.Checkpoint) (Priv
 		}
 	}
 
+	state, err := projectCharacterState(playerID, checkpoint)
+	if err != nil {
+		return PrivateView{}, err
+	}
+	view.Character = state
 	return view, nil
 }
 

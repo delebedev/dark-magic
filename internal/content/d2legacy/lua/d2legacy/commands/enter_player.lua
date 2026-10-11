@@ -7,6 +7,7 @@
 local commands = require("engine.authority_command/v1")
 local ecs = require("engine.ecs/v1")
 local skills = require("d2legacy.data.skill")
+local durable = require("d2legacy.items.durable")
 local player_stats = require("d2legacy.data.player_stats")
 local item_bootstrap = require("d2legacy.items.bootstrap")
 local game_rules = require("d2legacy.policy.game_rules")
@@ -170,6 +171,7 @@ function M.validate(command)
         "player entry is outside the world"
     )
     assert(p.act >= 1 and p.act <= 5 and p.level_id > 0, "player entry location is invalid")
+    durable.validate(p.inventory, p.progression)
 end
 
 local class_tokens = {
@@ -242,6 +244,16 @@ local function configured_skills(class)
     return learned, { left = config.left, right = config.right }
 end
 
+local function admitted_skills(p)
+    if not p.progression or #p.progression.skills == 0 then return configured_skills(p.class) end
+    local learned = {}
+    for _, saved in ipairs(p.progression.skills) do
+        local facts = skills.learned_for_ids({ saved.skill_id }, saved.level)
+        learned[#learned + 1] = assert(facts[1])
+    end
+    return learned, { left = p.progression.left_skill, right = p.progression.right_skill }
+end
+
 local function create_passive_sources(player, sources)
     local seen = {}
     for index, source in ipairs(sources or {}) do
@@ -308,7 +320,7 @@ function M.apply(command)
         "player entry difficulty differs from immutable game rules"
     )
     local resist_penalty = difficulty_levels.resist_penalty()
-    local learned, preferred_skills = configured_skills(p.class)
+    local learned, preferred_skills = admitted_skills(p)
     local _, run_drain = movement_rules.class_facts(p.class)
     local left, right = initial_skills(learned, preferred_skills)
     local spawn_x, spawn_y = entry_position(p)
@@ -322,11 +334,11 @@ function M.apply(command)
         ["d2legacy.player.progress"] = {
             level = p.level,
             experience = p.experience,
-            unspent_skill_points = p.unspent_skill_points or 0,
+            unspent_skill_points = p.progression and p.progression.unspent_skill_points or p.unspent_skill_points or 0,
         },
         ["d2legacy.player.difficulty"] = {
             current = difficulty,
-            highest_completed = p.highest_completed_difficulty or -1,
+            highest_completed = p.progression and p.progression.highest_completed_difficulty or p.highest_completed_difficulty or -1,
         },
         ["d2legacy.player.combat_stats"] = {
             base_attack_rating = player_stats.base_attack_rating(p.class, p.dexterity, p.base_attack_rating),
@@ -440,7 +452,10 @@ function M.apply(command)
             priority = 10,
         },
     })
-    item_bootstrap.ensure_player(p.player)
+    if p.progression and p.progression.quest then
+        ecs.set(player, "d2legacy.quest.progress", p.progression.quest)
+    end
+    item_bootstrap.ensure_player(p.player, p.inventory)
     create_passive_sources(player, p.passive_stat_sources)
     for _, skill in ipairs(learned) do
         ecs.create({

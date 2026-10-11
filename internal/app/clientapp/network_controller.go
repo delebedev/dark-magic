@@ -494,7 +494,15 @@ func (controller *networkController) persistSelfHostedCharacter(
 
 	hud, _ := client.View()
 
-	return updateSelectedCharacter(controller.app.saves, hud)
+	baseline, selected := controller.app.saves.Selected()
+	if !selected {
+		return errors.New("persist self-hosted character: no selected character")
+	}
+	updated, err := playeradapter.MergePrivateCharacter(baseline, hud, client.PrivateView())
+	if err != nil {
+		return fmt.Errorf("persist self-hosted character: %w", err)
+	}
+	return controller.app.saves.UpdateSelected(updated)
 }
 
 // updateSelectedCharacter preserves the selected save's durable identity and replaces only fields

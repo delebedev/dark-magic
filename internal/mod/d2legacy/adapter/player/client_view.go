@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const ClientViewVersion uint32 = 12
+const ClientViewVersion uint32 = 13
 
 const (
 	MaxHUDLearnedSkills  = 256
@@ -213,6 +213,9 @@ func validateDecodedWorldView(world WorldView) error {
 // validatePrivateView bounds inventory shapes, strings, and interaction values.
 // This is a trust boundary because all fields may originate from a remote host.
 func validatePrivateView(private PrivateView) error {
+	if err := validateCharacterState(private.Character); err != nil {
+		return err
+	}
 	if q := private.Quest; q != nil && (q.QuestID < 1 || q.QuestID > 256 || q.Stage < 0 || q.Stage > 256 || (q.Rewarded && !q.Completed)) {
 		return ErrClientView
 	}
