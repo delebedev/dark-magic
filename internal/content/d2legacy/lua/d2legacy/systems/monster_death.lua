@@ -9,6 +9,7 @@ local loot = require("d2legacy.loot.generate")
 local attribution = require("d2legacy.owned_units.attribution")
 local player_count = require("d2legacy.policy.player_count")
 local party = require("d2legacy.policy.party")
+local ground = require("d2legacy.loot.ground")
 local M = {}
 
 local function selectable_by_id(entities, wanted)
@@ -81,7 +82,7 @@ local function roll_loot(entities, identity, stats, credited_id)
         magic_find = 0,
         player_count = context,
     })
-    return loot.encode(drops), context
+    return loot.encode(drops), context, drops
 end
 
 local function death_values(context, monster, identity, killer, credited, experience, drops, counts)
@@ -171,11 +172,12 @@ local function commit_death(context, entities, structural, monster, killers)
     local experience = stats:get("experience")
     credit_experience(entities, credited, experience)
 
-    local drops, counts = roll_loot(entities, identity, stats, credited)
+    local drops, counts, rolled = roll_loot(entities, identity, stats, credited)
     local values = death_values(context, monster, identity, killer, credited, experience, drops, counts)
     structural:set(monster, "d2legacy.monster.death", values)
     stop_monster(monster, structural)
     emit_events(structural, context, identity, values)
+    ground.spawn(context, entities, structural, monster, rolled, credited)
 end
 
 local function update(context, entities, structural)
@@ -199,6 +201,8 @@ function M.register()
                 -- system snapshot so credited XP can reach player.progress.
                 "d2legacy.world.selectable",
                 "d2legacy.player.identity",
+                "d2legacy.items.layout",
+                "d2legacy.item.identity",
             },
             none = { "d2legacy.world.inactive", "d2legacy.combat.death_observed" },
         },
@@ -216,6 +220,9 @@ function M.register()
             "d2legacy.player.progress",
             "d2legacy.monster.appearance",
             "d2legacy.combat.death_observed",
+            "d2legacy.world.position",
+            "d2legacy.items.layout",
+            "d2legacy.item.identity",
         },
         write = {
             "d2legacy.monster.death",
@@ -228,6 +235,15 @@ function M.register()
             "d2legacy.player.progress",
             "d2legacy.monster.appearance",
             "d2legacy.combat.death_observed",
+            "d2legacy.item.identity",
+            "d2legacy.item.placement",
+            "d2legacy.item.presentation",
+            "d2legacy.item.melee",
+            "d2legacy.item.armor",
+            "d2legacy.item.generation",
+            "d2legacy.world.position",
+            "d2legacy.world.location",
+            "d2legacy.world.room_attach",
         },
         update = update,
     })

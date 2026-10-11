@@ -9,6 +9,11 @@ local population = require("d2legacy.bootstrap.population")
 
 local M = {}
 
+function M.selectable(owner, item)
+    return { id = "item:" .. owner .. ":" .. item.id, kind = "item", label = item.name_key or item.code,
+        owner = "", priority = 15, radius = 3.5 }
+end
+
 local function resident_id(owner, item_id)
     return "item:" .. owner .. ":" .. item_id
 end
@@ -20,6 +25,7 @@ function M.initial_components(owner, item)
     assert(type(item.act) == "number" and item.act > 0, "world item act is required")
     assert(type(item.x) == "number" and type(item.y) == "number", "world item position is required")
     return {
+        ["d2legacy.world.selectable"] = M.selectable(owner, item),
         ["d2legacy.world.position"] = { x = item.x, y = item.y },
         ["d2legacy.world.location"] = { act = item.act, level_id = item.level_id },
         ["d2legacy.world.room_attach"] = { id = resident_id(owner, item.id) },
@@ -30,6 +36,8 @@ function M.place(entity, owner, item_id, location, x, y)
     assert(location, "world item owner location is required")
     local id = resident_id(owner, item_id)
     local level_id = location:get("level_id")
+    local identity = assert(ecs.get(entity, "d2legacy.item.identity"))
+    ecs.set(entity, "d2legacy.world.selectable", M.selectable(owner, {id=item_id,code=identity:get("code")}))
     ecs.set(entity, "d2legacy.world.position", { x = x, y = y })
     ecs.set(entity, "d2legacy.world.location", location:snapshot())
     ecs.remove(entity, "d2legacy.world.inactive")
@@ -45,6 +53,7 @@ end
 
 function M.clear(entity)
     for _, component in ipairs({
+        "d2legacy.world.selectable",
         "d2legacy.world.inactive",
         "d2legacy.world.room_resident",
         "d2legacy.world.room_attach",

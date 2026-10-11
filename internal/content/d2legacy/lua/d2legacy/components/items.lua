@@ -63,6 +63,11 @@ local function register_item_location()
 end
 
 local function register_item_views()
+    register("d2legacy.item.generation", {
+        { name = "quality", type = "string" },
+        { name = "level", type = "i64" },
+        { name = "facts", type = "string" },
+    })
     register("d2legacy.item.presentation", {
         { name = "inventory_dc6", type = "string" },
         { name = "world_dc6", type = "string" },
