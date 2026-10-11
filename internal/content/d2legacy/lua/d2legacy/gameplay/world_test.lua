@@ -4,6 +4,27 @@ return test.suite({
     profile = "ecs",
     tier = "fast",
     cases = {
+        test.case("hud_matches_learned_skills_by_owner_id", {
+            test.run(function()
+                local ecs = require("engine.ecs/v1")
+                local world = require("d2legacy.gameplay.world")
+                local player = ecs.create({
+                    ["d2legacy.player.progress"] = {},
+                    ["d2legacy.player.vitals"] = {},
+                    ["d2legacy.player.movement_mode"] = {},
+                    ["d2legacy.player.skill_assignment"] = {},
+                    ["d2legacy.player.belt"] = {},
+                })
+                local other = ecs.create({})
+                ecs.create({ ["d2legacy.player.learned_skill"] = { owner = player, skill_id = 36, level = 1 } })
+                ecs.create({ ["d2legacy.player.learned_skill"] = { owner = other, skill_id = 40, level = 1 } })
+                local snapshot = world.hud_snapshot(player)
+                test.expect(#snapshot.learned_skills):equals(1)
+                test.expect(snapshot.learned_skills[1].skill_id):equals(36)
+                snapshot.learned_skills[1].level = 99
+                test.expect(world.hud_snapshot(player).learned_skills[1].level):equals(1)
+            end),
+        }),
         test.case("semantic_cues_tolerate_absent_optional_events", {
             test.run(function()
                 local ecs = require("engine.ecs/v1")

@@ -40,7 +40,7 @@ local function group_rows(skills, side)
 
     for _, skill in ipairs(skills) do
         -- Compact conditional chooses the side-specific authority flag.
-        local allowed = side == "left" and skill.left_allowed or skill.right_allowed
+        local allowed = (side == "left" and skill.left_allowed) or (side == "right" and skill.right_allowed)
 
         -- Passive skills do not belong in a selectable action well, and negative
         -- list rows mean "not placed in this selector layout."
@@ -60,7 +60,8 @@ local function group_rows(skills, side)
         -- Left and right selectors intentionally order skills in opposite ID
         -- directions so the rows grow toward the center in the desktop layout.
         table.sort(rows[row], function(a, b)
-            return side == "left" and a.id < b.id or a.id > b.id
+            if side == "left" then return a.id < b.id end
+            return a.id > b.id
         end)
     end
 
@@ -74,8 +75,8 @@ local function add_button(selector, side, skill, x, y)
     node:set_position(x + selector.definition.width / 2, y + selector.definition.height / 2)
     node:set_visible(false)
 
-    -- Tooltip is a separate reusable composite that starts hidden.
-    local tip = tooltip.create(selector.root, skill_name(skill), x + selector.definition.width / 2, y, {})
+    -- Hidden choices must not decode every tooltip during the admission frame.
+    local button = { side = side, node = node }
 
     -- Input remains an ordinary controls.Manager entry.
     local control = selector.controls:add({
@@ -92,12 +93,17 @@ local function add_button(selector, side, skill, x, y)
         end,
 
         on_state = function(_, state)
-            tip:set_visible(state == "hover" or state == "focused" or state == "pressed")
+            local visible = state == "hover" or state == "focused" or state == "pressed"
+            if visible and not button.tip then
+                button.tip = tooltip.create(selector.root, skill_name(skill), x + selector.definition.width / 2, y, {})
+            end
+            if button.tip then button.tip:set_visible(visible) end
         end,
     })
 
     -- Keep all three related pieces together for bulk open/close operations.
-    selector.buttons[#selector.buttons + 1] = { side=side, node=node, tip=tip, control=control }
+    button.control = control
+    selector.buttons[#selector.buttons + 1] = button
 end
 
 local function build_side(selector, side, skills)
@@ -109,7 +115,7 @@ local function build_side(selector, side, skills)
 
         for column, skill in ipairs(entries) do
             local x, y = position(side, row_index, column, width, selector.definition)
-            add_button(selector, side, skill, x, y)
+            selector.pending[#selector.pending + 1] = { side = side, skill = skill, x = x, y = y }
         end
     end
 end
@@ -118,16 +124,41 @@ function M.create(root, definition, palette, controls, assign)
     -- A compact data-only constructor is enough here; expensive icon nodes are
     -- created later when the first learned-skill snapshot arrives.
     return { root=render.create("hud", root), definition=definition, palette=palette,
-        controls=controls, assign=assert(assign), buttons={}, open=nil, signature=nil }
+        controls=controls, assign=assert(assign), buttons={}, pending={}, open=nil, signature=nil }
 end
 
 -- Learned skills change rarely. Build retained nodes only once for the current
 -- selector data instead of recreating buttons every HUD frame.
 function M.set_skills(selector, skills)
-	if selector.signature ~= nil or #skills == 0 then return end
-    selector.signature = true
-    build_side(selector, "left", skills)
-    build_side(selector, "right", skills)
+    if selector.signature == nil then
+        if #skills == 0 then return end
+        selector.signature = true
+        build_side(selector, "left", skills)
+        build_side(selector, "right", skills)
+        local requests, seen = {}, {}
+        for _, choice in ipairs(selector.pending) do
+            local skill = choice.skill
+            if not seen[skill.id] then
+                seen[skill.id] = true
+                requests[#requests + 1] = { kind = "dc6_frame", path = skill.sheet,
+                    palette = selector.palette, direction = 0, frame = skill.icon }
+            end
+        end
+        if #requests > 0 then selector.job = render.preload(requests) end
+        return
+    end
+    if #selector.pending == 0 then return end
+    local status = render.preload_status(selector.job)
+    if not status.done then return end
+    assert(status.failed == 0, "preloading skill chooser icons failed")
+    -- Bound retained-node work as well as cold decoding during player admission.
+    for _ = 1, math.min(4, #selector.pending) do
+        local choice = table.remove(selector.pending, 1)
+        add_button(selector, choice.side, choice.skill, choice.x, choice.y)
+        local button = selector.buttons[#selector.buttons]
+        button.control.visible = selector.open == choice.side
+        button.node:set_visible(button.control.visible)
+    end
 end
 
 function M.close(selector)
@@ -136,7 +167,7 @@ function M.close(selector)
         -- Hide BOTH interaction and presentation so invisible icons cannot still click.
         button.control.visible = false
         button.node:set_visible(false)
-        button.tip:set_visible(false)
+        if button.tip then button.tip:set_visible(false) end
     end
 end
 

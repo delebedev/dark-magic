@@ -548,7 +548,7 @@ function M.hud_snapshot(entity, saved)
     local learned_skills = {}
     for _, learned in ipairs(ecs.query({ all = { "d2legacy.player.learned_skill" } })) do
         local skill = ecs.get(learned, "d2legacy.player.learned_skill")
-        if skill:get("owner") == entity then
+        if skill:get("owner"):id() == entity:id() then
             -- Copy the component into ordinary values for the HUD. The HUD should
             -- not hold/write the live learned-skill component.
             learned_skills[#learned_skills + 1] = skill:snapshot()

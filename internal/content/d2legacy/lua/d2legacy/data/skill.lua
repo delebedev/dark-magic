@@ -19,14 +19,7 @@ local icon_sheets = {
     ass = "AsSkillicon",
 }
 
-local function find(rows, key, wanted)
-    for _, row in ipairs(rows) do
-        if row[key] == wanted then
-            return row
-        end
-    end
-    return nil
-end
+local presentation_skills, presentation_descriptions
 
 local function descriptions_by_name()
     local result = {}
@@ -71,12 +64,19 @@ end
 
 -- load returns presentation facts for one numeric skill identifier.
 function M.load(id)
-    local skill = find(records.load("data/global/excel/skills.txt"), "Id", tostring(id))
+    if not presentation_skills then
+        presentation_skills = {}
+        for _, row in ipairs(records.load("data/global/excel/skills.txt")) do
+            presentation_skills[row.Id] = row
+        end
+        presentation_descriptions = descriptions_by_name()
+    end
+    local skill = presentation_skills[tostring(id)]
     if not skill then
         return nil
     end
 
-    local description = find(records.load("data/global/excel/skilldesc.txt"), "skilldesc", skill.skilldesc)
+    local description = presentation_descriptions[skill.skilldesc]
     if not description then
         return nil
     end
