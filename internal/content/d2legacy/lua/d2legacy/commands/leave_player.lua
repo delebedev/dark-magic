@@ -53,6 +53,10 @@ function M.apply(command)
         return value:get("owner"):id() == player:id()
     end)
 
+    destroy_matching("d2legacy.player.corpse", function(value)
+        return value:get("owner"):id() == player:id()
+    end)
+
     local layouts = {}
     for _, entity in ipairs(ecs.query({ all = { "d2legacy.items.layout" } })) do
         if ecs.get(entity, "d2legacy.items.layout"):get("owner") == player_id then

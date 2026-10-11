@@ -5,7 +5,7 @@
 -- two domains and falls back to Diablo's unarmed HTH profile.
 
 local ecs = require("engine.ecs/v1")
-local resolution = require("d2legacy.policy.stat_resolution")
+local inspection = require("d2legacy.items.inspection")
 local weapon_selection = require("d2legacy.policy.weapon_selection")
 local M = {}
 
@@ -101,22 +101,6 @@ local function placement_is_active(placement, set)
     return true
 end
 
-local function local_percent(entities, item_entity, stat)
-    local total = 0
-    for _, entity in ipairs(entities) do
-        local modifier = ecs.get(entity, "d2legacy.item.stat_modifier")
-        if
-            modifier
-            and modifier:get("item"):id() == item_entity:id()
-            and modifier:get("stat") == stat
-            and modifier:get("operation") == "local_percent"
-        then
-            total = total + modifier:get("value")
-        end
-    end
-    return total
-end
-
 local function equipped_defense(entities, layout_entity, set)
     local wanted = {}
     for _, entity in ipairs(entities) do
@@ -131,12 +115,7 @@ local function equipped_defense(entities, layout_entity, set)
             and placement_is_active(placement, set)
             and armor:get("defense") ~= 0
         then
-            local percent = local_percent(entities, entity, "defense")
-            local base = armor:get("defense")
-            if percent ~= 0 and armor:get("base_defense_max") > 0 then
-                base = armor:get("base_defense_max") + 1
-            end
-            local defense = resolution.local_value(base, percent)
+            local defense = inspection.defense(entities, entity, armor)
             wanted["equipment:defense:" .. item:get("id")] = { value = defense, operation = "add", order = 10 }
         end
     end

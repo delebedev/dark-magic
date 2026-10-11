@@ -163,6 +163,9 @@ func validateProfile(profile Profile) error {
 			return fmt.Errorf("%w: duplicate character %q", ErrProfile, character.ID)
 		}
 
+		if err := ValidateCharacterContent(character); err != nil {
+			return err
+		}
 		identities[character.ID] = struct{}{}
 	}
 

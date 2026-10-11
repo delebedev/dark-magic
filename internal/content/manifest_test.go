@@ -542,7 +542,9 @@ func TestD2LegacyPresentationAssetCoverageBaseline(t *testing.T) {
 	// The session resistance penalty adds DifficultyLevels.txt to the
 	// code-owned authoritative tables. It is game-rule data, not a presentation
 	// dependency.
-	const auditedFingerprint = "147de7855bd825e8c524b66bf1642272ef66c1b092c5bb4fce19573bcf21d4cc"
+	// The natural loot fixture pins flpssd.dc6 as code-owned item-art evidence.
+	// Runtime ground art remains selected through the existing dynamic items prefix.
+	const auditedFingerprint = "d82960582c34c310c986217f15139b37bb0478c9c1238369a093dd87667dd94a"
 	if coverage.Fingerprint != auditedFingerprint {
 		t.Fatalf(
 			"presentation asset coverage changed: got %s, want audited %s; "+

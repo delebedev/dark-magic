@@ -7,17 +7,25 @@ import (
 	"github.com/gravestench/dark-magic/internal/game/simulation"
 )
 
-const PrivateViewVersion uint32 = 1
+const PrivateViewVersion uint32 = 4
 
 // PrivateView is owner-only state needed by connected presentation. It is an
 // explicit allowlist rather than a serialized ECS snapshot, so another
 // player's inventory or interaction context cannot cross the protocol boundary.
 type PrivateView struct {
+	Character   *CharacterState `json:"character,omitempty"`
 	Version     uint32          `json:"version"`
 	Tick        uint64          `json:"tick"`
 	Items       ItemView        `json:"items"`
 	Interaction InteractionView `json:"interaction"`
 	Quest       *QuestView      `json:"quest,omitempty"`
+	Death       *DeathView      `json:"death,omitempty"`
+}
+
+type DeathView struct {
+	Tick     int64  `json:"tick"`
+	Hardcore bool   `json:"hardcore"`
+	Stage    string `json:"stage"`
 }
 
 type QuestView struct {
@@ -51,26 +59,28 @@ type ItemLayoutView struct {
 }
 
 type ItemEntityView struct {
-	ID              string `json:"id"`
-	Code            string `json:"code"`
-	BodySlots       string `json:"body_slots"`
-	AppliedServices string `json:"applied_services"`
-	Width           int64  `json:"width"`
-	Height          int64  `json:"height"`
-	BaseCost        int64  `json:"base_cost"`
-	BeltEligible    bool   `json:"belt_eligible"`
-	Container       string `json:"container"`
-	Slot            string `json:"slot"`
-	X               int64  `json:"x"`
-	Y               int64  `json:"y"`
-	BeltSlot        int64  `json:"belt_slot"`
-	WeaponSet       int64  `json:"weapon_set"`
-	Page            int64  `json:"page"`
-	InventoryDC6    string `json:"inventory_dc6"`
-	WorldDC6        string `json:"world_dc6"`
-	Composite       string `json:"composite"`
-	WeaponClass     string `json:"weapon_class"`
-	WorldAnimated   bool   `json:"world_animated"`
+	Identified      bool                `json:"identified"`
+	Inspection      *ItemInspectionView `json:"inspection,omitempty"`
+	ID              string              `json:"id"`
+	Code            string              `json:"code"`
+	BodySlots       string              `json:"body_slots"`
+	AppliedServices string              `json:"applied_services"`
+	Width           int64               `json:"width"`
+	Height          int64               `json:"height"`
+	BaseCost        int64               `json:"base_cost"`
+	BeltEligible    bool                `json:"belt_eligible"`
+	Container       string              `json:"container"`
+	Slot            string              `json:"slot"`
+	X               int64               `json:"x"`
+	Y               int64               `json:"y"`
+	BeltSlot        int64               `json:"belt_slot"`
+	WeaponSet       int64               `json:"weapon_set"`
+	Page            int64               `json:"page"`
+	InventoryDC6    string              `json:"inventory_dc6"`
+	WorldDC6        string              `json:"world_dc6"`
+	Composite       string              `json:"composite"`
+	WeaponClass     string              `json:"weapon_class"`
+	WorldAnimated   bool                `json:"world_animated"`
 }
 
 type InteractionView struct {
@@ -115,6 +125,9 @@ func ProjectPrivateView(playerID string, checkpoint simulation.Checkpoint) (Priv
 	view.Interaction = projectInteraction(snapshot, playerID)
 	if identities, found := findComponent(snapshot, "d2legacy.player.identity"); found {
 		if entity, _, present := findString(identities, "player", playerID); present {
+			if fields := durableFields(snapshot, "d2legacy.player.death", entity); fields != nil {
+				view.Death = &DeathView{Tick: intField(fields, "tick"), Hardcore: boolField(fields, "hardcore"), Stage: stringField(fields, "stage")}
+			}
 			if quests, found := findComponent(snapshot, "d2legacy.quest.progress"); found {
 				if fields, present := findInstance(quests, entity); present {
 					view.Quest = &QuestView{QuestID: intField(fields, "quest_id"), Stage: intField(fields, "stage"), Completed: boolField(fields, "completed"), Rewarded: boolField(fields, "rewarded")}
@@ -123,6 +136,11 @@ func ProjectPrivateView(playerID string, checkpoint simulation.Checkpoint) (Priv
 		}
 	}
 
+	state, err := projectCharacterState(playerID, checkpoint)
+	if err != nil {
+		return PrivateView{}, err
+	}
+	view.Character = state
 	return view, nil
 }
 
@@ -212,7 +230,9 @@ func projectItems(snapshot gameecs.Snapshot, layoutEntity uint64) []ItemEntityVi
 
 		placement, _ := findInstance(placements, instance.Entity)
 		presentation, _ := findInstance(presentations, instance.Entity)
-		items = append(items, projectItem(identity, placement, presentation))
+		item := projectItem(identity, placement, presentation)
+		item.Inspection = projectItemInspection(snapshot, instance.Entity)
+		items = append(items, item)
 	}
 
 	sort.Slice(items, func(i, j int) bool { return items[i].ID < items[j].ID })
@@ -228,6 +248,7 @@ func projectItem(
 	presentation map[string]gameecs.ValueSnapshot,
 ) ItemEntityView {
 	return ItemEntityView{
+		Identified:      boolField(identity, "identified"),
 		ID:              stringField(identity, "id"),
 		Code:            stringField(identity, "code"),
 		BodySlots:       stringField(identity, "body_slots"),

@@ -11,6 +11,7 @@ type clientConfig struct {
 	captureDirectory      string
 	captureScenes         string
 	captureSettle         int
+	showClicks            bool
 	startScene            string
 	startOverlays         string
 	fixtureCharacters     int

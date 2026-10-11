@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const ClientViewVersion uint32 = 12
+const ClientViewVersion uint32 = 15
 
 const (
 	MaxHUDLearnedSkills  = 256
@@ -57,6 +57,10 @@ func ValidateClientView(view ClientView, tick uint64) error {
 
 	if err := validatePrivateView(view.Private); err != nil {
 		return err
+	}
+	if death := view.Private.Death; death != nil && (view.HUD.Vitals.Health != 0 ||
+		view.Private.Character != nil && view.Private.Character.Death != nil && view.Private.Character.Death.Hardcore != death.Hardcore) {
+		return ErrClientView
 	}
 
 	if err := validateEventView(view.Events, tick); err != nil {
@@ -213,7 +217,13 @@ func validateDecodedWorldView(world WorldView) error {
 // validatePrivateView bounds inventory shapes, strings, and interaction values.
 // This is a trust boundary because all fields may originate from a remote host.
 func validatePrivateView(private PrivateView) error {
+	if err := validateCharacterState(private.Character); err != nil {
+		return err
+	}
 	if q := private.Quest; q != nil && (q.QuestID < 1 || q.QuestID > 256 || q.Stage < 0 || q.Stage > 256 || (q.Rewarded && !q.Completed)) {
+		return ErrClientView
+	}
+	if d := private.Death; d != nil && (d.Tick <= 0 || uint64(d.Tick) > private.Tick || d.Stage != "dead" && d.Stage != "capacity_exhausted") {
 		return ErrClientView
 	}
 	layout := private.Items.Layout
@@ -230,6 +240,9 @@ func validatePrivateView(private PrivateView) error {
 
 	seen := make(map[string]struct{}, len(private.Items.Items))
 	for _, item := range private.Items.Items {
+		if !validateItemInspection(item.Inspection) || item.Inspection != nil && item.Identified != item.Inspection.Identified {
+			return ErrClientView
+		}
 		if !boundedRequired(item.ID, maxViewIdentityBytes) || !boundedRequired(item.Code, maxWorldKindBytes) ||
 			!bounded(item.BodySlots, maxViewTokenBytes) || !bounded(item.AppliedServices, maxViewTokenBytes) ||
 			!bounded(item.Container, maxWorldKindBytes) || !bounded(item.Slot, maxWorldKindBytes) ||

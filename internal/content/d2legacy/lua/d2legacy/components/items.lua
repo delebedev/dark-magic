@@ -66,6 +66,15 @@ local function register_item_location()
 end
 
 local function register_item_views()
+    register("d2legacy.item.inspection", {
+        { name = "identified", type = "bool" },
+        { name = "status", type = "string" },
+        { name = "damage_known", type = "bool" },
+        { name = "damage_min_raw", type = "i64" },
+        { name = "damage_max_raw", type = "i64" },
+        { name = "defense_known", type = "bool" },
+        { name = "defense", type = "i64" },
+    })
     register("d2legacy.item.generation", {
         { name = "quality", type = "string" },
         { name = "level", type = "i64" },

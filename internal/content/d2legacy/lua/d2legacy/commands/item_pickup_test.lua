@@ -50,8 +50,10 @@ return test.suite({
                 local identity = ecs.get(ground_item, "d2legacy.item.identity")
                 local layout = ecs.get(identity:get("owner"), "d2legacy.items.layout")
                 test.expect(layout:get("owner")):equals("alice")
-                test.expect(ecs.get(ground_item, "d2legacy.item.placement"):get("container")):equals("inventory")
-                test.assert(not ecs.get(ground_item, "d2legacy.world.selectable"), "picked-up item is no longer selectable")
+                local placed = ecs.get(ground_item, "d2legacy.item.placement")
+                test.expect(placed:get("container")):equals("inventory")
+                test.assert(not ecs.get(ground_item, "d2legacy.world.selectable"),
+                    "picked-up item is no longer selectable")
                 require("d2legacy.commands.item_pickup").apply({player="alice", authority="player",
                     payload={target_id="item:bob:sword"}})
                 test.expect(#ecs.query({all={"d2legacy.item.identity"}})):equals(1)
@@ -63,7 +65,8 @@ return test.suite({
             local policy = require("d2legacy.commands.item_pickup")
             local function refused()
                 policy.apply(command)
-                test.expect(ecs.get(ground_item,"d2legacy.item.placement"):get("container")):equals("world")
+                local placed = ecs.get(ground_item, "d2legacy.item.placement")
+                test.expect(placed:get("container")):equals("world")
             end
             local position = ecs.get(ground_item,"d2legacy.world.position")
             position:set("x", 30); refused(); position:set("x", 12)
@@ -77,7 +80,36 @@ return test.suite({
                 container="inventory",x=0,y=0})
             refused()
             local identity = ecs.get(ground_item,"d2legacy.item.identity")
-            test.expect(ecs.get(identity:get("owner"),"d2legacy.items.layout"):get("owner")):equals("bob")
+            local original = ecs.get(identity:get("owner"), "d2legacy.items.layout")
+            test.expect(original:get("owner")):equals("bob")
+        end)),
+        test.case("legacy_move_cannot_bypass_ground_reach", start(function()
+            local ecs = require("engine.ecs/v1")
+            local layout = require("d2legacy.items.find").layout("alice")
+            ecs.get(ground_item, "d2legacy.item.identity"):set("owner", layout)
+            local movement = require("d2legacy.commands.item_movement")
+            local command = { player = "alice", authority = "player", payload = {
+                item_id = "sword", destination = { container = "held" },
+            } }
+            local placed = ecs.get(ground_item, "d2legacy.item.placement")
+            local position = ecs.get(ground_item, "d2legacy.world.position")
+            position:set("x", 30)
+            movement.apply_move(command)
+            test.expect(placed:get("container")):equals("world")
+            position:set("x", 12)
+            barrier.clear = false
+            movement.apply_move(command)
+            test.expect(placed:get("container")):equals("world")
+            barrier.clear = true
+            movement.apply_move(command)
+            test.expect(placed:get("container")):equals("held")
+            command.payload.destination = { container = "world", x = 30, y = 12 }
+            movement.apply_move(command)
+            test.expect(placed:get("container")):equals("held")
+            command.payload.destination.x = 12
+            movement.apply_move(command)
+            test.expect(placed:get("container")):equals("world")
+            test.expect(ecs.get(ground_item, "d2legacy.world.selectable"):get("label")):equals("ssd")
         end)),
     },
 })

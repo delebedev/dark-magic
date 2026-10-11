@@ -23,10 +23,10 @@ local function layout_exists(owner)
     return false
 end
 
-local function create_layout(data)
+local function create_layout(data, owner)
     return ecs.create({
         ["d2legacy.items.layout"] = {
-            owner = data.owner,
+            owner = owner or data.owner,
             inventory_width = data.inventory_width or 0,
             inventory_height = data.inventory_height or 0,
             stash_width = data.stash_width or 0,
@@ -198,10 +198,12 @@ end
 -- Player-owned containers are admission state, not process startup state.
 -- This keeps listen/realm authorities from inventing one "local-player"
 -- inventory before they know which authenticated members will enter.
-function M.ensure_player(owner)
+function M.ensure_player(owner, inventory)
     assert(type(owner) == "string" and owner:match("%S"), "player owner is required")
     if not layout_exists(owner) then
-        create_layout(empty_layout(owner))
+        local data = inventory or empty_layout(owner)
+        local layout = create_layout(data, owner)
+        for _, item in ipairs(data.items or {}) do item_entity.create(layout, item) end
     end
     if not interaction_context_exists(owner) then
         create_interactions(interaction_data, owner)

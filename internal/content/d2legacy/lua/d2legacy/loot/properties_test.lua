@@ -3,7 +3,7 @@ local test = require("d2legacy.tests/v1")
 local records = {
     ["data/global/excel/itemratio.txt"] = {
         {
-            Version = "100",
+            Version = "1",
             Uber = "0",
             ["Class Specific"] = "0",
             Unique = "1000000000",
@@ -31,6 +31,14 @@ local records = {
         { code = "dmg", func1 = "1", stat1 = "item_maxdamage" },
     },
 }
+
+local classic_ratio = {}
+for field, value in pairs(records["data/global/excel/itemratio.txt"][1]) do
+    classic_ratio[field] = value
+end
+classic_ratio.Version = "0"
+classic_ratio.Normal = "1"
+records["data/global/excel/itemratio.txt"][2] = classic_ratio
 
 local function roll_prefixes(affixes, sword, quality)
     for _ = 1, 16 do
@@ -64,6 +72,9 @@ local function quality_affix_and_property_vectors()
         magic = 1024,
     })
     test.assert(rolled == "magic", [=[rolled == "magic"]=])
+    test.expect(quality.roll(sword, {
+        version = 0, monster_level = 1, magic_find = 0,
+    })):equals("normal")
 
     local prefixes = roll_prefixes(affixes, sword, rolled)
     test.assert(prefixes[1].name == "Strong", [=[prefixes[1].name == "Strong"]=])

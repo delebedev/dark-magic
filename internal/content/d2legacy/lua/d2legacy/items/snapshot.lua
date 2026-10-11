@@ -2,6 +2,7 @@
 -- No returned table is authoritative; commands must still mutate ECS state.
 
 local ecs = require("engine.ecs/v1")
+local inspection = require("d2legacy.items.inspection")
 local M = {}
 
 local function local_owner()
@@ -58,6 +59,7 @@ function M.for_owner(owner)
                 code = item:get("code"),
                 material_flags = item:get("material_flags"),
                 identified = item:get("identified"),
+                inspection = inspection.snapshot(entity),
                 width = item:get("width"),
                 height = item:get("height"),
                 body_slots = item:get("body_slots"),
@@ -83,5 +85,19 @@ function M.for_owner(owner)
 end
 function M.local_player()
     return M.for_owner(local_owner())
+end
+
+function M.inspect(id)
+    local owner = layout_for(local_owner())
+    if owner then
+        for _, entity in ipairs(ecs.query({ all = { "d2legacy.item.identity" }, none = { "d2legacy.world.inactive" } })) do
+            local item = ecs.get(entity, "d2legacy.item.identity")
+            if item:get("id") == id and item:get("owner"):id() == owner:id() then return inspection.snapshot(entity) end
+        end
+    end
+    for _, entity in ipairs(ecs.query({ all = { "d2legacy.world.selectable" }, none = { "d2legacy.world.inactive" } })) do
+        local selected = ecs.get(entity, "d2legacy.world.selectable")
+        if selected:get("kind") == "item" and selected:get("id") == id then return inspection.snapshot(entity) end
+    end
 end
 return M

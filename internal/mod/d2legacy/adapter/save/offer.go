@@ -84,6 +84,9 @@ func DecodeCharacterOffer(data []byte) (Character, error) {
 
 // validateCharacterOffer rejects unsupported envelopes and records without the opaque identity persistence requires.
 func validateCharacterOffer(offer CharacterOffer) error {
+	if err := ValidateCharacterContent(offer.Character); err != nil {
+		return err
+	}
 	if offer.Version != CharacterOfferVersion || offer.Character.ID == "" {
 		return fmt.Errorf("%w: character offer version and ID are required", ErrProfile)
 	}

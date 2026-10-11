@@ -16,6 +16,7 @@
 -- player entity, item containers, save system, map decoder, or input device.
 
 local render = require("engine.render/v1")
+local ecs = require("engine.ecs/v1")
 local display = require("engine.display/v1")
 local input = require("engine.input/v1")
 local scenes = require("engine.scene/v1")
@@ -28,6 +29,7 @@ local game_hud = require("d2legacy.ui.game_hud")
 local player_composite = require("d2legacy.gameplay.player_composite")
 local monster_composite = require("d2legacy.gameplay.monster_composite")
 local ground_items = require("d2legacy.gameplay.ground_items")
+local corpse_markers = require("d2legacy.gameplay.corpse_markers")
 local missile_presentation = require("d2legacy.gameplay.missile_presentation")
 local cast_presentation = require("d2legacy.gameplay.cast_presentation")
 local held_skill_input = require("d2legacy.gameplay.held_skill_input")
@@ -39,6 +41,7 @@ local chunked_map = require("d2legacy.presentation.chunked_map")
 local tooltip = require("d2legacy.ui.tooltip")
 local text = require("d2legacy.ui.text")
 local input_diagnostics = require("d2legacy.dev.input_diagnostics")
+local click_indicator = require("d2legacy.dev.click_indicator")
 local touch_controls = require("d2legacy.ui.touch_controls")
 local touch_toolbar = require("d2legacy.ui.touch_toolbar")
 local touch_input = require("d2legacy.gameplay.touch_input")
@@ -141,6 +144,7 @@ local function install_current_world(self)
     destroy_state_overlays(self)
     destroy_warps(self)
     if self.ground_items then self.ground_items:destroy(); self.ground_items = nil end
+    if self.corpse_markers then self.corpse_markers:destroy(); self.corpse_markers = nil end
     -- Selection and held-input state names coordinates/entities in the old
     -- world. It must not survive into the destination presentation.
     self.pending_interaction = nil
@@ -168,6 +172,7 @@ local function install_current_world(self)
         canvas_height = self.world_canvas_height,
     })
     self.ground_items = ground_items.new(self.map.root, next_world, level_id, manifest.palettes.units)
+    self.corpse_markers = corpse_markers.new(self.map.root, next_world, level_id)
     self.hero = render.create("world", self.map.root)
     self.hero:set_visible(false)
     -- The previous render handle belonged to the destroyed map root. Force the
@@ -935,6 +940,7 @@ return {
         end
 
         self.input_diagnostic = input_diagnostics.create(self.root, self.hud and self.hud.controls)
+        self.click_indicator = click_indicator.create(self.root)
         if self.hud then
             self.touch_controls = touch_controls.create(self.root, self.hud.palette)
             self.touch_toolbar = touch_toolbar.create(self.root, self.hud.palette)
@@ -955,6 +961,7 @@ return {
     end,
 
     update = function(self, elapsed, focused, input_allowed, world_view)
+        click_indicator.update(self.click_indicator, elapsed)
         local viewport_width, viewport_height = display.size()
         local hud_offset = (viewport_width - manifest.resolution.width) / 2
         if self.hud then
@@ -978,9 +985,18 @@ return {
             update_missiles(self)
             update_warps(self)
             if self.ground_items then self.ground_items:update() end
+            if self.corpse_markers then self.corpse_markers:update() end
             observe_semantic_cues(self)
             update_state_overlays(self, elapsed)
         end
+        local death = self.gameplay.hero and ecs.get(self.gameplay.hero, "d2legacy.player.death")
+        if death and self.death_overlay_tick ~= death:get("tick") then
+            self.death_overlay_tick = death:get("tick")
+            self.pending_interaction, self.held_hostile = nil, nil
+            scenes.push("death")
+            return
+        end
+        if not death then self.death_overlay_tick = nil end
         -- Scene system separates UPDATE from INPUT OWNERSHIP. A transparent panel
         -- may keep the world updating while routing only certain input below.
         --
@@ -1303,7 +1319,7 @@ return {
                         self.held_hostile = { id = selected.id }
                         request_left_skill(self, selected.x, selected.y, selected.id)
                     end
-                elseif selected.kind == "item" or selected.kind == "static-object" or selected.kind == "dynamic-object" then
+                elseif selected.kind == "item" or selected.kind == "player_corpse" or selected.kind == "static-object" or selected.kind == "dynamic-object" then
                     self.pending_interaction = selected
                     request_move(self, selected.x, selected.y, 3.5)
                 else
@@ -1340,6 +1356,7 @@ return {
                 -- object on the command's eventual apply tick.
                 input_diagnostics.record(self.input_diagnostic, "interact", selected.x, selected.y, selected.id)
                 if selected.kind == "item" then self.items.pickup(selected.id)
+                elseif selected.kind == "player_corpse" then self.player.recover_corpse(selected.id)
                 else self.interaction.open(selected.id) end
             end
             if finished then
@@ -1364,6 +1381,7 @@ return {
     end,
 
     destroy = function(self)
+        click_indicator.destroy(self.click_indicator)
         input_diagnostics.destroy(self.input_diagnostic)
         touch_controls.destroy(self.touch_controls)
         touch_toolbar.destroy(self.touch_toolbar)
@@ -1376,6 +1394,7 @@ return {
         destroy_state_overlays(self)
         destroy_warps(self)
         if self.ground_items then self.ground_items:destroy() end
+        if self.corpse_markers then self.corpse_markers:destroy() end
         chunked_map.destroy(self.map)
     end,
 }

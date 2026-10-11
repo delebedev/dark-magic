@@ -28,7 +28,14 @@ func ProjectCharacter(
 		return d2save.Character{}, err
 	}
 
-	return MergeCharacter(baseline, view)
+	result, err := MergeCharacter(baseline, view)
+	if err != nil {
+		return d2save.Character{}, err
+	}
+	if err := projectPossessions(playerID, checkpoint, &result); err != nil {
+		return d2save.Character{}, err
+	}
+	return result, nil
 }
 
 // MergeCharacter copies only session-owned durable fields from an authenticated

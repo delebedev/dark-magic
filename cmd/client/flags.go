@@ -17,6 +17,7 @@ type clientFlags struct {
 	captureDirectory    *string
 	captureScenes       *string
 	captureSettle       *int
+	showClicks          *bool
 	startScene          *string
 	startOverlays       *string
 	fixtureCharacters   *int
@@ -95,6 +96,7 @@ func registerRuntimeFlags(flags *clientFlags) {
 // registerCaptureFlags defines automation-only scene and screenshot controls.
 // They remain command policy so ordinary clientapp composition is capture-agnostic.
 func registerCaptureFlags(flags *clientFlags) {
+	flags.showClicks = flag.Bool("show-clicks", false, "show brief pointer press rings for gameplay review recordings")
 	flags.captureDirectory = flag.String(
 		"capture-dir",
 		os.Getenv("DARK_MAGIC_CAPTURE_DIR"),
@@ -195,6 +197,7 @@ func (flags clientFlags) config() (clientConfig, error) {
 		captureDirectory:      *flags.captureDirectory,
 		captureScenes:         *flags.captureScenes,
 		captureSettle:         *flags.captureSettle,
+		showClicks:            *flags.showClicks,
 		startScene:            *flags.startScene,
 		startOverlays:         *flags.startOverlays,
 		fixtureCharacters:     *flags.fixtureCharacters,

@@ -14,6 +14,10 @@ function M.snapshot()
     return snapshots.local_player()
 end
 
+function M.inspect(id)
+    return snapshots.inspect(id)
+end
+
 function M.move(item_id, destination, place_held)
     move_sequence = move_sequence + 1
     local token = "move:" .. tostring(move_sequence)

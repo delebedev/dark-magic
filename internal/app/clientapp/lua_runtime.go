@@ -101,6 +101,7 @@ func (app *application) baseLuaModules(mapEditorStorage *mapeditor.Storage) []mo
 		modruntime.InputModule(app.inputState),
 		modruntime.DevModule(map[string]any{
 			"input_diagnostics": app.options.InputDiagnostics,
+			"show_clicks":       app.options.ShowClicks,
 			"touch_controls":    app.options.TouchControls,
 			// Lua's deterministic random API expects a positive signed 31-bit seed.
 			"random_seed": int(time.Now().UnixNano()%2147483646) + 1,

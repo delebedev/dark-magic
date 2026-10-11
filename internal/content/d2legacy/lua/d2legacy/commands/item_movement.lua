@@ -58,6 +58,7 @@ function M.validate_move(command)
     local layout_entity = assert(find.layout(owner.resolve(command), entities))
     local item_entity = assert(find.item(layout_entity, payload.item_id, entities))
     assert(not ecs.get(item_entity, "d2legacy.world.inactive"), "item is unavailable")
+    assert(ecs.get(item_entity, "d2legacy.item.placement"):get("container") ~= "corpse", "corpse gear requires recovery")
 end
 
 function M.apply_move(command)
@@ -72,6 +73,15 @@ function M.apply_move(command)
         entities
     ))
     local current = assert(ecs.get(item_entity, "d2legacy.item.placement"))
+    if current:get("container") == "corpse" or ecs.get(item_entity, "d2legacy.item.corpse") then return end
+    if command.authority == "player" then
+        local player = world.player(owner.resolve(command))
+        if current:get("container") == "world" and not world.can_pick_up(player, item_entity) then return end
+        local destination = command.payload.destination
+        if destination.container == "world" and not world.within_reach(
+            player, player and ecs.get(player, "d2legacy.world.location"), destination.x, destination.y
+        ) then return end
+    end
     -- An earlier command in this tick may already have placed the held item.
     local function result(reason)
         layout:set("move_token", command.payload.token or "")

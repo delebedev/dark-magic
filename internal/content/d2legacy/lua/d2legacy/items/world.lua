@@ -6,12 +6,41 @@
 
 local ecs = require("engine.ecs/v1")
 local population = require("d2legacy.bootstrap.population")
+local collision = require("d2legacy.gameplay.collision")
 
 local M = {}
 
 function M.selectable(owner, item)
-    return { id = "item:" .. owner .. ":" .. item.id, kind = "item", label = item.name_key or item.code,
+    local label = item.name_key and item.name_key ~= "" and item.name_key or item.code
+    return { id = "item:" .. owner .. ":" .. item.id, kind = "item", label = label,
         owner = "", priority = 15, radius = 3.5 }
+end
+
+function M.player(player_id)
+    for _, entity in ipairs(ecs.query({ all = {
+        "d2legacy.player.identity", "d2legacy.world.position", "d2legacy.world.location",
+    } })) do
+        if ecs.get(entity, "d2legacy.player.identity"):get("player") == player_id
+            and not ecs.get(entity, "d2legacy.player.death") then return entity end
+    end
+end
+
+function M.within_reach(player, location, x, y)
+    if not player or not location then return false end
+    local from_location = ecs.get(player, "d2legacy.world.location")
+    if from_location:get("act") ~= location:get("act")
+        or from_location:get("level_id") ~= location:get("level_id") then return false end
+    local from = ecs.get(player, "d2legacy.world.position")
+    local dx, dy = from:get("x") - x, from:get("y") - y
+    return dx * dx + dy * dy <= 3.5 * 3.5
+        and collision.line_clear(from_location:get("level_id"), from:get("x"), from:get("y"), x, y)
+end
+
+function M.can_pick_up(player, item)
+    if ecs.get(item, "d2legacy.world.inactive") then return false end
+    local position = ecs.get(item, "d2legacy.world.position")
+    return position and M.within_reach(player, ecs.get(item, "d2legacy.world.location"),
+        position:get("x"), position:get("y")) or false
 end
 
 local function resident_id(owner, item_id)

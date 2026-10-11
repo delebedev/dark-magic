@@ -16,32 +16,35 @@ const EnterCommand = "system.player.enter"
 // Entry is the complete validated intent needed to create the initial player
 // archetype. After application, ECS components—not this payload—are live state.
 type Entry struct {
-	CharacterID string  `json:"character_id"`
-	Player      string  `json:"player"`
-	Name        string  `json:"name"`
-	Class       string  `json:"class"`
-	Level       int64   `json:"level"`
-	Experience  int64   `json:"experience"`
-	Dexterity   int64   `json:"dexterity"`
-	Vitality    int64   `json:"vitality"`
-	Defense     int64   `json:"defense"`
-	Health      int64   `json:"health"`
-	MaxHealth   int64   `json:"max_health"`
-	Mana        int64   `json:"mana"`
-	MaxMana     int64   `json:"max_mana"`
-	Stamina     int64   `json:"stamina"`
-	MaxStamina  int64   `json:"max_stamina"`
-	Expansion   bool    `json:"expansion"`
-	Hardcore    bool    `json:"hardcore"`
-	COF         string  `json:"cof"`
-	Palette     string  `json:"palette,omitempty"`
-	Direction   *int64  `json:"direction,omitempty"`
-	X           float64 `json:"x"`
-	Y           float64 `json:"y"`
-	WorldWidth  float64 `json:"world_width"`
-	WorldHeight float64 `json:"world_height"`
-	Act         int64   `json:"act"`
-	LevelID     int64   `json:"level_id"`
+	CharacterID string              `json:"character_id"`
+	Inventory   *d2save.Inventory   `json:"inventory,omitempty"`
+	Progression *d2save.Progression `json:"progression,omitempty"`
+	Death       *d2save.Death       `json:"death,omitempty"`
+	Player      string              `json:"player"`
+	Name        string              `json:"name"`
+	Class       string              `json:"class"`
+	Level       int64               `json:"level"`
+	Experience  int64               `json:"experience"`
+	Dexterity   int64               `json:"dexterity"`
+	Vitality    int64               `json:"vitality"`
+	Defense     int64               `json:"defense"`
+	Health      int64               `json:"health"`
+	MaxHealth   int64               `json:"max_health"`
+	Mana        int64               `json:"mana"`
+	MaxMana     int64               `json:"max_mana"`
+	Stamina     int64               `json:"stamina"`
+	MaxStamina  int64               `json:"max_stamina"`
+	Expansion   bool                `json:"expansion"`
+	Hardcore    bool                `json:"hardcore"`
+	COF         string              `json:"cof"`
+	Palette     string              `json:"palette,omitempty"`
+	Direction   *int64              `json:"direction,omitempty"`
+	X           float64             `json:"x"`
+	Y           float64             `json:"y"`
+	WorldWidth  float64             `json:"world_width"`
+	WorldHeight float64             `json:"world_height"`
+	Act         int64               `json:"act"`
+	LevelID     int64               `json:"level_id"`
 }
 
 // Destination is the server-selected place where an admitted character enters
@@ -99,6 +102,9 @@ func AdmissionCommand(
 func EntryFromCharacter(character d2save.Character, player string, x, y, width, height float64) Entry {
 	entry := Entry{
 		CharacterID: character.ID,
+		Inventory:   character.Inventory,
+		Progression: character.Progression,
+		Death:       character.Death,
 		Player:      player,
 		Name:        character.Name,
 		Class:       character.Class,
@@ -142,6 +148,9 @@ func Command(
 	sequence, tick uint64,
 	authority simulation.Authority,
 ) (simulation.Command, error) {
+	if err := d2save.ValidateCharacterContent(d2save.Character{Inventory: entry.Inventory, Progression: entry.Progression, Death: entry.Death, Hardcore: entry.Hardcore, Stats: &d2save.Stats{Health: int(entry.Health)}}); err != nil {
+		return simulation.Command{}, err
+	}
 	payload, err := json.Marshal(entry)
 	if err != nil {
 		return simulation.Command{}, err

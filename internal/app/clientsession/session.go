@@ -181,6 +181,15 @@ func (session *Session) PrivateView() playeradapter.PrivateView {
 	defer session.mu.Unlock()
 
 	view := session.Private
+	view.Character = playeradapter.CloneCharacterState(view.Character)
+	if view.Death != nil {
+		death := *view.Death
+		view.Death = &death
+	}
+	if view.Quest != nil {
+		quest := *view.Quest
+		view.Quest = &quest
+	}
 	view.Items.Items = append([]playeradapter.ItemEntityView(nil), view.Items.Items...)
 
 	if view.Interaction.Target != nil {
