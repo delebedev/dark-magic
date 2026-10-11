@@ -8,6 +8,7 @@ local commands = require("engine.authority_command/v1")
 local ecs = require("engine.ecs/v1")
 local skills = require("d2legacy.data.skill")
 local durable = require("d2legacy.items.durable")
+local corpse = require("d2legacy.gameplay.player_corpse")
 local player_stats = require("d2legacy.data.player_stats")
 local item_bootstrap = require("d2legacy.items.bootstrap")
 local game_rules = require("d2legacy.policy.game_rules")
@@ -172,6 +173,12 @@ function M.validate(command)
     )
     assert(p.act >= 1 and p.act <= 5 and p.level_id > 0, "player entry location is invalid")
     durable.validate(p.inventory, p.progression)
+    if p.death then
+        assert(type(p.death) == "table" and type(p.death.hardcore) == "boolean"
+            and p.death.hardcore == (p.hardcore == true) and p.health == 0, "saved death is invalid")
+        assert(p.death.capacity_exhausted == nil or type(p.death.capacity_exhausted) == "boolean",
+            "saved death capacity is invalid")
+    end
 end
 
 local class_tokens = {
@@ -452,10 +459,21 @@ function M.apply(command)
             priority = 10,
         },
     })
+    ecs.set(player, "d2legacy.player.hardcore", { enabled = p.hardcore == true })
     if p.progression and p.progression.quest then
         ecs.set(player, "d2legacy.quest.progress", p.progression.quest)
     end
     item_bootstrap.ensure_player(p.player, p.inventory)
+    corpse.restore(player, p.inventory, p)
+    if p.death then
+        ecs.set(player, "d2legacy.player.death", {
+            tick = command.tick, killer_id = "", credited_id = "", hardcore = p.death.hardcore,
+            stage = p.death.capacity_exhausted and "capacity_exhausted" or "dead",
+            experience_lost = 0, consequences_pending = true,
+        })
+        ecs.get(player, "d2legacy.player.animation"):set("mode", "DT")
+        ecs.get(player, "d2legacy.player.animation"):set("start_tick", command.tick)
+    end
     create_passive_sources(player, p.passive_stat_sources)
     for _, skill in ipairs(learned) do
         ecs.create({

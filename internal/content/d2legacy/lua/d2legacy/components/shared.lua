@@ -16,6 +16,9 @@ function M.register()
         { name = "name", type = "string" },
         { name = "class", type = "string" },
     })
+    component("d2legacy.player.hardcore", {
+        { name = "enabled", type = "bool" },
+    })
     component("d2legacy.player.vitals", {
         { name = "health", type = "i64" },
         { name = "max_health", type = "i64" },
@@ -41,8 +44,8 @@ function M.register()
         { name = "source_id", type = "string" },
     })
     -- Player death is a state transition on the durable character entity, not
-    -- a replacement entity. Consequences remain pending until separately
-    -- verified corpse, gold, experience, respawn, or Hardcore consumers commit.
+    -- a replacement entity. Gold, experience recovery and permanent Hardcore
+    -- consequences remain pending independently of softcore corpse recovery.
     component("d2legacy.player.death", {
         { name = "tick", type = "i64" },
         { name = "killer_id", type = "string" },
@@ -51,6 +54,13 @@ function M.register()
         { name = "stage", type = "string" },
         { name = "experience_lost", type = "i64" },
         { name = "consequences_pending", type = "bool" },
+    })
+    component("d2legacy.player.corpse", {
+        { name = "id", type = "string" },
+        { name = "owner", type = "entity" },
+    })
+    component("d2legacy.item.corpse", {
+        { name = "id", type = "string" },
     })
     component("d2legacy.player.death_event", {
         { name = "kind", type = "string" },

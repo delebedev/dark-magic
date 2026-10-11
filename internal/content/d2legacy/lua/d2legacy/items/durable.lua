@@ -1,7 +1,7 @@
 -- Validate portable possessions before player admission mutates ECS.
 local M = {}
 local containers = { inventory=true, stash=true, cube=true, equipment=true,
-    hireling=true, belt=true, quest_service=true, held=true }
+    hireling=true, belt=true, quest_service=true, held=true, corpse=true }
 
 local function integer(value, minimum, maximum)
     return type(value)=="number" and value==math.floor(value)
@@ -14,6 +14,7 @@ end
 
 local function occupied(item, other)
     if item.container ~= other.container then return false end
+    if item.container == "corpse" and item.corpse_id ~= other.corpse_id then return false end
     if item.container == "inventory" or item.container == "stash" or item.container == "cube" then
         return item.x < other.x + other.width and other.x < item.x + item.width
             and item.y < other.y + other.height and other.y < item.y + item.height
@@ -22,7 +23,7 @@ local function occupied(item, other)
     elseif item.container == "held" then
         return true
     end
-    return item.slot == other.slot and (item.container ~= "equipment"
+    return item.slot == other.slot and (item.container ~= "equipment" and item.container ~= "corpse"
         or item.slot ~= "rarm" and item.slot ~= "larm" or item.weapon_set == other.weapon_set)
 end
 
@@ -37,6 +38,14 @@ function M.validate(inventory, progression)
         assert(integer(inventory.active_weapon_set,0,1), "durable weapon set is invalid")
         assert(integer(inventory.carried_gold,0,2147483647)
             and integer(inventory.stashed_gold,0,2147483647), "durable gold is invalid")
+        local corpses = {}
+        assert(inventory.corpses == nil or type(inventory.corpses) == "table"
+            and #inventory.corpses <= 16, "durable corpses exceed bounds")
+        for _, corpse in ipairs(inventory.corpses or {}) do
+            assert(type(corpse) == "table" and text(corpse.id, 114) and corpse.id ~= ""
+                and not corpses[corpse.id], "durable corpse ID is invalid")
+            corpses[corpse.id] = true
+        end
         local ids={}
         for index, item in ipairs(inventory.items) do
             assert(text(item.id,128) and item.id~="" and not ids[item.id],
@@ -52,11 +61,16 @@ function M.validate(inventory, progression)
             end
             assert(integer(item.weapon_set,0,1) and integer(item.belt_slot,0,15)
                 and item.page==0, "durable item placement is invalid")
-            if item.container == "equipment" or item.container == "hireling" then
+            if item.container == "corpse" then
+                assert(text(item.corpse_id, 114) and corpses[item.corpse_id], "durable corpse item is unbound")
+            else
+                assert(item.corpse_id == nil or item.corpse_id == "", "live item has a corpse link")
+            end
+            if item.container == "equipment" or item.container == "hireling" or item.container == "corpse" then
                 assert(type(item.slot) == "string" and item.slot ~= ""
                     and ("," .. (item.body_slots or "") .. ","):find("," .. item.slot .. ",", 1, true),
                     "durable body slot is invalid")
-                assert(item.weapon_set == 0 or item.container == "equipment"
+                assert(item.weapon_set == 0 or (item.container == "equipment" or item.container == "corpse")
                     and (item.slot == "rarm" or item.slot == "larm"), "durable shared weapon set is invalid")
             elseif item.container == "quest_service" then
                 assert(type(item.slot) == "string" and item.slot ~= "", "durable service slot is invalid")

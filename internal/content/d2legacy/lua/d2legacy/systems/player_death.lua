@@ -1,16 +1,12 @@
--- Commit the first common player-death state without inventing consequences.
---
--- The durable player remains the same ECS entity. This system freezes live
--- actions, records immediate/ultimate attribution, applies the difficulty
--- experience penalty, and emits a semantic event. Corpse equipment, gold,
--- experience recovery, respawn, and permanent Hardcore transitions remain
--- independent consumers gated on owned 1.14d evidence.
+-- Commit player death, attribution, experience penalty and owned corpse gear.
+-- Gold and experience recovery remain outside this rough softcore slice.
 
 local ecs = require("engine.ecs/v1")
 local attribution = require("d2legacy.owned_units.attribution")
 local player_motion = require("d2legacy.gameplay.player_motion")
 local game_rules = require("d2legacy.policy.game_rules")
 local difficulty_levels = require("d2legacy.data.difficulty_levels")
+local corpse = require("d2legacy.gameplay.player_corpse")
 local M = {}
 local thresholds
 
@@ -114,14 +110,16 @@ local function commit(context, entities, structural, player, killer_id)
     end
 
     local credited_id = attribution.resolve(entities, killer_id).ultimate_owner_id
-    local hardcore = game_rules.get().hardcore
+    local player_hardcore = ecs.get(player, "d2legacy.player.hardcore")
+    local hardcore = game_rules.get().hardcore or player_hardcore and player_hardcore:get("enabled") or false
     local experience_lost = experience_penalty(entities, player, credited_id)
+    local captured = hardcore or corpse.capture(entities, structural, player, context.tick)
     local values = {
         tick = context.tick,
         killer_id = killer_id,
         credited_id = credited_id,
         hardcore = hardcore,
-        stage = "dead",
+        stage = captured and "dead" or "capacity_exhausted",
         experience_lost = experience_lost,
         consequences_pending = true,
     }
@@ -163,13 +161,17 @@ function M.register(experience_thresholds)
                 "d2legacy.player.identity",
                 "d2legacy.world.selectable",
                 "d2legacy.owned_unit",
+                "d2legacy.items.layout",
+                "d2legacy.item.identity",
+                "d2legacy.player.corpse",
             },
-            none = { "d2legacy.world.inactive", "d2legacy.combat.player_death_observed" },
+            none = { "d2legacy.combat.player_death_observed" },
         },
         read = {
             "d2legacy.combat.event",
             "d2legacy.combat.player_death_observed",
             "d2legacy.player.identity",
+            "d2legacy.player.hardcore",
             "d2legacy.player.vitals",
             "d2legacy.player.death",
             "d2legacy.world.selectable",
@@ -179,8 +181,21 @@ function M.register(experience_thresholds)
             "d2legacy.player.movement_mode",
             "d2legacy.player.animation",
             "d2legacy.player.progress",
+            "d2legacy.items.layout",
+            "d2legacy.item.identity",
+            "d2legacy.item.placement",
+            "d2legacy.player.corpse",
+            "d2legacy.world.location",
+            "d2legacy.world.position",
         },
         write = {
+            "d2legacy.player.corpse",
+            "d2legacy.item.corpse",
+            "d2legacy.item.placement",
+            "d2legacy.world.position",
+            "d2legacy.world.location",
+            "d2legacy.world.selectable",
+            "d2legacy.world.room_attach",
             "d2legacy.combat.player_death_observed",
             "d2legacy.player.progress",
             "d2legacy.player.death",

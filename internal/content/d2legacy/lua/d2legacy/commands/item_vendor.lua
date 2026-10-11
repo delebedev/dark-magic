@@ -56,6 +56,7 @@ end
 local function held_item(layout_entity, item_id, entities)
     local entity, item = assert(find.item(layout_entity, item_id, entities))
     local placed = assert(ecs.get(entity, "d2legacy.item.placement"))
+    if placed:get("container") == "corpse" or ecs.get(entity, "d2legacy.item.corpse") then return end
     assert(placed:get("container") == "held", "item is not held")
     return entity, item, placed
 end
@@ -76,6 +77,7 @@ function M.apply_sell(command)
         payload.item_id,
         entities
     )
+    if not entity then return end
     local rule = terms(payload.vendor)
     local price = scaled_price(item, rule:get("buy_multiplier"))
     if rule:get("max_buy") > 0 then

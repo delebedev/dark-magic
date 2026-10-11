@@ -15,6 +15,35 @@ end
 return test.suite({
     name = "durable possessions", profile = "module", tier = "fast",
     cases = {
+        test.case("corpse_items_require_distinct_bounded_owned_roots_and_original_slots", function(t)
+            t:run(function()
+                local function corpse_inventory()
+                    local data = inventory()
+                    data.corpses = { { id = "first" }, { id = "second" } }
+                    local item = data.items[1]
+                    item.container, item.corpse_id = "corpse", "first"
+                    item.slot, item.body_slots = "rarm", "rarm,larm"
+                    data.items[2] = { id = "other", code = "ssd", container = "corpse", corpse_id = "second",
+                        slot = "rarm", body_slots = "rarm,larm", width = 1, height = 3,
+                        x = 0, y = 0, weapon_set = 0, belt_slot = 0, page = 0 }
+                    return data
+                end
+                durable.validate(corpse_inventory(), nil)
+                for _, mutate in ipairs({
+                    function(data) data.items[1].corpse_id = "missing" end,
+                    function(data) data.corpses[2].id = "first" end,
+                    function(data) data.items[2].corpse_id = "first" end,
+                    function(data) data.items[1].container = "equipment" end,
+                    function(data) data.items[1].slot = "head" end,
+                    function(data) data.corpses[1].id = string.rep("x", 115) end,
+                    function(data) for index = 3, 17 do data.corpses[index] = { id = tostring(index) } end end,
+                }) do
+                    local data = corpse_inventory()
+                    mutate(data)
+                    test.expect(pcall(durable.validate, data, nil)):equals(false)
+                end
+            end)
+        end),
         test.case("rejects_bad_placements_before_admission", function(t)
             t:run(function()
                 durable.validate(inventory(), nil)
