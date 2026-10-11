@@ -43,10 +43,16 @@ func TestDungeonPopulationRestoresWithIndependentRoomResidency(t *testing.T) {
 	}
 	_, engine, session := start(nil)
 	area := func(level int) map[string]any {
-		return map[string]any{
+		zone := map[string]any{
 			"act": 1, "level_id": level, "difficulty": 0, "links": []any{},
 			"rooms": []any{map[string]any{"id": "a", "populate": true, "x": 0, "y": 0, "width": 30, "height": 30, "points": []any{map[string]any{"x": 20, "y": 1}}}},
 		}
+		if level == 8 {
+			room := zone["rooms"].([]any)[0].(map[string]any)
+			room["eligible_tiles"] = 100
+			room["points"].([]any)[0].(map[string]any)["clearance"] = 2
+		}
+		return zone
 	}
 	population := area(2)
 	population["additional_zones"] = []any{area(8)}

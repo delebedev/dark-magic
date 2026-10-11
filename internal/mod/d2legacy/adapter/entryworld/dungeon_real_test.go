@@ -51,5 +51,24 @@ func TestDungeonAuthoredChambersAreReachable(t *testing.T) {
 			}
 		}
 		t.Logf("seed %d: %d cave chambers reachable at player radius", seed, len(prepared.Zones[dungeon.LevelID].Rooms()))
+		population := prepared.PopulationData(0)["additional_zones"].([]any)[0].(map[string]any)
+		for _, value := range population["rooms"].([]any) {
+			room := value.(map[string]any)
+			points := room["points"].([]any)
+			if len(points) == 0 {
+				t.Fatalf("seed %d room %v has no reachable pack points", seed, room["id"])
+			}
+			for _, value := range points {
+				point := value.(map[string]any)
+				goal := gameworld.Point{X: point["x"].(float64), Y: point["y"].(float64)}
+				if !gameMap.WalkableStep(goal, goal, point["clearance"].(float64)) {
+					t.Fatal("candidate advertised unsafe radius")
+				}
+				if _, err := gameMap.FindPath(gameworld.PathRequest{Start: start, Goal: goal, Radius: 1}); err != nil {
+					t.Fatalf("seed %d inaccessible encounter: %v", seed, err)
+				}
+			}
+			t.Logf("seed %d room %v: %.0f eligible tiles, %d separated spawn candidates", seed, room["id"], room["eligible_tiles"], len(points))
+		}
 	}
 }

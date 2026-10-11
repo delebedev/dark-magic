@@ -102,9 +102,15 @@ local function spawn_id(zone, room, member)
 end
 
 local function materialize_group(context, zone, room, definition, game_player_count, structural)
-    local count = math.min(group_size(definition), #room.points)
+    local points = {}
+    for _, point in ipairs(room.points) do
+        if point.clearance == nil or point.clearance >= definition.collider_radius then
+            points[#points + 1] = point
+        end
+    end
+    local count = math.min(group_size(definition), #points)
     for member = 1, count do
-        local point = room.points[member]
+        local point = points[member]
         local command = {
             tick = context.tick,
             payload = {
@@ -135,6 +141,11 @@ local function room_is_selected(room, density, created)
     local roll = random.integer("d2legacy.population.density", DENSITY_SCALE)
     -- Keep the first populated room useful even when a tiny test fixture rolls
     -- above density. Production zones normally contain many candidate rooms.
+    if room.eligible_tiles ~= nil then
+        -- shortcut: one pack per room approximates per-tile density, replace when native pack placement is recovered.
+        local chance = 1 - (1 - math.min(math.max(density, 0), DENSITY_SCALE) / DENSITY_SCALE) ^ room.eligible_tiles
+        return roll < chance * DENSITY_SCALE or created == 0
+    end
     return roll < density or created == 0
 end
 
@@ -168,6 +179,15 @@ function M.validate(command)
         assert(type(room.width) == "number" and room.width > 0, "population room width is required")
         assert(type(room.height) == "number" and room.height > 0, "population room height is required")
         assert(type(room.points) == "table", "population room points are required")
+        if room.eligible_tiles ~= nil then
+            assert(type(room.eligible_tiles) == "number" and room.eligible_tiles >= 0
+                and room.eligible_tiles == math.floor(room.eligible_tiles), "population eligible tile count is invalid")
+        end
+        for _, point in ipairs(room.points) do
+            if point.clearance ~= nil then
+                assert(type(point.clearance) == "number" and point.clearance >= 0, "population point clearance is invalid")
+            end
+        end
     end
     for _, link in ipairs(zone.links) do
         assert(
