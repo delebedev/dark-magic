@@ -33,7 +33,9 @@ function M.create(scene)
     state.backdrop:set_z(1500000)
     state.title = label(
         state.root,
-        "[gold]SPELL LAB[/]  [white]CLICK A HUD SKILL ICON TO SELECT | LEFT/RIGHT CLICK THE WORLD TO CAST[/]",
+        require("engine.dev/v1").option("touch_controls")
+            and "[gold]SPELL LAB[/]  [white]LEFT THUMB MOVES | HOLD FIREBALL | DRAG A SKILL TO AIM[/]"
+            or "[gold]SPELL LAB[/]  [white]CLICK A HUD SKILL ICON TO SELECT | LEFT/RIGHT CLICK THE WORLD TO CAST[/]",
         18
     )
     state.detail = label(state.root, "[gray]WAITING FOR AUTHORITATIVE PLAYER ADMISSION[/]", 50)

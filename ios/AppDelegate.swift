@@ -59,8 +59,8 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
                 host.view.addSubview(probe)
                 NSLayoutConstraint.activate([
                     probe.leadingAnchor.constraint(equalTo: host.view.safeAreaLayoutGuide.leadingAnchor, constant: 8),
-                    probe.topAnchor.constraint(equalTo: host.view.safeAreaLayoutGuide.topAnchor, constant: 80),
-                    probe.widthAnchor.constraint(equalToConstant: 110)
+                    probe.topAnchor.constraint(equalTo: host.view.safeAreaLayoutGuide.topAnchor, constant: 48),
+                    probe.widthAnchor.constraint(equalToConstant: 210)
                 ])
                 window.rootViewController = host
             }
@@ -148,6 +148,7 @@ private final class TapProbeView: UIStackView {
     private let x = UITextField()
     private let y = UITextField()
     private let status = UILabel()
+    private var collapsed = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -158,6 +159,16 @@ private final class TapProbeView: UIStackView {
         layer.cornerRadius = 8
         isLayoutMarginsRelativeArrangement = true
         layoutMargins = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
+        let toggle = UIButton(type: .system)
+        toggle.setTitle("Hide probes", for: .normal)
+        toggle.addTarget(self, action: #selector(toggleProbe(_:)), for: .touchUpInside)
+        toggle.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        addArrangedSubview(toggle)
+        let fields = UIStackView()
+        fields.axis = .horizontal
+        fields.spacing = 4
+        fields.distribution = .fillEqually
+        addArrangedSubview(fields)
         for (field, name, value) in [(x, "Probe X", "700"), (y, "Probe Y", "380")] {
             field.accessibilityLabel = name
             field.placeholder = name
@@ -173,13 +184,29 @@ private final class TapProbeView: UIStackView {
             field.backgroundColor = .darkGray
             field.keyboardType = .numberPad
             field.heightAnchor.constraint(equalToConstant: 44).isActive = true
-            addArrangedSubview(field)
+            fields.addArrangedSubview(field)
         }
         let tap = UIButton(type: .system)
         tap.setTitle("Probe tap", for: .normal)
         tap.addTarget(self, action: #selector(submit), for: .touchUpInside)
         tap.heightAnchor.constraint(equalToConstant: 44).isActive = true
         addArrangedSubview(tap)
+        var row = UIStackView()
+        for (index, title) in ["Move east", "Hold fire", "Move + fire", "Aim ice", "Cancel ice", "Nova"].enumerated() {
+            if index % 2 == 0 {
+                row = UIStackView()
+                row.axis = .horizontal
+                row.distribution = .fillEqually
+                row.spacing = 4
+                addArrangedSubview(row)
+            }
+            let button = UIButton(type: .system)
+            button.setTitle(title, for: .normal)
+            button.tag = index
+            button.addTarget(self, action: #selector(gesture(_:)), for: .touchUpInside)
+            button.heightAnchor.constraint(equalToConstant: 44).isActive = true
+            row.addArrangedSubview(button)
+        }
         status.text = "Logical pixels"
         status.textColor = .lightGray
         status.font = .preferredFont(forTextStyle: .caption2)
@@ -188,6 +215,51 @@ private final class TapProbeView: UIStackView {
     }
 
     required init(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    @objc private func toggleProbe(_ sender: UIButton) {
+        collapsed.toggle()
+        for view in arrangedSubviews where view !== sender { view.isHidden = collapsed }
+        sender.setTitle(collapsed ? "Show probes" : "Hide probes", for: .normal)
+    }
+
+    @objc private func gesture(_ sender: UIButton) {
+        endEditing(true)
+        let width = Double(DarkmagicmobileLogicalWidth())
+        guard width > 0 else { status.text = "Game is loading"; return }
+        func point(_ id: Int, _ x: Double, _ y: Double) -> [String: Any] { ["ID": id, "X": x, "Y": y] }
+        var start: [[String: Any]] = []
+        var held: [[String: Any]] = []
+        switch sender.tag {
+        case 0:
+            start = [point(1,152,406)]; held = [point(1,210,406)]
+        case 1:
+            start = [point(2,width-152,406)]; held = start
+        case 2:
+            start = [point(1,152,406),point(2,width-152,406)]
+            held = [point(1,210,406),point(2,width-152,406)]
+        case 3:
+            start = [point(2,width-264,308)]; held = [point(2,width-304,278)]
+        case 4:
+            start = [point(2,width-264,308)]; held = [point(2,width-464,308)]
+        default:
+            start = [point(2,width-146,264)]; held = start
+        }
+        var steps: [[String: Any]] = [["Frames": 1, "Contacts": start],
+            ["Frames": sender.tag < 3 ? 120 : 30, "Contacts": held],
+            ["Frames": 1, "Contacts": []]]
+        if sender.tag == 2 {
+            steps = [["Frames": 1, "Contacts": [point(1,152,406)]],
+                ["Frames": 35, "Contacts": [point(1,210,406)]],
+                ["Frames": 120, "Contacts": held],
+                ["Frames": 45, "Contacts": [point(1,210,406)]],
+                ["Frames": 1, "Contacts": []]]
+        }
+        do {
+            let json = String(data: try JSONSerialization.data(withJSONObject: steps), encoding: .utf8)!
+            var error: NSError?
+            status.text = DarkmagicmobileProbeContacts(json, &error) ? "Queued gesture" : error?.localizedDescription
+        } catch { status.text = error.localizedDescription }
+    }
 
     @objc private func submit() {
         endEditing(true)

@@ -211,6 +211,7 @@ function M.monster_snapshots()
         local facing = ecs.get(entity, "d2legacy.world.facing")
         local location = ecs.get(entity, "d2legacy.world.location")
         local ai = ecs.get(entity, "d2legacy.monster.ai")
+        local selectable = ecs.get(entity, "d2legacy.world.selectable")
         local mode = appearance.mode
         if mode ~= "DT" and ai and ai:get("state") == "attack" then
             mode = "A1"
@@ -220,6 +221,7 @@ function M.monster_snapshots()
         result[#result + 1] = {
             entity_id = entity:id(),
             spawn_id = identity.spawn_id,
+            target_id = selectable and selectable:get("kind") == "hostile" and selectable:get("id") or nil,
             token = appearance.token,
             mode = mode,
             weapon_class = appearance.weapon_class,

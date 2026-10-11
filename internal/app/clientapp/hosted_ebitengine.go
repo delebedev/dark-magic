@@ -48,6 +48,20 @@ func (g *HostedGame) ProbeTap(x, y int) error {
 	return g.app.pointerProbe.queue(x, y)
 }
 
+func (g *HostedGame) ProbeContacts(encoded string) error {
+	if g.app.pointerProbe == nil {
+		return errors.New("enable input diagnostics to use the contact probe")
+	}
+	return g.app.pointerProbe.queueContacts(encoded)
+}
+
+func (g *HostedGame) LogicalWidth() int {
+	if g.app.pointerProbe == nil {
+		return 0
+	}
+	return g.app.pointerProbe.logicalWidth()
+}
+
 func (g *HostedGame) Update() error {
 	// Suspension must not advance UI animations or offline authority by minutes.
 	if time.Since(g.app.lastFrame) > 250*time.Millisecond {

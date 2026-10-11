@@ -38,6 +38,9 @@ local chunked_map = require("d2legacy.presentation.chunked_map")
 local tooltip = require("d2legacy.ui.tooltip")
 local text = require("d2legacy.ui.text")
 local input_diagnostics = require("d2legacy.dev.input_diagnostics")
+local touch_controls = require("d2legacy.ui.touch_controls")
+local touch_input = require("d2legacy.gameplay.touch_input")
+local locale = require("engine.locale/v1")
 
 local manifest = assert(data.load_manifest("manifests/presentation.v1.json", "d2legacy.presentation/v1"))
 local screen = manifest.screens.game_world
@@ -452,6 +455,7 @@ end
 
 local function update_monster(self, monster, snapshot, elapsed)
     monster.spawn_id, monster.death_sound = snapshot.spawn_id, snapshot.death_sound
+    monster.snapshot = snapshot
     local composite = monster_composite.resolve(snapshot)
     if composite and (not monster.playback or monster.playback.mode ~= composite.mode) then
         monster.playback = monster_composite.new_playback(composite)
@@ -621,6 +625,89 @@ local function request_right_skill(self, x, y, target_id)
     input_diagnostics.record(self.input_diagnostic, "cast-right", x, y, target_id)
     self.player.request_skill("right", x, y, target_id)
     held_skill_input.submitted(self.right_held_skill_gate)
+end
+
+local function update_touch(self, elapsed, width, height, hero_x, hero_y, camera_x, camera_y, target_x, target_y, allowed)
+    local controls = self.touch_controls
+    if not controls then return false end
+    local gesture = touch_controls.sample(controls, width, height, allowed)
+    local hero_px, hero_py = self.world:subtile_to_pixel(hero_x, hero_y)
+    local camera_px, camera_py = self.world:subtile_to_pixel(camera_x, camera_y)
+    hero_px, hero_py = hero_px-camera_px+target_x, hero_py-camera_py+target_y
+    local candidates = {}
+    for _, monster in pairs(self.monsters or {}) do
+        local fact = monster.snapshot
+        if fact and fact.mode ~= "DT" and fact.mode ~= "DD" then
+            local selected_id = fact.target_id
+            local x,y = self.world:subtile_to_pixel(fact.x, fact.y)
+            x,y = x-camera_px+target_x, y-camera_py+target_y
+            if selected_id and x>0 and x<width and y>80 and y<480
+                and self.world:line_clear(hero_x,hero_y,fact.x,fact.y) then
+                candidates[#candidates+1] = {id=selected_id, x=fact.x, y=fact.y, screen_x=x, screen_y=y,
+                    label=locale.text(fact.name_key)}
+            end
+        end
+    end
+    local selected = touch_input.target(candidates, hero_px, hero_py, gesture.aim_x, gesture.aim_y, controls.locked_id)
+    controls.locked_id = gesture.skill_down and selected and selected.id or nil
+    touch_controls.feedback(controls, allowed and selected or nil, hero_px, hero_py,
+        allowed and gesture.aim_x or nil, gesture.aim_y, gesture.cancelled)
+    if not allowed then
+        controls.pending_cast, controls.assignment = nil, nil
+        if gesture.stop then request_move(self, hero_x, hero_y) end
+        return gesture.consumed
+    end
+    local active = self.gameplay_world.skill_action_active(self.gameplay.hero)
+    controls.move_time = (controls.move_time or 0) + elapsed
+    if gesture.stop then controls.stop_pending = true end
+    if gesture.move_x then controls.stop_pending = false end
+    if controls.stop_pending and not active then
+        request_move(self, hero_x, hero_y)
+        controls.stop_pending = false
+    end
+    if gesture.move_x and not active and not gesture.skill_pressed and controls.move_time >= 0.1 then
+        local x,y = self.world:screen_to_subtile(hero_px+gesture.move_x*110, hero_py+gesture.move_y*110,
+            camera_x, camera_y, target_x, target_y)
+        self.pending_interaction = nil
+        request_move(self, x, y)
+        controls.move_time = 0
+    end
+    if gesture.skill and not gesture.cancelled then
+        local id = gesture.skill.id or gesture.skill.skill_id
+        if controls.assigned ~= id and controls.assignment ~= id then
+            self.player.assign_skill("right", id)
+            controls.assignment = id
+        end
+        if gesture.skill_released and gesture.button ~= 1 then
+            controls.pending_cast = {id=id, aim_x=gesture.aim_x, aim_y=gesture.aim_y, remaining=1}
+        end
+    end
+    local repeat_ready
+    repeat_ready, controls.gate = held_skill_input.update(controls.gate,
+        gesture.skill_pressed, gesture.skill_down and gesture.button==1 and not gesture.cancelled, active)
+    local pending = controls.pending_cast
+    if pending then
+        pending.remaining = pending.remaining - elapsed
+        if pending.remaining <= 0 then controls.pending_cast = nil; pending = nil end
+    end
+    local skill = repeat_ready and gesture.skill or nil
+    local id = skill and (skill.id or skill.skill_id) or pending and pending.id
+    if id and controls.assigned == id and not active then
+        local aim_x,aim_y = gesture.aim_x or pending and pending.aim_x, gesture.aim_y or pending and pending.aim_y
+        local chosen = touch_input.target(candidates, hero_px, hero_py, aim_x, aim_y, controls.locked_id)
+        local x,y,entity = hero_x,hero_y,""
+        if id ~= 48 then
+            if chosen then x,y,entity = chosen.x,chosen.y,chosen.id
+            else x,y = self.world:screen_to_subtile(hero_px+(aim_x or 1)*230, hero_py+(aim_y or 0)*230,
+                camera_x,camera_y,target_x,target_y) end
+        end
+        self.pending_interaction = nil
+        input_diagnostics.record(self.input_diagnostic, "touch-cast", x,y,entity)
+        self.player.request_skill("right",x,y,entity)
+        held_skill_input.submitted(controls.gate)
+        controls.pending_cast = nil
+    end
+    return gesture.consumed
 end
 
 local function update_state_overlays(self, elapsed)
@@ -840,6 +927,7 @@ return {
         end
 
         self.input_diagnostic = input_diagnostics.create(self.root, self.hud and self.hud.controls)
+        if self.hud then self.touch_controls = touch_controls.create(self.root, self.hud.palette) end
 
         -- These are capability QUERIES: Lua gets provenance/availability facts,
         -- not a host filesystem object or native audio device.
@@ -891,6 +979,14 @@ return {
         end
 
         if not input_allowed then
+            if self.touch_controls then
+                local cancelled = touch_controls.sample(self.touch_controls, viewport_width, viewport_height, false)
+                self.touch_controls.pending_cast = nil
+                if cancelled.stop and self.gameplay.hero and self.player then
+                    local x,y = self.gameplay_world.position(self.gameplay.hero)
+                    request_move(self,x,y)
+                end
+            end
             return
         end
 
@@ -1024,6 +1120,7 @@ return {
             end
 
             game_hud.update(self.hud, snapshot)
+            touch_controls.skills(self.touch_controls, snapshot)
 
             -- Cursor decorator reads this scene field and hides the software hand
             -- when authoritative held item art is already acting as pointer.
@@ -1108,10 +1205,14 @@ return {
 
         -- Legacy gameplay is pointer-authored. Reverse-project only the visible
         -- world portion; HUD and obscured overlay halves retain their own clicks.
+        local touch_consumed = self.world and update_touch(self, elapsed, viewport_width, viewport_height,
+            hero_x, hero_y, camera_x, camera_y, target_x, target_y,
+            (world_view == nil or world_view == "center" or world_view == "full") and not self.__darkmagic_item_held
+                and not (self.hud and self.hud.skill_selector.open))
         local pointer_x, pointer_y = input.cursor()
         local in_world = pointer_x >= 0 and pointer_x < viewport_width
             and pointer_y >= 0 and pointer_y < (screen.world_input_bottom or viewport_height)
-        if self.hud and self.hud.controls.pointer_consumed then in_world = false end
+        if touch_consumed or (self.hud and self.hud.controls.pointer_consumed) then in_world = false end
         if world_view == "left" then
             in_world = in_world and pointer_x < viewport_width / 2
         elseif world_view == "right" then
@@ -1236,6 +1337,7 @@ return {
 
     destroy = function(self)
         input_diagnostics.destroy(self.input_diagnostic)
+        touch_controls.destroy(self.touch_controls)
         -- gameplay.world owns only its presentation camera entity; its destroy
         -- helper intentionally leaves session-owned hero authority alone.
         self.gameplay_world.destroy(self.gameplay)

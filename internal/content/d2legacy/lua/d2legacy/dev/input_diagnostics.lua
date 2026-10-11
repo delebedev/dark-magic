@@ -45,6 +45,8 @@ function M.update(state, hero_x, hero_y)
         state.value = nil
     end
     local x, y = input.cursor()
+    local contacts = input.contacts()
+    if #contacts > 0 then state.source = input.pointer_source() end
     if input.pressed("pointer_primary") then state.presses = state.presses + 1 end
     if input.released("pointer_primary") then state.releases = state.releases + 1 end
     if input.pressed("pointer_primary") or input.released("pointer_primary") or input.down("pointer_primary") then
@@ -54,8 +56,8 @@ function M.update(state, hero_x, hero_y)
     state.marker:set_visible(state.presses > 0)
     local trace = state.controls and state.controls.pointer_trace or {}
     local value = string.format(
-        "%dx%d  %s %.0f,%.0f  PRESS %d RELEASE %d HELD %s\nUI %s  ACTIVATED %s (%d)\nINTENT %s  PLAYER %.1f,%.1f",
-        width, height, state.source or "native", state.x or x, state.y or y, state.presses, state.releases, tostring(input.down("pointer_primary")),
+        "%dx%d  %s %.0f,%.0f  PRESS %d RELEASE %d HELD %s CONTACTS %d\nUI %s  ACTIVATED %s (%d)\nINTENT %s  PLAYER %.1f,%.1f",
+        width, height, state.source or "native", state.x or x, state.y or y, state.presses, state.releases, tostring(input.down("pointer_primary")), #contacts,
         trace.hover or "none", trace.activation or "none", trace.activations or 0,
         state.intent, hero_x, hero_y)
     if value ~= state.value then

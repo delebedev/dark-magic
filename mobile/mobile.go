@@ -111,6 +111,7 @@ func hostedOptions(scene string) (clientapp.Options, error) {
 		return options, fmt.Errorf("unsupported mobile start scene %q", scene)
 	}
 	options.ExpandViewport = options.StartScene != "ui_lab"
+	options.TouchControls = options.StartScene != "ui_lab"
 	return options, nil
 }
 
@@ -122,6 +123,25 @@ func ProbeTap(x, y int) error {
 		return errors.New("game is not ready")
 	}
 	return game.client.ProbeTap(x, y)
+}
+
+// ProbeContacts accepts bounded diagnostic touch frames with a final release.
+func ProbeContacts(encoded string) error {
+	game.mu.Lock()
+	defer game.mu.Unlock()
+	if game.client == nil {
+		return errors.New("game is not ready")
+	}
+	return game.client.ProbeContacts(encoded)
+}
+
+func LogicalWidth() int {
+	game.mu.Lock()
+	defer game.mu.Unlock()
+	if game.client == nil {
+		return 0
+	}
+	return game.client.LogicalWidth()
 }
 
 func (g *mobileGame) Update() error {

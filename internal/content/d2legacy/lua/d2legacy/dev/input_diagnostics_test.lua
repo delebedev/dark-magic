@@ -18,6 +18,7 @@ return test.suite({
                 test.mock_module("engine.render/v1", { create = node }, {})
                 test.mock_module("engine.input/v1", {
                     cursor = function() return 1100, 200 end,
+                    contacts = function() return {} end,
                     pressed = function() return pressed end,
                     released = function() return released end,
                     down = function() return pressed end,
