@@ -131,6 +131,9 @@ func installPrivateItemLayout(
 		"vendor_height":     layout.VendorHeight,
 		"carried_gold":      layout.CarriedGold,
 		"stashed_gold":      layout.StashedGold,
+		"move_token":        layout.MoveToken,
+		"move_item":         layout.MoveItem,
+		"move_reason":       layout.MoveReason,
 	})
 	if err != nil {
 		return 0, err

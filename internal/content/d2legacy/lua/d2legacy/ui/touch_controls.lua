@@ -4,6 +4,7 @@ local render = require("engine.render/v1")
 local text = require("d2legacy.ui.text")
 local locale = require("engine.locale/v1")
 local touch = require("d2legacy.gameplay.touch_input")
+local display = require("engine.display/v1")
 local M = {}
 
 local function rect(root, width, height, x, y, color)
@@ -88,6 +89,12 @@ function M.sample(state, width, height, allowed)
     if not state then return { consumed=false } end
     state.root:set_visible(allowed)
     state.layout = touch.layout(width, height)
+    if display.geometry then
+        local geometry = display.geometry()
+        state.layout.move.x = math.max(state.layout.move.x, geometry.left+state.layout.move.radius+10*geometry.scale_x)
+        local right = width-geometry.right
+        for _, pad in ipairs(state.layout.buttons) do pad.x=math.min(pad.x,right-pad.radius-10*geometry.scale_x) end
+    end
     state.move:set_position(state.layout.move.x, state.layout.move.y)
     state.move_label:set_position(state.layout.move.x, state.layout.move.y+112)
     for index, button in ipairs(state.buttons) do

@@ -103,9 +103,9 @@ func TestProjectPrivateViewSelectsOnlyAuthenticatedOwner(t *testing.T) {
 		Components: []gameecs.ComponentSnapshot{
 			stringsComponent(
 				"d2legacy.items.layout",
-				[]string{"owner"},
-				[]any{uint64(10), "alice"},
-				[]any{uint64(20), "bob"},
+				[]string{"owner", "move_token", "move_item", "move_reason"},
+				[]any{uint64(10), "alice", "move:1", "alice-item", "item cannot use body slot"},
+				[]any{uint64(20), "bob", "bob-token", "bob-secret", "bob-reason"},
 			),
 			aliceItems,
 		},
@@ -118,7 +118,8 @@ func TestProjectPrivateViewSelectsOnlyAuthenticatedOwner(t *testing.T) {
 
 	encoded, _ := json.Marshal(view)
 	if len(view.Items.Items) != 1 || view.Items.Items[0].ID != "alice-item" ||
-		strings.Contains(string(encoded), "bob-secret") {
+		strings.Contains(string(encoded), "bob-secret") || strings.Contains(string(encoded), "bob-token") ||
+		view.Items.Layout.MoveToken != "move:1" || view.Items.Layout.MoveReason != "item cannot use body slot" {
 		t.Fatalf("private projection = %s", encoded)
 	}
 }

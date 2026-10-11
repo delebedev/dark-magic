@@ -33,18 +33,21 @@ type ItemView struct {
 }
 
 type ItemLayoutView struct {
-	InventoryWidth  int64 `json:"inventory_width"`
-	InventoryHeight int64 `json:"inventory_height"`
-	StashWidth      int64 `json:"stash_width"`
-	StashHeight     int64 `json:"stash_height"`
-	CubeWidth       int64 `json:"cube_width"`
-	CubeHeight      int64 `json:"cube_height"`
-	BeltCapacity    int64 `json:"belt_capacity"`
-	ActiveWeaponSet int64 `json:"active_weapon_set"`
-	VendorWidth     int64 `json:"vendor_width"`
-	VendorHeight    int64 `json:"vendor_height"`
-	CarriedGold     int64 `json:"carried_gold"`
-	StashedGold     int64 `json:"stashed_gold"`
+	InventoryWidth  int64  `json:"inventory_width"`
+	InventoryHeight int64  `json:"inventory_height"`
+	StashWidth      int64  `json:"stash_width"`
+	StashHeight     int64  `json:"stash_height"`
+	CubeWidth       int64  `json:"cube_width"`
+	CubeHeight      int64  `json:"cube_height"`
+	BeltCapacity    int64  `json:"belt_capacity"`
+	ActiveWeaponSet int64  `json:"active_weapon_set"`
+	VendorWidth     int64  `json:"vendor_width"`
+	VendorHeight    int64  `json:"vendor_height"`
+	CarriedGold     int64  `json:"carried_gold"`
+	StashedGold     int64  `json:"stashed_gold"`
+	MoveToken       string `json:"move_token"`
+	MoveItem        string `json:"move_item"`
+	MoveReason      string `json:"move_reason"`
 }
 
 type ItemEntityView struct {
@@ -178,6 +181,9 @@ func itemLayout(fields map[string]gameecs.ValueSnapshot) ItemLayoutView {
 		VendorHeight:    intField(fields, "vendor_height"),
 		CarriedGold:     intField(fields, "carried_gold"),
 		StashedGold:     intField(fields, "stashed_gold"),
+		MoveToken:       stringField(fields, "move_token"),
+		MoveItem:        stringField(fields, "move_item"),
+		MoveReason:      stringField(fields, "move_reason"),
 	}
 }
 

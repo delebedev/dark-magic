@@ -32,6 +32,7 @@ function M.for_owner(owner)
         active_weapon_set = layout:get("active_weapon_set"),
         carried_gold = layout:get("carried_gold"),
         stashed_gold = layout:get("stashed_gold"),
+        move_result = { token = layout:get("move_token"), item_id = layout:get("move_item"), reason = layout:get("move_reason") },
         vendor_grid = { width = layout:get("vendor_width"), height = layout:get("vendor_height") },
         grids = {
             inventory = { width = layout:get("inventory_width"), height = layout:get("inventory_height") },

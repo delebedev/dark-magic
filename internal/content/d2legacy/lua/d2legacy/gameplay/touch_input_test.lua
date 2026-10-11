@@ -1,5 +1,17 @@
 local test = require("d2legacy.tests/v1")
 return test.suite({name="touch input",profile="module",tier="fast",cases={
+    test.case("contacts_started_inside_a_modal_need_a_fresh_press",function(t)
+        t:run(function()
+            local touch=require("d2legacy.gameplay.touch_input")
+            local state,layout={},touch.layout(1304,600)
+            touch.cancel()
+            local held={{id=9,x=210,y=406}}
+            test.expect(touch.sample(state,held,layout,true).move_x):equals(nil)
+            test.expect(touch.sample(state,held,layout,true).move_x):equals(nil)
+            touch.sample(state,{},layout,true)
+            test.expect(touch.sample(state,held,layout,true).move_x):equals(1)
+        end)
+    end),
     test.case("owns_two_thumbs_and_releases_them_independently",function(t)
         t:run(function()
             local touch=require("d2legacy.gameplay.touch_input")

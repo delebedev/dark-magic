@@ -44,7 +44,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             gameController = controller
             window.rootViewController = controller
             if scene != "ui_lab" || ProcessInfo.processInfo.environment["DARK_MAGIC_INPUT_DIAGNOSTICS"] == "1" {
-                let host = UIViewController()
+                let host = GameHostViewController()
                 host.addChild(controller)
                 controller.view.translatesAutoresizingMaskIntoConstraints = false
                 host.view.addSubview(controller.view)
@@ -55,7 +55,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
                     controller.view.bottomAnchor.constraint(equalTo: host.view.bottomAnchor)
                 ])
                 controller.didMove(toParent: host)
-                if scene != "ui_lab" {
+                if scene != "ui_lab" && ProcessInfo.processInfo.environment["DARK_MAGIC_INPUT_DIAGNOSTICS"] == "1" {
                     let controls = WorldActionsView(controller: host)
                     host.view.addSubview(controls)
                     NSLayoutConstraint.activate([
@@ -94,6 +94,22 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func applicationWillResignActive(_ application: UIApplication) { gameController?.suspendGame() }
     func applicationDidBecomeActive(_ application: UIApplication) { gameController?.resumeGame() }
+}
+
+private final class GameHostViewController: UIViewController {
+    override var prefersStatusBarHidden: Bool { true }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        let size = view.bounds.size
+        let safe = view.safeAreaInsets
+        guard size.width > 0 && size.height > 0 else { return }
+        var error: NSError?
+        if !DarkmagicmobileSetScreenGeometry(Double(size.width), Double(size.height),
+            Double(safe.left), Double(safe.top), Double(safe.right), Double(safe.bottom), &error) {
+            NSLog("Dark Magic geometry: %@", error?.localizedDescription ?? "invalid geometry")
+        }
+    }
 }
 
 private final class ScenePickerViewController: UIViewController {
@@ -173,7 +189,7 @@ private final class WorldActionsView: UIStackView {
         back.accessibilityHint = "Close the current game panel or open pause"
         back.addTarget(self, action: #selector(closePanel), for: .touchUpInside)
         let panels = UIButton(type: .system)
-        panels.setTitle("Panels", for: .normal)
+        panels.setTitle("Tools", for: .normal)
         panels.addTarget(self, action: #selector(choosePanel(_:)), for: .touchUpInside)
         for button in [back, panels] {
             button.heightAnchor.constraint(equalToConstant: 44).isActive = true
@@ -191,7 +207,7 @@ private final class WorldActionsView: UIStackView {
     @objc private func closePanel() { send("cancel") }
 
     @objc private func choosePanel(_ sender: UIButton) {
-        let menu = UIAlertController(title: "Game controls", message: nil, preferredStyle: .actionSheet)
+        let menu = UIAlertController(title: "Diagnostics", message: nil, preferredStyle: .actionSheet)
         for (title, action) in [
             ("Inventory", "inventory"), ("Character", "character"), ("Skills", "skills"),
             ("Quests", "quests"), ("Map", "automap"), ("Options", "options"),
@@ -297,32 +313,39 @@ private final class TapProbeView: UIStackView {
         endEditing(true)
         let width = Double(DarkmagicmobileLogicalWidth())
         guard width > 0 else { status.text = "Game is loading"; return }
+        let host = window?.rootViewController?.view
+        let scale = 600 / Double(host?.bounds.height ?? 402)
+        let safe = host?.safeAreaInsets ?? .zero
+        let moveX = max(152, Double(safe.left)*scale + 88 + 10*scale)
+        func padX(_ inset: Double, _ radius: Double) -> Double {
+            min(width-inset, width-Double(safe.right)*scale-radius-10*scale)
+        }
         func point(_ id: Int, _ x: Double, _ y: Double) -> [String: Any] { ["ID": id, "X": x, "Y": y] }
         var start: [[String: Any]] = []
         var held: [[String: Any]] = []
         switch sender.tag {
         case 0:
-            start = [point(1,152,406)]; held = [point(1,210,406)]
+            start = [point(1,moveX,406)]; held = [point(1,moveX+58,406)]
         case 1:
-            start = [point(2,width-152,406)]; held = start
+            start = [point(2,padX(152,66),406)]; held = start
         case 2:
-            start = [point(1,152,406),point(2,width-152,406)]
-            held = [point(1,210,406),point(2,width-152,406)]
+            start = [point(1,moveX,406),point(2,padX(152,66),406)]
+            held = [point(1,moveX+58,406),point(2,padX(152,66),406)]
         case 3:
-            start = [point(2,width-264,308)]; held = [point(2,width-304,278)]
+            start = [point(2,padX(264,46),308)]; held = [point(2,padX(264,46)-40,278)]
         case 4:
-            start = [point(2,width-264,308)]; held = [point(2,width-464,308)]
+            start = [point(2,padX(264,46),308)]; held = [point(2,padX(264,46)-200,308)]
         default:
-            start = [point(2,width-146,264)]; held = start
+            start = [point(2,padX(146,46),264)]; held = start
         }
         var steps: [[String: Any]] = [["Frames": 1, "Contacts": start],
             ["Frames": sender.tag < 3 ? 120 : 30, "Contacts": held],
             ["Frames": 1, "Contacts": []]]
         if sender.tag == 2 {
-            steps = [["Frames": 1, "Contacts": [point(1,152,406)]],
-                ["Frames": 35, "Contacts": [point(1,210,406)]],
+            steps = [["Frames": 1, "Contacts": [point(1,moveX,406)]],
+                ["Frames": 35, "Contacts": [point(1,moveX+58,406)]],
                 ["Frames": 120, "Contacts": held],
-                ["Frames": 45, "Contacts": [point(1,210,406)]],
+                ["Frames": 45, "Contacts": [point(1,moveX+58,406)]],
                 ["Frames": 1, "Contacts": []]]
         }
         do {

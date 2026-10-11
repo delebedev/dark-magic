@@ -24,6 +24,9 @@ local locale = require("engine.locale/v1")
 local controls = require("d2legacy.ui.controls")
 local button = require("d2legacy.ui.button")
 local side_panel = require("d2legacy.ui.side_panel")
+local dev = require("engine.dev/v1")
+local widgets = require("d2legacy.ui.touch_widgets")
+local touch_inventory = require("d2legacy.ui.touch_inventory")
 
 local manifest = assert(data.load_manifest("manifests/presentation.v1.json", "d2legacy.presentation/v1"))
 local screen = manifest.screens.inventory
@@ -157,9 +160,19 @@ local function refresh_items(self)
             end
         end
     end
+    if self.touch then touch_inventory.refresh(self) end
 end
 
 local function activate_equipment(self, body_loc)
+    if self.touch then
+        if self.touch.moving then
+            touch_inventory.request(self, {container="equipment",slot=body_loc,
+                weapon_set=uses_weapon_set(body_loc) and self.item_snapshot.active_weapon_set or 0})
+        else
+            touch_inventory.select(self, equipment_item(self.item_snapshot, body_loc))
+        end
+        return
+    end
     local held = held_item(self.item_snapshot)
 
     if held ~= nil then
@@ -198,6 +211,7 @@ return {
     enter = function(self)
         self.root = render.create("modal")
         self.controls = controls.new()
+        self.touch_enabled = dev.option("touch_controls") == true
         side_panel.align_right(self, manifest.resolution.width)
 
         -- Headless tests can still instantiate lifecycle/control state without art.
@@ -208,6 +222,7 @@ return {
         -- Item authority is gameplay capability. Require it only in the real
         -- asset-backed path where this panel will actually interact with items.
         self.items = require("d2legacy.items.api")
+        self.item_palette = manifest.palettes.units
 
         -- Selected character chooses the correct Inventory.txt class geometry.
         local selected = assert(saves.selected(), "inventory requires a selected character")
@@ -250,6 +265,7 @@ return {
 
             self.controls:add({
                 id = "equipment_" .. slot.id,
+                body_loc = body_loc,
                 label = assert(locale.text(slot.label)),
                 x = geometry.x,
                 y = geometry.y,
@@ -270,10 +286,34 @@ return {
         self.cell_height = number(self.record, "gridBoxHeight")
         self.item_nodes = {}
 
+        if self.touch_enabled then
+            touch_inventory.create(self, palette)
+            local geometry=widgets.geometry()
+            local margin_x,margin_y=15*geometry.scale_x,15*geometry.scale_y
+            self.controls:add({id="touch_grid",label="Inventory grid",x=self.grid_left-margin_x,y=self.grid_top-margin_y,
+                width=columns*self.cell_width,height=rows*self.cell_height,
+                hit_test=function(_,x,y)
+                    if x<self.grid_left-margin_x or y<self.grid_top-margin_y
+                        or x>=self.grid_left+columns*self.cell_width+margin_x or y>=self.grid_top+rows*self.cell_height+margin_y then return false end
+                    return self.touch.moving or x>=self.grid_left and y>=self.grid_top
+                        and x<self.grid_left+columns*self.cell_width and y<self.grid_top+rows*self.cell_height
+                        or touch_inventory.item_at(self,x,y)~=nil
+                end,
+                on_activate=function()
+                    local x,y=input.cursor()
+                    x=x-self.controls.offset_x
+                    if self.touch.moving then
+                        touch_inventory.request(self,{container="inventory",x=math.floor((x-self.grid_left)/self.cell_width),
+                            y=math.floor((y-self.grid_top)/self.cell_height)})
+                    else touch_inventory.select(self,touch_inventory.item_at(self,x,y)) end
+                end})
+        end
+
         -- Register each cell as an ordinary control. Zero-based columns/rows
         -- match authoritative item placement coordinates.
         for row = 0, rows - 1 do
             for column = 0, columns - 1 do
+                if not self.touch_enabled then
                 -- Closure lesson: create per-iteration copies before building the
                 -- callback. Think of these as labels glued permanently to this cell.
                 local cell_column, cell_row = column, row
@@ -287,6 +327,7 @@ return {
                     height = self.cell_height,
                     on_activate = function() activate_cell(self, cell_column, cell_row) end,
                 })
+                end
             end
         end
 
@@ -308,15 +349,22 @@ return {
                 scenes.toggle_overlay("inventory", "right")
             end,
         })
+        if self.touch then widgets.expand(self.controls:get("close"),widgets.geometry()) end
     end,
 
     update = function(self)
+        if self.touch then require("d2legacy.gameplay.touch_input").cancel() end
         -- ORDER IS A LIFETIME RULE, NOT STYLE.
         --
         -- A close-button callback can synchronously close this scene and destroy
         -- every render handle owned by its scope. Refresh items BEFORE controls;
         -- do not touch item nodes after control dispatch if close may have run.
         side_panel.align_right(self, manifest.resolution.width)
+        if self.touch then
+            local close=self.controls:get("close")
+            close.x,close.y,close.width,close.height=screen.close.x+offset_x,screen.close.y+offset_y,screen.close.width,screen.close.height
+            widgets.expand(close,widgets.geometry())
+        end
         if self.items ~= nil then refresh_items(self) end
         self.controls:update()
 
@@ -328,4 +376,6 @@ return {
             scenes.pop()
         end
     end,
+
+    destroy = function(self) touch_inventory.destroy(self.touch) end,
 }

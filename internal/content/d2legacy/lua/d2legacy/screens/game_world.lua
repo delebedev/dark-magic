@@ -40,6 +40,7 @@ local tooltip = require("d2legacy.ui.tooltip")
 local text = require("d2legacy.ui.text")
 local input_diagnostics = require("d2legacy.dev.input_diagnostics")
 local touch_controls = require("d2legacy.ui.touch_controls")
+local touch_toolbar = require("d2legacy.ui.touch_toolbar")
 local touch_input = require("d2legacy.gameplay.touch_input")
 local locale = require("engine.locale/v1")
 
@@ -934,7 +935,10 @@ return {
         end
 
         self.input_diagnostic = input_diagnostics.create(self.root, self.hud and self.hud.controls)
-        if self.hud then self.touch_controls = touch_controls.create(self.root, self.hud.palette) end
+        if self.hud then
+            self.touch_controls = touch_controls.create(self.root, self.hud.palette)
+            self.touch_toolbar = touch_toolbar.create(self.root, self.hud.palette)
+        end
 
         -- These are capability QUERIES: Lua gets provenance/availability facts,
         -- not a host filesystem object or native audio device.
@@ -987,6 +991,7 @@ return {
         end
 
         if not input_allowed then
+            touch_toolbar.update(self.touch_toolbar, false)
             if self.touch_controls then
                 local cancelled = touch_controls.sample(self.touch_controls, viewport_width, viewport_height, false)
                 self.touch_controls.pending_cast = nil
@@ -995,6 +1000,20 @@ return {
                     request_move(self,x,y)
                 end
             end
+            return
+        end
+
+        local toolbar_consumed = touch_toolbar.update(self.touch_toolbar, world_view == nil or world_view == "center" or world_view == "full")
+        if toolbar_consumed then
+            if self.touch_controls then
+                self.touch_controls.pending_cast = nil
+                local cancelled = touch_controls.sample(self.touch_controls, viewport_width, viewport_height, false)
+                if (cancelled.stop or self.touch_toolbar.opened) and self.gameplay.hero then
+                    local x, y = self.gameplay_world.position(self.gameplay.hero)
+                    request_move(self, x, y)
+                end
+            end
+            self.touch_toolbar.opened = false
             return
         end
 
@@ -1347,6 +1366,7 @@ return {
     destroy = function(self)
         input_diagnostics.destroy(self.input_diagnostic)
         touch_controls.destroy(self.touch_controls)
+        touch_toolbar.destroy(self.touch_toolbar)
         -- gameplay.world owns only its presentation camera entity; its destroy
         -- helper intentionally leaves session-owned hero authority alone.
         self.gameplay_world.destroy(self.gameplay)

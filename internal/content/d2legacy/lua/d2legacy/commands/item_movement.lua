@@ -36,6 +36,7 @@ end
 function M.validate_move(command)
     local payload = command.payload
     assert(type(payload) == "table", "item move payload is required")
+    assert(payload.token == nil or type(payload.token) == "string" and #payload.token <= 64, "invalid item move token")
     assert(type(payload.item_id) == "string" and payload.item_id ~= "",
         "item ID is required")
     assert(type(payload.destination) == "table",
@@ -72,7 +73,15 @@ function M.apply_move(command)
     ))
     local current = assert(ecs.get(item_entity, "d2legacy.item.placement"))
     -- An earlier command in this tick may already have placed the held item.
-    if command.payload.place_held and current:get("container") ~= "held" then return end
+    local function result(reason)
+        layout:set("move_token", command.payload.token or "")
+        layout:set("move_item", command.payload.item_id)
+        layout:set("move_reason", reason or "")
+    end
+    if command.payload.place_held and current:get("container") ~= "held" then
+        result("item is no longer held")
+        return
+    end
 
     -- A held item may replace exactly one occupied item. That displaced item
     -- becomes the new held item, matching legacy inventory reordering.
@@ -84,7 +93,7 @@ function M.apply_move(command)
         entities,
         command.payload.place_held
     )
-    if refusal then return end
+    if refusal then result(refusal); return end
     local destination = command.payload.destination
     placement.set(current, destination)
     if destination.container == "world" then
@@ -104,6 +113,7 @@ function M.apply_move(command)
             container = "held",
         })
     end
+    result()
 end
 
 function M.validate_weapon_set(command)

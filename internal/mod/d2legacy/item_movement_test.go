@@ -1,12 +1,63 @@
 package d2legacy
 
 import (
+	"github.com/gravestench/akara"
 	"testing"
 
 	"github.com/gravestench/dark-magic/internal/content"
 	gameecs "github.com/gravestench/dark-magic/internal/game/ecs"
 	gamesession "github.com/gravestench/dark-magic/internal/game/session"
 )
+
+func TestItemMoveDirectInventoryActionsReportAuthorityOutcome(t *testing.T) {
+	engine := gameecs.New()
+	t.Cleanup(func() { _ = engine.Close() })
+	session, err := gamesession.New(engine, gamesession.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = session.Close() })
+	authority, err := StartWithConfig(t.Context(), content.D2Legacy(), fixtureRecords{}, engine, session,
+		Config{Seed: 91, InitialData: map[string]any{"d2legacy.items": map[string]any{
+			"owner": "alice", "inventory_width": 4.0, "inventory_height": 4.0,
+			"items": []any{map[string]any{"id": "sword", "code": "ssd", "width": 1.0, "height": 3.0,
+				"body_slots": "rarm,larm", "container": "inventory"}},
+		}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = authority.Stop(t.Context()) })
+	for index, step := range []struct {
+		token                   string
+		destination             map[string]any
+		container, slot, reason string
+	}{
+		{"refuse", map[string]any{"container": "equipment", "slot": "head"}, "inventory", "", "item cannot use body slot"},
+		{"equip", map[string]any{"container": "equipment", "slot": "rarm"}, "equipment", "rarm", ""},
+		{"edge", map[string]any{"container": "inventory", "x": 3, "y": 3}, "equipment", "rarm", "item does not fit grid"},
+		{"move", map[string]any{"container": "inventory", "x": 2, "y": 0}, "inventory", "", ""},
+	} {
+		if err := session.Submit(itemCommand(t, uint64(index+1), uint64(index+1), "item.move", map[string]any{
+			"item_id": "sword", "destination": step.destination, "token": step.token,
+		})); err != nil {
+			t.Fatal(err)
+		}
+		if err := session.Step(); err != nil {
+			t.Fatal(err)
+		}
+		assertItemPlacement(t, engine, "sword", step.container, step.slot)
+		layouts, _ := akara.GetDynamicStore(engine.World(), "d2legacy.items.layout")
+		for _, entity := range layouts.Entities() {
+			layout, _ := layouts.Get(entity)
+			for field, want := range map[string]string{"move_token": step.token, "move_item": "sword", "move_reason": step.reason} {
+				got, _ := layout.Get(field)
+				if got != want {
+					t.Fatalf("%s %s = %v, want %s", step.token, field, got, want)
+				}
+			}
+		}
+	}
+}
 
 func TestItemMoveInvalidDropPreservesItemsAndSession(t *testing.T) {
 	for _, tc := range []struct {

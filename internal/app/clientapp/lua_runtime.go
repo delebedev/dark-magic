@@ -89,7 +89,7 @@ func (app *application) baseLuaModules(mapEditorStorage *mapeditor.Storage) []mo
 	return []modruntime.Module{
 		// Process and content services.
 		modruntime.AppModule(BuildVersion(), app.stop),
-		modruntime.DisplayModule(app.renderer.Resolution),
+		modruntime.DisplayModule(app.renderer.Resolution, app.options.ScreenGeometry),
 		modruntime.ShellModule(app.shellSettings),
 		modruntime.VFSModule(app.options.Content),
 		modruntime.MapEditorModule(app.options.Content, mapEditorStorage, app.worldObjectResolver),

@@ -3,7 +3,10 @@ return test.suite({name="side panel",profile="module",tier="fast",cases={
     test.case("keeps_art_and_pointer_activation_aligned_after_resize", function(t)
         t:run(function()
             local width, placed = 800, 0
-            test.mock_module("engine.display/v1", {size=function()return width,600 end}, {})
+            local touch=false
+            test.mock_module("engine.dev/v1", {option=function()return touch end}, {})
+            test.mock_module("engine.display/v1", {size=function()return width,600 end,
+                geometry=function()return {right=90}end}, {})
             local pointer = {x=426,y=110}
             test.mock_module("engine.input/v1", {
                 cursor=function()return pointer.x,pointer.y end,
@@ -42,6 +45,14 @@ return test.suite({name="side panel",profile="module",tier="fast",cases={
             pointer.pressed,pointer.released=false,true
             manager:update()
             test.expect(activations):equals(2)
+            touch=true
+            panel.align_right(state,800)
+            test.expect(placed):equals(398)
+            pointer.x,pointer.pressed,pointer.released=824,true,false
+            manager:update()
+            pointer.pressed,pointer.released=false,true
+            manager:update()
+            test.expect(activations):equals(3)
         end)
     end),
 }})

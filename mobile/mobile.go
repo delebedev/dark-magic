@@ -6,14 +6,17 @@ package darkmagicmobile
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/gravestench/dark-magic/internal/app/clientapp"
 	"github.com/gravestench/dark-magic/internal/content"
 	"github.com/gravestench/dark-magic/internal/distribution"
+	modruntime "github.com/gravestench/dark-magic/internal/runtime/lua"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -27,6 +30,21 @@ type mobileGame struct {
 	client        *clientapp.HostedGame
 	content       *content.FS
 	mods          *distribution.ModSet
+	geometry      atomic.Pointer[modruntime.ScreenGeometry]
+}
+
+// SetScreenGeometry receives UIKit points, never framebuffer pixels.
+func SetScreenGeometry(width, height, left, top, right, bottom float64) error {
+	for _, value := range []float64{width, height, left, top, right, bottom} {
+		if math.IsNaN(value) || math.IsInf(value, 0) || value < 0 || value > 10000 {
+			return errors.New("invalid screen geometry")
+		}
+	}
+	if width <= 0 || height <= 0 || left+right >= width || top+bottom >= height {
+		return errors.New("invalid screen safe area")
+	}
+	game.geometry.Store(&modruntime.ScreenGeometry{Width: width, Height: height, Left: left, Top: top, Right: right, Bottom: bottom})
+	return nil
 }
 
 // Configure must run once before creating the generated view controller.
@@ -112,6 +130,12 @@ func hostedOptions(scene string) (clientapp.Options, error) {
 	}
 	options.ExpandViewport = options.StartScene != "ui_lab"
 	options.TouchControls = options.StartScene != "ui_lab"
+	options.ScreenGeometry = func() modruntime.ScreenGeometry {
+		if value := game.geometry.Load(); value != nil {
+			return *value
+		}
+		return modruntime.ScreenGeometry{}
+	}
 	if options.InputDiagnostics && options.StartScene == "game_world" {
 		options.FixtureWorldSpawn = os.Getenv("DARK_MAGIC_FIXTURE_WORLD_SPAWN")
 	}

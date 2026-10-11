@@ -57,6 +57,7 @@ type Options struct {
 	FixtureWorldSpawn      string
 	InputDiagnostics       bool
 	TouchControls          bool
+	ScreenGeometry         func() modruntime.ScreenGeometry
 	FixturePointerMove     bool
 	OutputPalette          string
 	ViewportFit            string

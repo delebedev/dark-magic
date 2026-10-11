@@ -13,6 +13,7 @@
 local input = require("engine.input/v1")
 -- Versioned scene capability: owns overlay open/close/replacement behavior.
 local scenes = require("engine.scene/v1")
+local dev = require("engine.dev/v1")
 
 local routing = {}
 
@@ -63,6 +64,8 @@ end
 -- Think of wrapping paper: the gift inside stays the same, but another behavior
 -- now surrounds it.
 function routing.wrap(definition, id, slot, world_view, passes_input)
+    -- Touch inspection extends across the world half, so these panels own all input.
+    if dev.option("touch_controls") and (id == "inventory" or id == "character") then passes_input = false end
     if passes_input then
         -- Some panels (inventory, character sheet, etc.) let the world continue
         -- updating and receive a carefully routed subset of input below them.

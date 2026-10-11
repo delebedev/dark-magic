@@ -223,7 +223,8 @@ func validatePrivateView(private PrivateView) error {
 		!boundedDimension(layout.CubeWidth) || !boundedDimension(layout.CubeHeight) ||
 		layout.BeltCapacity < 0 || layout.BeltCapacity > MaxHUDBeltSlots ||
 		!boundedDimension(layout.VendorWidth) || !boundedDimension(layout.VendorHeight) ||
-		layout.CarriedGold < 0 || layout.StashedGold < 0 {
+		layout.CarriedGold < 0 || layout.StashedGold < 0 ||
+		!bounded(layout.MoveToken, 64) || !bounded(layout.MoveItem, maxViewIdentityBytes) || !bounded(layout.MoveReason, maxViewTokenBytes) {
 		return ErrClientView
 	}
 

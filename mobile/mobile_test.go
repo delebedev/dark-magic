@@ -3,11 +3,29 @@
 package darkmagicmobile
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestScreenGeometryRejectsInvalidHostValues(t *testing.T) {
+	previous := game
+	game = &mobileGame{}
+	t.Cleanup(func() { game = previous })
+	if err := SetScreenGeometry(874, 402, 62, 0, 62, 21); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][6]float64{{0, 402, 0, 0, 0, 0}, {874, 402, 500, 0, 500, 0}, {874, 402, 0, -1, 0, 0}, {874, math.NaN(), 0, 0, 0, 0}, {874, 402, 0, 0, math.Inf(1), 0}} {
+		if err := SetScreenGeometry(args[0], args[1], args[2], args[3], args[4], args[5]); err == nil {
+			t.Fatalf("accepted invalid geometry: %v", args)
+		}
+	}
+	if value := game.geometry.Load(); value == nil || value.Width != 874 || value.Bottom != 21 {
+		t.Fatalf("invalid update replaced valid geometry: %+v", value)
+	}
+}
 
 func TestConfigureUsesSandboxPathsAndRejectsReconfiguration(t *testing.T) {
 	previous := game

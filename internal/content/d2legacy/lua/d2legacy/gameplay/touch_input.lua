@@ -1,5 +1,10 @@
 -- Presentation intent selection over copied contacts and world facts.
 local M = {}
+local modal_cancelled = false
+
+function M.cancel()
+    modal_cancelled = true
+end
 
 function M.layout(width, height)
     return {
@@ -17,6 +22,7 @@ local function inside(point, pad)
 end
 
 function M.sample(state, contacts, layout, allowed)
+    if modal_cancelled then allowed,modal_cancelled=false,false end
     state.previous = state.previous or {}
     local current, output = {}, { consumed = false }
     for _, point in ipairs(contacts) do current[point.id] = point end

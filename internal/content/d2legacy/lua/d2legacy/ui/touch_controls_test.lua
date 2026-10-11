@@ -8,6 +8,9 @@ return test.suite({name="touch controls",profile="module",tier="fast",cases={
                     set_dc6=function()end,destroy=function()end}
             end
             test.mock_module("engine.dev/v1",{option=function()return true end},{})
+            test.mock_module("engine.display/v1",{geometry=function()
+                return {scale_x=1,scale_y=1,left=0,right=0,top=0,bottom=0}
+            end},{})
             test.mock_module("engine.render/v1",{create=node,preload=function()return 1 end,
                 preload_status=function()return {done=true,failed=0} end,preload_release=function()end},{})
             test.mock_module("d2legacy.ui.text",{set=function()end},{})

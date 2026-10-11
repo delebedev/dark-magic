@@ -20,18 +20,25 @@ pads keep their existing three-button layout.
 
 ## World panels
 
-- **Panels** opens a native menu for Inventory, Character, Skills, Quests, Map,
-  Options, Help, Run / walk, and Swap weapons. Each emits its existing desktop
-  logical input action. The game still owns panel routing and command policy.
-- **Back** emits Cancel: close the focused panel, or open pause in the world.
+- The rendered **Inventory / Character / Pause** toolbar opens ordinary game
+  overlays. Inventory and Character have explicit close controls.
+- Inventory taps select and inspect. **Equip right / Equip left** and **Move**
+  submit the existing item command. Move then asks for a grid cell or equipment
+  slot. Selection remains visible after authority refuses a destination.
+- Mobile inventory and character panels block all world input. Closing requires
+  a fresh contact before movement or combat can resume.
+- Native **Tools / Back** and unfinished-panel shortcuts are diagnostics only.
 - Walk through the normal town exit to enter Blood Moor. Walk back through its
   corresponding exit to return. Game World has no Warp Lab portal fixture.
 
-Native controls occupy the upper-right safe area. They work without diagnostics
-and have UIKit accessibility labels. The rendered game canvas still lacks
-VoiceOver elements. Full-width world rendering retains the original fixed HUD. Inventory and
-Skills translate their authored art and pointer hit regions to the right edge.
-Held item art subtracts the same offset so it stays beneath the finger.
+Swift supplies UIKit-point geometry and safe insets. Lua converts these to
+logical coordinates and anchors each control section separately. New toolbar,
+inventory actions, item selection and panel-close hit areas have a provisional
+30-point minimum, deliberately below Apple's 44-point recommendation. Artwork
+can be smaller than its hit region. Actual phone comfort remains a review gate.
+Full-width world rendering retains the original fixed HUD. Inventory and Skills
+translate their authored art and hit regions to the right edge. The rendered
+game canvas still lacks VoiceOver elements.
 
 ## Boundaries
 

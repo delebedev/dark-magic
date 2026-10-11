@@ -26,6 +26,9 @@ local function register_layout()
         { name = "vendor_height", type = "i64" },
         { name = "carried_gold", type = "i64" },
         { name = "stashed_gold", type = "i64" },
+        { name = "move_token", type = "string" },
+        { name = "move_item", type = "string" },
+        { name = "move_reason", type = "string" },
     })
 end
 

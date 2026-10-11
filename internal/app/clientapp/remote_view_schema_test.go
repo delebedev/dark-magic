@@ -199,7 +199,7 @@ func remotePartyTestFields() []akara.Field {
 // remoteItemLayoutTestFields covers the private graph root without adding item behavior fields.
 func remoteItemLayoutTestFields() []akara.Field {
 	return remoteTestFieldGroups(
-		remoteTestFields(akara.FieldString, "owner"),
+		remoteTestFields(akara.FieldString, "owner", "move_token", "move_item", "move_reason"),
 		remoteTestFields(
 			akara.FieldInt64,
 			"inventory_width", "inventory_height", "stash_width", "stash_height",

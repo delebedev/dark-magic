@@ -13,6 +13,8 @@ local locale = require("engine.locale/v1")
 local controls = require("d2legacy.ui.controls")
 local button = require("d2legacy.ui.button")
 local text = require("d2legacy.ui.text")
+local dev = require("engine.dev/v1")
+local widgets = require("d2legacy.ui.touch_widgets")
 
 local manifest = assert(data.load_manifest("manifests/presentation.v1.json", "d2legacy.presentation/v1"))
 local screen = manifest.screens.character
@@ -104,6 +106,17 @@ return {
     end,
 
     update = function(self)
+        if dev.option("touch_controls") then
+            require("d2legacy.gameplay.touch_input").cancel()
+            local geometry = widgets.geometry()
+            self.root:set_position(geometry.left,0)
+            self.controls.offset_x = geometry.left
+            local close = self.controls:get("close")
+            if close then
+                close.x,close.y,close.width,close.height=screen.close.x+offset_x,screen.close.y+offset_y,screen.close.width,screen.close.height
+                widgets.expand(close,geometry)
+            end
+        end
         self.controls:update()
 
         -- The panel's own action key and universal Cancel both close it.

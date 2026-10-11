@@ -16,6 +16,7 @@ local settings = require("engine.settings/v1")
 local data = require("engine.data/v1")
 local compat = require("d2legacy.ui.compat")
 local escape_menu = require("d2legacy.ui.escape_menu")
+local display = require("engine.display/v1")
 
 local recovered = compat.ingame.escape_menu
 local manifest = assert(data.load_manifest("manifests/presentation.v1.json", "d2legacy.presentation/v1"))
@@ -64,6 +65,12 @@ return {
     end,
 
     update = function(self, elapsed)
+        require("d2legacy.gameplay.touch_input").cancel()
+        local width = display.size()
+        local offset = (width-viewport.width)/2
+        self.root:set_position(offset,0)
+        self.menu.manager.offset_x = offset
+        self.backdrop:set_scale(width/viewport.width,1)
         self.menu:update(elapsed)
 
         -- Both Pause and universal Cancel close the menu when pressed here.
