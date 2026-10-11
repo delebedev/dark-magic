@@ -14,6 +14,27 @@ func TestValidateClientViewRejectsUnboundedOrInvalidNetworkState(t *testing.T) {
 	}
 
 	tests := map[string]func(*ClientView){
+		"unidentified item numbers": func(view *ClientView) {
+			view.Private.Items.Items[0].Inspection = &ItemInspectionView{Status: "unidentified", Damage: &ItemDamageView{MinRaw: 256, MaxRaw: 512}}
+		},
+		"item identification mismatch": func(view *ClientView) {
+			view.Private.Items.Items[0].Inspection = &ItemInspectionView{Identified: true, Status: "complete"}
+		},
+		"unknown item status": func(view *ClientView) {
+			view.Private.Items.Items[0].Inspection = &ItemInspectionView{Status: "invented"}
+		},
+		"inverted item damage": func(view *ClientView) {
+			view.Private.Items.Items[0].Identified = true
+			view.Private.Items.Items[0].Inspection = &ItemInspectionView{Identified: true, Status: "complete", Damage: &ItemDamageView{MinRaw: 512, MaxRaw: 256}}
+		},
+		"public non-item inspection": func(view *ClientView) {
+			view.World.Entities[0].Inspection = &ItemInspectionView{Status: "missing_facts"}
+		},
+		"missing facts with numbers": func(view *ClientView) {
+			value := int64(6)
+			view.Private.Items.Items[0].Identified = true
+			view.Private.Items.Items[0].Inspection = &ItemInspectionView{Identified: true, Status: "missing_facts", Defense: &value}
+		},
 		"rewarded unfinished quest": func(view *ClientView) { view.Private.Quest = &QuestView{QuestID: 1, Stage: 1, Rewarded: true} },
 		"unbounded quest":           func(view *ClientView) { view.Private.Quest = &QuestView{QuestID: 1, Stage: 257} },
 		"future death":              func(view *ClientView) { view.Private.Death = &DeathView{Tick: 8, Stage: "dead"} },

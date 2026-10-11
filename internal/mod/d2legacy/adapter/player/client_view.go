@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const ClientViewVersion uint32 = 14
+const ClientViewVersion uint32 = 15
 
 const (
 	MaxHUDLearnedSkills  = 256
@@ -239,6 +239,9 @@ func validatePrivateView(private PrivateView) error {
 
 	seen := make(map[string]struct{}, len(private.Items.Items))
 	for _, item := range private.Items.Items {
+		if !validateItemInspection(item.Inspection) || item.Inspection != nil && item.Identified != item.Inspection.Identified {
+			return ErrClientView
+		}
 		if !boundedRequired(item.ID, maxViewIdentityBytes) || !boundedRequired(item.Code, maxWorldKindBytes) ||
 			!bounded(item.BodySlots, maxViewTokenBytes) || !bounded(item.AppliedServices, maxViewTokenBytes) ||
 			!bounded(item.Container, maxWorldKindBytes) || !bounded(item.Slot, maxWorldKindBytes) ||

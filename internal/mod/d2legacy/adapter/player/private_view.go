@@ -7,7 +7,7 @@ import (
 	"github.com/gravestench/dark-magic/internal/game/simulation"
 )
 
-const PrivateViewVersion uint32 = 3
+const PrivateViewVersion uint32 = 4
 
 // PrivateView is owner-only state needed by connected presentation. It is an
 // explicit allowlist rather than a serialized ECS snapshot, so another
@@ -56,26 +56,28 @@ type ItemLayoutView struct {
 }
 
 type ItemEntityView struct {
-	ID              string `json:"id"`
-	Code            string `json:"code"`
-	BodySlots       string `json:"body_slots"`
-	AppliedServices string `json:"applied_services"`
-	Width           int64  `json:"width"`
-	Height          int64  `json:"height"`
-	BaseCost        int64  `json:"base_cost"`
-	BeltEligible    bool   `json:"belt_eligible"`
-	Container       string `json:"container"`
-	Slot            string `json:"slot"`
-	X               int64  `json:"x"`
-	Y               int64  `json:"y"`
-	BeltSlot        int64  `json:"belt_slot"`
-	WeaponSet       int64  `json:"weapon_set"`
-	Page            int64  `json:"page"`
-	InventoryDC6    string `json:"inventory_dc6"`
-	WorldDC6        string `json:"world_dc6"`
-	Composite       string `json:"composite"`
-	WeaponClass     string `json:"weapon_class"`
-	WorldAnimated   bool   `json:"world_animated"`
+	Identified      bool                `json:"identified"`
+	Inspection      *ItemInspectionView `json:"inspection,omitempty"`
+	ID              string              `json:"id"`
+	Code            string              `json:"code"`
+	BodySlots       string              `json:"body_slots"`
+	AppliedServices string              `json:"applied_services"`
+	Width           int64               `json:"width"`
+	Height          int64               `json:"height"`
+	BaseCost        int64               `json:"base_cost"`
+	BeltEligible    bool                `json:"belt_eligible"`
+	Container       string              `json:"container"`
+	Slot            string              `json:"slot"`
+	X               int64               `json:"x"`
+	Y               int64               `json:"y"`
+	BeltSlot        int64               `json:"belt_slot"`
+	WeaponSet       int64               `json:"weapon_set"`
+	Page            int64               `json:"page"`
+	InventoryDC6    string              `json:"inventory_dc6"`
+	WorldDC6        string              `json:"world_dc6"`
+	Composite       string              `json:"composite"`
+	WeaponClass     string              `json:"weapon_class"`
+	WorldAnimated   bool                `json:"world_animated"`
 }
 
 type InteractionView struct {
@@ -222,7 +224,9 @@ func projectItems(snapshot gameecs.Snapshot, layoutEntity uint64) []ItemEntityVi
 
 		placement, _ := findInstance(placements, instance.Entity)
 		presentation, _ := findInstance(presentations, instance.Entity)
-		items = append(items, projectItem(identity, placement, presentation))
+		item := projectItem(identity, placement, presentation)
+		item.Inspection = projectItemInspection(snapshot, instance.Entity)
+		items = append(items, item)
 	}
 
 	sort.Slice(items, func(i, j int) bool { return items[i].ID < items[j].ID })
@@ -238,6 +242,7 @@ func projectItem(
 	presentation map[string]gameecs.ValueSnapshot,
 ) ItemEntityView {
 	return ItemEntityView{
+		Identified:      boolField(identity, "identified"),
 		ID:              stringField(identity, "id"),
 		Code:            stringField(identity, "code"),
 		BodySlots:       stringField(identity, "body_slots"),

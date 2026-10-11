@@ -343,6 +343,7 @@ func installGroundItemMirror(world *akara.World, entity akara.Entity, value play
 		"d2legacy.world.location":    {"act": worldLocation(value.Act, location.Act), "level_id": worldLocation(value.LevelID, location.LevelID)},
 		"d2legacy.world.selectable":  {"id": value.ID, "kind": value.Kind, "label": value.Label, "owner": value.Owner, "radius": value.Radius, "priority": value.Priority},
 		"d2legacy.item.presentation": {"inventory_dc6": "", "world_dc6": value.WorldDC6, "world_animated": value.WorldAnimated, "composite": "", "weapon_class": ""},
+		"d2legacy.item.inspection":   remoteItemInspection(value.Inspection),
 	})
 }
 

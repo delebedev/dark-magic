@@ -128,6 +128,7 @@ func remoteItemAndInteractionTestSchemas() []akara.Schema {
 		remoteTestSchema("d2legacy.item.identity", remoteItemIdentityTestFields()),
 		remoteTestSchema("d2legacy.item.placement", remoteItemPlacementTestFields()),
 		remoteTestSchema("d2legacy.item.presentation", remoteItemPresentationTestFields()),
+		remoteTestSchema("d2legacy.item.inspection", remoteTestFields(akara.FieldBool, "identified", "damage_known", "defense_known"), remoteTestFields(akara.FieldString, "status"), remoteTestFields(akara.FieldInt64, "damage_min_raw", "damage_max_raw", "defense")),
 		remoteTestSchema("d2legacy.interaction.target", remoteInteractionTargetTestFields()),
 		remoteTestSchema("d2legacy.interaction.context",
 			remoteTestFields(akara.FieldString, "owner"),
@@ -141,6 +142,7 @@ func remoteItemAndInteractionTestSchemas() []akara.Schema {
 // remoteWorldTestSchemas supplies only spatial and selection facts required to render connected entities.
 func remoteWorldTestSchemas() []akara.Schema {
 	return []akara.Schema{
+		remoteTestSchema("d2legacy.world.inactive"),
 		remoteTestSchema("d2legacy.world.position",
 			remoteTestFields(akara.FieldFloat64, "x", "y")),
 		remoteTestSchema("d2legacy.world.velocity",
@@ -216,7 +218,7 @@ func remoteItemIdentityTestFields() []akara.Field {
 		remoteTestFields(akara.FieldEntity, "owner"),
 		remoteTestFields(akara.FieldString, "id", "code", "body_slots", "applied_services"),
 		remoteTestFields(akara.FieldInt64, "width", "height", "base_cost"),
-		remoteTestFields(akara.FieldBool, "belt_eligible"),
+		remoteTestFields(akara.FieldBool, "belt_eligible", "identified"),
 	)
 }
 

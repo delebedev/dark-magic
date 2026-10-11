@@ -12,7 +12,7 @@ import (
 	"github.com/gravestench/dark-magic/internal/game/simulation"
 )
 
-const WorldViewVersion uint32 = 7
+const WorldViewVersion uint32 = 8
 
 const (
 	WorldViewRadius         = 80.0
@@ -80,32 +80,33 @@ type WorldMissile struct {
 }
 
 type WorldEntity struct {
-	WorldDC6               string      `json:"world_dc6,omitempty"`
-	WorldAnimated          bool        `json:"world_animated,omitempty"`
-	ID                     string      `json:"id"`
-	Kind                   string      `json:"kind"`
-	Label                  string      `json:"label,omitempty"`
-	Owner                  string      `json:"owner,omitempty"`
-	Position               HUDPosition `json:"position"`
-	Radius                 float64     `json:"radius"`
-	Priority               int64       `json:"priority"`
-	Health                 *int64      `json:"health,omitempty"`
-	MaxHealth              *int64      `json:"max_health,omitempty"`
-	Class                  string      `json:"class,omitempty"`
-	SpawnID                string      `json:"spawn_id,omitempty"`
-	DefinitionID           string      `json:"definition_id,omitempty"`
-	Token                  string      `json:"token,omitempty"`
-	Mode                   string      `json:"mode,omitempty"`
-	WeaponClass            string      `json:"weapon_class,omitempty"`
-	Components             string      `json:"components,omitempty"`
-	DeathSound             string      `json:"death_sound,omitempty"`
-	OverlayHeight          int64       `json:"overlay_height,omitempty"`
-	Direction              int64       `json:"direction,omitempty"`
-	AnimationStartTick     uint64      `json:"animation_start_tick,omitempty"`
-	VelocityPercent        int64       `json:"velocitypercent,omitempty"`
-	ItemFasterMoveVelocity int64       `json:"item_fastermovevelocity,omitempty"`
-	Act                    int64       `json:"act,omitempty"`
-	LevelID                int64       `json:"level_id,omitempty"`
+	Inspection             *ItemInspectionView `json:"inspection,omitempty"`
+	WorldDC6               string              `json:"world_dc6,omitempty"`
+	WorldAnimated          bool                `json:"world_animated,omitempty"`
+	ID                     string              `json:"id"`
+	Kind                   string              `json:"kind"`
+	Label                  string              `json:"label,omitempty"`
+	Owner                  string              `json:"owner,omitempty"`
+	Position               HUDPosition         `json:"position"`
+	Radius                 float64             `json:"radius"`
+	Priority               int64               `json:"priority"`
+	Health                 *int64              `json:"health,omitempty"`
+	MaxHealth              *int64              `json:"max_health,omitempty"`
+	Class                  string              `json:"class,omitempty"`
+	SpawnID                string              `json:"spawn_id,omitempty"`
+	DefinitionID           string              `json:"definition_id,omitempty"`
+	Token                  string              `json:"token,omitempty"`
+	Mode                   string              `json:"mode,omitempty"`
+	WeaponClass            string              `json:"weapon_class,omitempty"`
+	Components             string              `json:"components,omitempty"`
+	DeathSound             string              `json:"death_sound,omitempty"`
+	OverlayHeight          int64               `json:"overlay_height,omitempty"`
+	Direction              int64               `json:"direction,omitempty"`
+	AnimationStartTick     uint64              `json:"animation_start_tick,omitempty"`
+	VelocityPercent        int64               `json:"velocitypercent,omitempty"`
+	ItemFasterMoveVelocity int64               `json:"item_fastermovevelocity,omitempty"`
+	Act                    int64               `json:"act,omitempty"`
+	LevelID                int64               `json:"level_id,omitempty"`
 	distance2              float64
 }
 
@@ -336,6 +337,7 @@ func (projection *worldProjection) selectableEntity(source uint64) (WorldEntity,
 // policy such as AI goals, damage, and collision never enters the result.
 func (projection *worldProjection) decorateEntity(entity *WorldEntity, source uint64) {
 	if entity.Kind == "item" {
+		entity.Inspection = projectItemInspection(projection.snapshot, source)
 		if presentation, found := findInstance(projection.itemPresentations, source); found {
 			entity.WorldDC6 = stringField(presentation, "world_dc6")
 			entity.WorldAnimated = boolField(presentation, "world_animated")
@@ -666,6 +668,9 @@ func monsterPresentationMode(authoredMode, aiState string, velocityX, velocityY 
 // validateWorldEntity enforces the public schema's string, numeric, and corpse
 // invariants so untrusted projections cannot create invalid presentation state.
 func validateWorldEntity(entity WorldEntity) error {
+	if !validateItemInspection(entity.Inspection) || entity.Inspection != nil && entity.Kind != "item" {
+		return ErrWorldView
+	}
 	if entity.ID == "" || entity.Kind == "" ||
 		len(entity.ID) > maxWorldIDBytes || len(entity.Kind) > maxWorldKindBytes ||
 		len(entity.Label) > maxWorldLabelBytes || len(entity.Owner) > maxWorldIDBytes ||
