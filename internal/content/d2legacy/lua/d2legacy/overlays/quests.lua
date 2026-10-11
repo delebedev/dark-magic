@@ -71,20 +71,24 @@ return {
             end
         end
 
-        local status="Den of Evil: explore every chamber and defeat its monsters."
-        local owner="local-player"
-        local available,network=pcall(require,"engine.network/v1")
+        local status = "Den of Evil: explore every chamber and defeat its monsters."
+        local owner = "local-player"
+        local available, network = pcall(require, "engine.network/v1")
         if available then
-            local id=network.status().player_id
-            if id and id~="" then owner=id end
+            local id = network.status().player_id
+            if id and id ~= "" then owner = id end
         end
-        for _,entity in ipairs(ecs.query({all={"d2legacy.player.identity"}})) do
-            if ecs.get(entity,"d2legacy.player.identity"):get("player")==owner then
-                local progress=ecs.get(entity,"d2legacy.quest.progress")
-                if progress and progress:get("quest_id")==1 then
-                    if progress:get("rewarded") then status="Den of Evil: rewarded. Akara granted one skill point."
-                    elseif progress:get("completed") then status="Den of Evil: cleared. Return to Akara for one skill point."
-                    else status="Den of Evil: in progress. Explore every chamber and defeat its monsters." end
+        for _, entity in ipairs(ecs.query({ all = { "d2legacy.player.identity" } })) do
+            if ecs.get(entity, "d2legacy.player.identity"):get("player") == owner then
+                local progress = ecs.get(entity, "d2legacy.quest.progress")
+                if progress and progress:get("quest_id") == 1 then
+                    if progress:get("rewarded") then
+                        status = "Den of Evil: rewarded. Akara granted one skill point."
+                    elseif progress:get("completed") then
+                        status = "Den of Evil: cleared. Return to Akara for one skill point."
+                    else
+                        status = "Den of Evil: in progress. Explore every chamber and defeat its monsters."
+                    end
                 end
             end
         end

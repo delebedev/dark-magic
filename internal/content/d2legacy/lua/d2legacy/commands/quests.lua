@@ -28,42 +28,61 @@ local function active_npc(player)
 end
 
 function M.complete_player(player, structural)
-    local progress=ecs.get(player,"d2legacy.quest.progress")
-    if progress and progress:get("quest_id")==1 and progress:get("completed") then return end
-    local values={quest_id=1,stage=#assert(quest(1)).stages,completed=true,rewarded=false}
-    if structural then structural:set(player,"d2legacy.quest.progress",values)
-    else ecs.set(player,"d2legacy.quest.progress",values) end
+    local progress = ecs.get(player, "d2legacy.quest.progress")
+    if progress and progress:get("quest_id") == 1 and progress:get("completed") then return end
+    local values = { quest_id = 1, stage = #assert(quest(1)).stages, completed = true, rewarded = false }
+    if structural then
+        structural:set(player, "d2legacy.quest.progress", values)
+    else
+        ecs.set(player, "d2legacy.quest.progress", values)
+    end
 end
 
 function M.complete(command)
-    assert(quest(command.payload.quest_id),"unknown recovered quest")
-    local player=player_for(command.payload.player)
-    if command.payload.quest_id==1 then return M.complete_player(player) end
-    local progress=ecs.get(player,"d2legacy.quest.progress")
-    if progress and progress:get("quest_id")==command.payload.quest_id and progress:get("completed") then return end
-    ecs.set(player,"d2legacy.quest.progress",{quest_id=command.payload.quest_id,
-        stage=#quest(command.payload.quest_id).stages,completed=true,rewarded=false})
+    assert(quest(command.payload.quest_id), "unknown recovered quest")
+    local player = player_for(command.payload.player)
+    if command.payload.quest_id == 1 then return M.complete_player(player) end
+    local progress = ecs.get(player, "d2legacy.quest.progress")
+    if progress and progress:get("quest_id") == command.payload.quest_id
+        and progress:get("completed") then
+        return
+    end
+    ecs.set(player, "d2legacy.quest.progress", {
+        quest_id = command.payload.quest_id,
+        stage = #quest(command.payload.quest_id).stages,
+        completed = true, rewarded = false,
+    })
 end
 
 function M.claim_available(owner, tick)
-    local player=player_for(owner)
-    local progress=ecs.get(player,"d2legacy.quest.progress")
-    if not progress or progress:get("quest_id")~=1 or not progress:get("completed") or progress:get("rewarded") then return false end
-    return M.reward({player=owner,tick=tick})
+    local player = player_for(owner)
+    local progress = ecs.get(player, "d2legacy.quest.progress")
+    if not progress or progress:get("quest_id") ~= 1
+        or not progress:get("completed") or progress:get("rewarded") then
+        return false
+    end
+    return M.reward({ player = owner, tick = tick })
 end
 
 function M.reward(command)
-    local player=player_for(command.player)
-    local progress=ecs.get(player,"d2legacy.quest.progress")
+    local player = player_for(command.player)
+    local progress = ecs.get(player, "d2legacy.quest.progress")
     if not progress or not progress:get("completed") or progress:get("rewarded") then return false end
-    local quest=assert(quest(progress:get("quest_id")),"unknown recovered quest")
-    local npc=active_npc(command.player)
-    if quest.id~=1 or npc~="akara" or not require("d2legacy.commands.interactions").context_in_range(command.player) then return false end
-    local player_progress=ecs.get(player,"d2legacy.player.progress")
-    player_progress:set("unspent_skill_points",player_progress:get("unspent_skill_points")+1)
-    progress:set("rewarded",true)
-    ecs.create({["d2legacy.quest.event"]={kind="quest_rewarded",tick=command.tick,
-        player=command.player,quest_id=quest.id,npc=npc,reward="skill_point:1"}})
+    local quest = assert(quest(progress:get("quest_id")), "unknown recovered quest")
+    local npc = active_npc(command.player)
+    if quest.id ~= 1 or npc ~= "akara"
+        or not require("d2legacy.commands.interactions").context_in_range(command.player) then
+        return false
+    end
+    local player_progress = ecs.get(player, "d2legacy.player.progress")
+    player_progress:set("unspent_skill_points", player_progress:get("unspent_skill_points") + 1)
+    progress:set("rewarded", true)
+    ecs.create({
+        ["d2legacy.quest.event"] = {
+            kind = "quest_rewarded", tick = command.tick, player = command.player,
+            quest_id = quest.id, npc = npc, reward = "skill_point:1",
+        },
+    })
     return true
 end
 
