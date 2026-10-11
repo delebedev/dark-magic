@@ -13,6 +13,7 @@ local data = require("engine.data/v1")
 local locale = require("engine.locale/v1")
 local controls = require("d2legacy.ui.controls")
 local button = require("d2legacy.ui.button")
+local side_panel = require("d2legacy.ui.side_panel")
 local text = require("d2legacy.ui.text")
 
 local manifest = assert(data.load_manifest("manifests/presentation.v1.json", "d2legacy.presentation/v1"))
@@ -32,6 +33,7 @@ return {
     enter = function(self)
         self.root = render.create("modal")
         self.controls = controls.new()
+        side_panel.align_right(self, manifest.resolution.width)
         if not render.assets_available() then return end
 
         local character = assert(saves.selected(), "skill tree requires a selected character")
@@ -64,6 +66,7 @@ return {
     end,
 
     update = function(self)
+        side_panel.align_right(self, manifest.resolution.width)
         self.controls:update()
         if input.pressed("skills") or input.pressed("cancel") then scenes.pop() end
     end,

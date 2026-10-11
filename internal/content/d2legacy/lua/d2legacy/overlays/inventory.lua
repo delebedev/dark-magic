@@ -23,6 +23,7 @@ local data = require("engine.data/v1")
 local locale = require("engine.locale/v1")
 local controls = require("d2legacy.ui.controls")
 local button = require("d2legacy.ui.button")
+local side_panel = require("d2legacy.ui.side_panel")
 
 local manifest = assert(data.load_manifest("manifests/presentation.v1.json", "d2legacy.presentation/v1"))
 local screen = manifest.screens.inventory
@@ -145,7 +146,7 @@ local function refresh_items(self)
             elseif item.container == "held" then
                 -- Authority says it is held; only its PICTURE follows local pointer.
                 -- Because held state is authoritative, reconnecting does not lose it.
-                drawing.node:set_position(cursor_x, cursor_y)
+                drawing.node:set_position(cursor_x - self.controls.offset_x, cursor_y)
             elseif equipment ~= nil then
                 -- Inventory.txt gives the whole equipment well. Diablo II centers
                 -- front-facing inventory art inside it rather than stretching it.
@@ -197,6 +198,7 @@ return {
     enter = function(self)
         self.root = render.create("modal")
         self.controls = controls.new()
+        side_panel.align_right(self, manifest.resolution.width)
 
         -- Headless tests can still instantiate lifecycle/control state without art.
         if not render.assets_available() then
@@ -314,6 +316,7 @@ return {
         -- A close-button callback can synchronously close this scene and destroy
         -- every render handle owned by its scope. Refresh items BEFORE controls;
         -- do not touch item nodes after control dispatch if close may have run.
+        side_panel.align_right(self, manifest.resolution.width)
         if self.items ~= nil then refresh_items(self) end
         self.controls:update()
 
