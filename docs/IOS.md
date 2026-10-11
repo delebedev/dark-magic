@@ -127,7 +127,8 @@ It does not demonstrate normal retail mana regeneration or progression.
 
 The skill chooser did not open during automated Simulator well taps, including
 some complete press/release events. The cause remains unconfirmed. Secondary
-skill touch input is not mapped. Summons, additional spells, and live portal
+skill touch input was not mapped in that build. Direct touch skills are now
+described in [IOS_TOUCH.md](IOS_TOUCH.md). Summons and live portal
 crossings remain unverified. Temporary input/control traces were removed before
 packaging the phone build.
 
@@ -446,10 +447,11 @@ can expose black beyond the authored map boundary, even when the drawable is fil
 ## Remaining concerns
 
 The first M2 slice has Simulator movement, camera-follow, and resume evidence,
-plus user-confirmed town movement on the iPhone. World transitions, collision
-edge cases, combat, and phone gameplay performance have not been demonstrated.
-Very short automated Simulator taps sometimes miss; touch timing and multi-touch
-need measured hardware acceptance.
+plus user-confirmed town movement on the iPhone. Spell Lab also has Simulator
+combat evidence and direct touch controls described in [IOS_TOUCH.md](IOS_TOUCH.md).
+World transitions, collision edge cases, broader combat parity, and phone
+gameplay performance still need measurements. Native raw-contact probes make
+Simulator gestures reproducible. Physical two-thumb comfort remains unverified.
 
 Go's native binding compilation, the UIKit host link, and a signed smoke device
 build succeed. The existing original-art UI scene and touch interaction also

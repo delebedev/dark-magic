@@ -6,9 +6,10 @@ return test.suite({
     cases = {
         test.case("owns_legacy_sound_record_selection", {
             test.run(function()
-                local played
+                local played, loads = nil, 0
                 test.mock_module("engine.records/v1", {
                     load = function()
+                        loads = loads + 1
                         return {
                             {
                                 Sound = "menu",
@@ -46,6 +47,11 @@ return test.suite({
                         and played.options.volume == 1
                         and played.options.bus == "ui"
                 )
+                for index = 1, 32 do
+                    require("d2legacy.audio").play_record("MENU", 2)
+                end
+                test.expect(loads):equals(1)
+                test.expect(played.path):equals("data/global/sfx/ui/two.wav")
             end),
         }),
     },

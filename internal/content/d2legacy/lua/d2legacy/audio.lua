@@ -7,6 +7,7 @@ local engine_audio = require("engine.audio/v1")
 local records = require("engine.records/v1")
 local M = {}
 local path = "data/global/excel/Sounds.txt"
+local rows, sound_indices
 
 local function number(row, ...)
     for index = 1, select("#", ...) do
@@ -70,11 +71,15 @@ end
 
 function M.play_record(name, seed)
     seed = math.max(0, math.floor(tonumber(seed) or 0))
-    local rows = assert(records.load(path))
-    local first
-    for index, row in ipairs(rows) do
-        if string.lower(text(row, "Sound", "sound")) == string.lower(name) then first = index; break end
+    if not rows then
+        rows = assert(records.load(path))
+        sound_indices = {}
+        for index, row in ipairs(rows) do
+            local key = string.lower(text(row, "Sound", "sound"))
+            if not sound_indices[key] then sound_indices[key] = index end
+        end
     end
+    local first = sound_indices[string.lower(name)]
     assert(first, "unknown sound record: " .. tostring(name))
     local row = rows[first]
     local redirect = tonumber(text(row, "Redirect", "redirect"))
