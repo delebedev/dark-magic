@@ -20,7 +20,9 @@ func (c *Composer) Create(parent NodeID, layer Layer) (NodeID, error) {
 
 	index := c.allocateNodeSlot()
 	id := NodeID{Slot: index, Generation: c.slots[index].generation}
+	c.nodeOrder++
 	node := &Node{
+		Order:   c.nodeOrder,
 		ID:      id,
 		Parent:  parent,
 		Layer:   layer,
@@ -71,6 +73,7 @@ func (c *Composer) Update(id NodeID, update func(*Node)) error {
 
 	candidate := *node
 	update(&candidate)
+	candidate.Order = node.Order
 
 	if candidate == *node {
 		return nil
@@ -161,7 +164,7 @@ func (c *Composer) Snapshot() []Node {
 			return result[i].Z < result[j].Z
 		}
 
-		return result[i].ID.Slot < result[j].ID.Slot
+		return result[i].Order < result[j].Order
 	})
 
 	return result

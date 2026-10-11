@@ -726,3 +726,26 @@ func TestStructuralRevisionIgnoresOrdinaryNodeUpdates(t *testing.T) {
 		t.Fatalf("destroy revision = %d, want %d", got, created+1)
 	}
 }
+
+func TestComposerRetainsPainterOrderWhenSlotsAreReused(t *testing.T) {
+	var composer Composer
+	old, _ := composer.Create(NodeID{}, LayerModal)
+	background, _ := composer.Create(NodeID{}, LayerModal)
+	if err := composer.Destroy(old); err != nil {
+		t.Fatal(err)
+	}
+	item, _ := composer.Create(NodeID{}, LayerModal)
+	if item.Slot >= background.Slot {
+		t.Fatal("test did not recycle an earlier slot")
+	}
+	if err := composer.Update(background, func(node *Node) { node.X = 42; node.Order = 100 }); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := composer.Snapshot()
+	if snapshot[0].ID != background || snapshot[1].ID != item {
+		t.Fatal("background covered a later item after slot reuse")
+	}
+	if snapshot[0].Order >= snapshot[1].Order {
+		t.Fatal("ordinary update changed creation order")
+	}
+}

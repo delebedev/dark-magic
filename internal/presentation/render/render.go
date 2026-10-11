@@ -73,6 +73,7 @@ type RenderTargetData struct{ Width, Height int }
 // Node is the backend-neutral retained state of one renderable.
 type Node struct {
 	ID       NodeID
+	Order    uint64
 	Parent   NodeID
 	Layer    Layer
 	Z        int
@@ -142,6 +143,7 @@ type Composer struct {
 	resourceCreates    uint64
 	resourceDestroys   uint64
 	structuralRevision uint64
+	nodeOrder          uint64
 }
 
 // Diagnostics summarizes retained and queued renderer state for leak checks.

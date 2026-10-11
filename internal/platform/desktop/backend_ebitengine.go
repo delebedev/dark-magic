@@ -795,7 +795,7 @@ func (b *ebitComposition) draw(screen *ebiten.Image) {
 	}
 
 	// Map iteration is nondeterministic, so rendering uses semantic layer/Z order
-	// with the generation-checked slot as the stable final tie-breaker.
+	// with creation order as the tie-breaker, independent of recycled handle slots.
 	sort.SliceStable(nodes, func(i, j int) bool {
 		if nodes[i].Layer != nodes[j].Layer {
 			return nodes[i].Layer < nodes[j].Layer
@@ -805,7 +805,7 @@ func (b *ebitComposition) draw(screen *ebiten.Image) {
 			return nodes[i].Z < nodes[j].Z
 		}
 
-		return nodes[i].ID.Slot < nodes[j].ID.Slot
+		return nodes[i].Order < nodes[j].Order
 	})
 
 	transforms := make(map[render.NodeID]ebiten.GeoM, len(nodes))
