@@ -151,6 +151,8 @@ type application struct {
 	commandIntentSource  *gamesession.IntentSource
 	commandSource        func(uint64) []simulation.Command
 
+	additionalTransitionSeams []gametransition.Seam
+
 	// World state shared by local and remote presentation paths.
 	worldMu           sync.RWMutex
 	gameWorlds        map[int]*gameworld.Map

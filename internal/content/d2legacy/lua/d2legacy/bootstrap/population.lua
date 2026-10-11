@@ -138,12 +138,27 @@ local function room_is_selected(room, density, created)
     return roll < density or created == 0
 end
 
+local function plans(plan)
+    local result = {plan}
+    for _, zone in ipairs(plan.additional_zones or {}) do result[#result + 1] = zone end
+    return result
+end
+
 function M.validate(command)
     local zone = command.payload
     assert(type(zone) == "table", "population zone is required")
     assert(type(zone.level_id) == "number", "population level is required")
     assert(type(zone.rooms) == "table", "population rooms are required")
     assert(type(zone.links) == "table", "population room links are required")
+    assert(zone.additional_zones == nil or type(zone.additional_zones) == "table", "population additional zones must be a table")
+    local levels = {[zone.level_id] = true}
+    for _, extra in ipairs(zone.additional_zones or {}) do
+        assert(type(extra) == "table", "population additional zone must be a table")
+        assert(not levels[extra.level_id], "population levels must be unique")
+        assert(extra.additional_zones == nil, "population zones cannot nest")
+        levels[extra.level_id] = true
+        M.validate({payload = extra})
+    end
     local room_ids = {}
     for _, room in ipairs(zone.rooms) do
         assert(type(room.id) == "string" and room.id ~= "", "population room ID is required")
@@ -166,24 +181,20 @@ end
 
 function M.apply(command)
     local zone = command.payload
-    if zone.level_id ~= 2 then
-        return
-    end
-
     local difficulty = game_rules.difficulty()
-    assert(
-        zone.difficulty == nil or zone.difficulty == difficulty,
-        "population difficulty differs from immutable game rules"
-    )
     assert(not state.read(PLAN_ID).installed, "population plan is already installed")
 
-    for _, room in ipairs(zone.rooms) do
-        room.level_id = zone.level_id
-        room.activated = false
-        room.active = false
-        room.inactive_residents = {}
+    for _, area in ipairs(plans(zone)) do
+        assert(area.difficulty == nil or area.difficulty == difficulty,
+            "population difficulty differs from immutable game rules")
+        for _, room in ipairs(area.rooms) do
+            room.level_id = area.level_id
+            room.activated = false
+            room.active = false
+            room.inactive_residents = {}
+        end
+        area.created = 0
     end
-    zone.created = 0
     zone.installed = true
     zone.schema = PLAN_SCHEMA
     state.replace(PLAN_ID, PLAN_SCHEMA, zone)
@@ -233,14 +244,14 @@ function M.resident_at(id, level_id, x, y)
     assert(type(level_id) == "number", "room resident level is required")
     assert(type(x) == "number" and type(y) == "number", "room resident point is required")
     local plan = state.read(PLAN_ID)
-    if not plan or not plan.installed or plan.level_id ~= level_id then
-        return nil
+    if not plan or not plan.installed then return nil end
+    for _, area in ipairs(plans(plan)) do
+        if area.level_id == level_id then
+            local room = room_at(area, x, y)
+            if room then return { id = id, level_id = level_id, room_id = room.id } end
+        end
     end
-    local room = room_at(plan, x, y)
-    if not room then
-        return nil
-    end
-    return { id = id, level_id = level_id, room_id = room.id }
+    return nil
 end
 
 local function containing_rooms(plan, entities)
@@ -363,12 +374,7 @@ local function restore_room(room, entities, structural)
     room.inactive_residents = {}
 end
 
-local function activate(context, entities, structural)
-    local plan = state.read(PLAN_ID)
-    if not plan or not plan.installed then
-        return
-    end
-
+local function activate_plan(context, entities, structural, plan)
     -- Movement runs after this phase, so synchronize the result of the prior
     -- fixed tick before deciding which rooms leave the active window.
     sync_resident_rooms(plan, entities)
@@ -405,9 +411,17 @@ local function activate(context, entities, structural)
             room.active, changed = true, true
         end
     end
-    if changed then
-        state.replace(PLAN_ID, PLAN_SCHEMA, plan)
+    return changed
+end
+
+local function activate(context, entities, structural)
+    local plan = state.read(PLAN_ID)
+    if not plan or not plan.installed then return end
+    local changed = false
+    for _, area in ipairs(plans(plan)) do
+        changed = activate_plan(context, entities, structural, area) or changed
     end
+    if changed then state.replace(PLAN_ID, PLAN_SCHEMA, plan) end
 end
 
 function M.register()

@@ -7,7 +7,7 @@ import (
 	"github.com/gravestench/dark-magic/internal/game/worldgen"
 )
 
-// PopulationData converts the prepared wilderness into deterministic room, point, and adjacency facts. Nil results
+// PopulationData converts prepared combat areas into deterministic room, point, and adjacency facts. Nil results
 // signal that no complete wilderness exists, allowing composition roots to reject bootstrap before command admission.
 func (world *Prepared) PopulationData(nearby int) map[string]any {
 	zone, gameMap, found := world.wilderness()
@@ -15,8 +15,25 @@ func (world *Prepared) PopulationData(nearby int) map[string]any {
 		return nil
 	}
 
+	result := world.populationZone(zone, gameMap, nearby)
+	additional := []any{}
+	for _, levelID := range sortedLevelIDs(world.Worlds) {
+		if levelID == world.Seam.Town.LevelID || levelID == zone.Request().LevelID {
+			continue
+		}
+		if other := world.Zones[levelID]; other != nil {
+			additional = append(additional, world.populationZone(other, world.Worlds[levelID], 0))
+		}
+	}
+	if len(additional) > 0 {
+		result["additional_zones"] = additional
+	}
+	return result
+}
+
+func (world *Prepared) populationZone(zone *worldgen.Zone, gameMap *gameworld.Map, nearby int) map[string]any {
 	request := zone.Request()
-	player := world.Spawns[world.Seam.Wilderness.LevelID]
+	player := world.Spawns[request.LevelID]
 	populated := populatedStamps(zone)
 
 	rooms := make([]any, 0, len(zone.Rooms()))
