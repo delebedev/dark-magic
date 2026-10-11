@@ -71,6 +71,14 @@ function M.apply_move(command)
         entities
     ))
     local current = assert(ecs.get(item_entity, "d2legacy.item.placement"))
+    if command.authority == "player" then
+        local player = world.player(owner.resolve(command))
+        if current:get("container") == "world" and not world.can_pick_up(player, item_entity) then return end
+        local destination = command.payload.destination
+        if destination.container == "world" and not world.within_reach(
+            player, player and ecs.get(player, "d2legacy.world.location"), destination.x, destination.y
+        ) then return end
+    end
     -- An earlier command in this tick may already have placed the held item.
     if command.payload.place_held and current:get("container") ~= "held" then return end
 
