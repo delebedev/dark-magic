@@ -2,6 +2,7 @@ package d2legacy
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -21,6 +22,13 @@ import (
 )
 
 func TestNaturalCombatLootPickupSurvivesFreshAdmission(t *testing.T) {
+	for _, seed := range []uint64{10, 8} {
+		t.Run(fmt.Sprint(seed), func(t *testing.T) { proveNaturalLootAdmission(t, seed) })
+	}
+}
+
+func proveNaturalLootAdmission(t *testing.T, seed uint64) {
+	t.Helper()
 	directory := os.Getenv("DARK_MAGIC_TEST_MPQ_DIRECTORY")
 	if directory == "" {
 		t.Skip("set DARK_MAGIC_TEST_MPQ_DIRECTORY to owned Diablo II assets")
@@ -37,7 +45,7 @@ func TestNaturalCombatLootPickupSurvivesFreshAdmission(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("real ItemRatio rows: %v", ratioRows)
-	// Map seed 1 retains the production entry recipe. Authority seed 10 selects a real junk TC roll.
+	// Map seed 1 retains the production entry recipe. Authority seeds select junk and implicit equipment TCs.
 	prepared, err := entryworld.Build(t.Context(), source, content.D2Legacy(), records, dungeonPopulationObjects{}, 1, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -50,7 +58,7 @@ func TestNaturalCombatLootPickupSurvivesFreshAdmission(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		authority, err := StartWithConfig(t.Context(), content.D2Legacy(), records, engine, session, Config{Seed: 10, InitialData: prepared.InitialData("", false)})
+		authority, err := StartWithConfig(t.Context(), content.D2Legacy(), records, engine, session, Config{Seed: seed, InitialData: prepared.InitialData("", false)})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -176,7 +184,7 @@ func TestNaturalCombatLootPickupSurvivesFreshAdmission(t *testing.T) {
 	tc, _ := death.Get("treasure_class")
 	definition, _ := monsters.Get(monster)
 	family, _ := definition.Get("definition_id")
-	t.Logf("mapSeed=1 authoritySeed=10 generated monster=%v TC=%v committed drops=%v", family, tc, drops)
+	t.Logf("mapSeed=1 authoritySeed=%d generated monster=%v TC=%v committed drops=%v", seed, family, tc, drops)
 	identities := dynamicStore(t, engine, "d2legacy.item.identity")
 	placements := dynamicStore(t, engine, "d2legacy.item.placement")
 	var ground akara.Entity
@@ -235,6 +243,33 @@ func TestNaturalCombatLootPickupSurvivesFreshAdmission(t *testing.T) {
 		t.Fatalf("picked possession missing: %#v", saved.Inventory)
 	}
 	item := saved.Inventory.Items[0]
+	if seed == 8 {
+		found := false
+		for _, table := range []string{"weapons", "armor"} {
+			rows, err := records.Load("data/global/excel/" + table + ".txt")
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, row := range rows {
+				if row["code"] == item.Code {
+					found = true
+				}
+			}
+		}
+		if !found {
+			t.Fatalf("implicit equipment TC did not resolve to a real weapon or armor: %s", item.Code)
+		}
+		var facts []struct {
+			Code    string `json:"code"`
+			Quality string `json:"quality"`
+		}
+		if err := json.Unmarshal([]byte(drops.(string)), &facts); err != nil {
+			t.Fatal(err)
+		}
+		if len(facts) != 1 || facts[0].Code != item.Code || facts[0].Quality == "unresolved" {
+			t.Fatalf("implicit equipment drop remained unresolved: %v", drops)
+		}
+	}
 	if item.Generation == nil || item.Generation.Facts != drops {
 		t.Fatalf("picked item changed natural drop facts: %#v", item)
 	}
