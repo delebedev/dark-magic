@@ -58,6 +58,27 @@ func TestGroundItemResidencyRestoresAcrossInactiveRoom(t *testing.T) {
 	item := groundItemEntity(t, engine, "ground-potion")
 	assertResidentRoom(t, dynamicStore(t, engine, "d2legacy.world.room_resident"), item, 2, "a")
 	assertGroundItemWorldState(t, engine, item, "world", true)
+	checkpointView, err := session.CanonicalCheckpoint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	public, err := playeradapter.ProjectWorldView("alice", checkpointView)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var view playeradapter.WorldView
+	if err := json.Unmarshal(public, &view); err != nil {
+		t.Fatal(err)
+	}
+	var visible bool
+	for _, entity := range view.Entities {
+		if entity.ID == "item:alice:ground-potion" {
+			visible = entity.Kind == "item" && entity.WorldDC6 == "data/global/items/flphp1.dc6" && entity.WorldAnimated
+		}
+	}
+	if !visible {
+		t.Fatalf("ground-item art absent from public view: %+v", view.Entities)
+	}
 
 	submitMoveCommand(t, session, engine.Tick()+1, "alice", 1, 1)
 
