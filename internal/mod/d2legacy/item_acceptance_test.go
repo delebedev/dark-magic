@@ -55,6 +55,7 @@ func TestItemReconnectRecoveryEquipmentVendorAndServiceRestoreIdentically(t *tes
 	checkpoint := replay.Checkpoints[len(replay.Checkpoints)-1]
 
 	assertItemPlacement(t, engine, "sale", "held", "")
+	assertItemPlacement(t, engine, "stored-boots", "stash", "")
 
 	submitItemAcceptanceCommands(t, session)
 	itemAcceptanceSteps(t, session)
@@ -108,6 +109,7 @@ func TestItemReconnectRecoveryEquipmentVendorAndServiceRestoreIdentically(t *tes
 	// The held sale item survived the disconnect/checkpoint boundary before any
 	// transaction resumes against the reconstructed Lua runtime.
 	assertItemPlacement(t, restoredEngine, "sale", "held", "")
+	assertItemPlacement(t, restoredEngine, "stored-boots", "stash", "")
 	submitItemAcceptanceCommands(t, restoredSession)
 	itemAcceptanceSteps(t, restoredSession)
 
@@ -334,7 +336,7 @@ func submitItemAcceptanceCommands(t *testing.T, session *gamesession.Session) {
 			"item_id": "weapon", "destination": map[string]any{"container": "held"},
 		}),
 		itemCommand(t, 2, 3, "item.move", map[string]any{
-			"item_id": "corpse-boots", "destination": map[string]any{"container": "inventory", "x": 0, "y": 0},
+			"item_id": "stored-boots", "destination": map[string]any{"container": "inventory", "x": 0, "y": 0},
 		}),
 		itemCommand(t, 2, 4, "item.service_complete", map[string]any{"service": "socket"}),
 		itemCommand(t, 3, 5, "item.move", map[string]any{
@@ -388,7 +390,7 @@ func itemAcceptanceSteps(t *testing.T, session *gamesession.Session) {
 func assertItemAcceptanceOutcome(t *testing.T, engine *gameecs.Engine) {
 	t.Helper()
 	assertItemPlacement(t, engine, "sale", "vendor", "weap")
-	assertItemPlacement(t, engine, "corpse-boots", "inventory", "")
+	assertItemPlacement(t, engine, "stored-boots", "inventory", "")
 	assertItemPlacement(t, engine, "weapon", "equipment", "rarm")
 	items, _ := akara.GetDynamicStore(engine.World(), "d2legacy.item.identity")
 	found := map[string]any{}
@@ -502,7 +504,7 @@ func itemAcceptanceBootstrap() map[string]any {
 	armor["defense"] = 40.0
 	sale := item("sale", "cap", "held")
 	sale["base_cost"] = 100.0
-	corpse := item("corpse-boots", "lbt", "corpse")
+	storedBoots := item("stored-boots", "lbt", "stash")
 	target := item("service-target", "ssd", "quest_service")
 	target["slot"] = "target"
 	material := item("service-material", "r01", "quest_service")
@@ -514,7 +516,7 @@ func itemAcceptanceBootstrap() map[string]any {
 			"stash_width": 6.0, "stash_height": 8.0, "cube_width": 3.0, "cube_height": 4.0,
 			"belt_capacity": 4.0, "vendor_width": 10.0, "vendor_height": 10.0,
 			"carried_gold": 1000.0, "stashed_gold": 0.0,
-			"items": []any{sale, weapon, armor, corpse, target, material},
+			"items": []any{sale, weapon, armor, storedBoots, target, material},
 			"trade_terms": map[string]any{"charsi": map[string]any{
 				"buy_multiplier": 512.0, "sell_multiplier": 1024.0, "max_buy": 0.0,
 			}},

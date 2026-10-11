@@ -77,14 +77,16 @@ return test.suite({
             enter({ health = 3, max_health = 3, inventory = inventory() }),
             test.step(2),
             test.run(function()
-                test.expect(require("engine.ecs/v1").get(alice(), "d2legacy.player.combat_stats"):get("defense")):equals(9)
+                local stats = require("engine.ecs/v1").get(alice(), "d2legacy.player.combat_stats")
+                test.expect(stats:get("defense")):equals(9)
             end),
             test.submit_system({ tick = 3, sequence = 2, kind = "system.monster.spawn", payload = enemy }),
             test.step(50),
             test.run(function()
                 local ecs = require("engine.ecs/v1")
                 local death = ecs.get(alice(), "d2legacy.player.death")
-                test.assert(death and death:get("killer_id") == "monster:fallen", "ordinary monster attack did not kill player")
+                test.assert(death and death:get("killer_id") == "monster:fallen",
+                    "ordinary monster attack did not kill player")
                 test.expect(#ecs.query({ all = { "d2legacy.player.corpse" } })):equals(1)
                 test.expect(#ecs.query({ all = { "d2legacy.player.death_event" } })):equals(1)
                 check_gear("corpse")
@@ -99,7 +101,10 @@ return test.suite({
             enter({ health = 0, inventory = inventory("saved-body"), death = { hardcore = false } }),
             test.step(1), test.restore_checkpoint(), test.run(clear_map),
             command(2, 1, "player.continue", { death_tick = 0 }), test.step(1),
-            test.run(function() test.assert(require("engine.ecs/v1").get(alice(), "d2legacy.player.death"), "stale Continue revived player") end),
+            test.run(function()
+                test.assert(require("engine.ecs/v1").get(alice(), "d2legacy.player.death"),
+                    "stale Continue revived player")
+            end),
             command(3, 2, "player.continue", { death_tick = 1 }),
             command(3, 3, "player.continue", { death_tick = 1 }), test.step(1),
             test.run(function()
@@ -138,7 +143,8 @@ return test.suite({
                 check_gear("corpse")
                 ecs.get(alice(), "d2legacy.world.position"):set("x", 10)
                 local layout = require("d2legacy.items.find").layout("alice")
-                require("d2legacy.items.entity").create(layout, { id = "replacement", code = "cap", container = "equipment",
+                require("d2legacy.items.entity").create(layout, {
+                    id = "replacement", code = "cap", container = "equipment",
                     slot = "head", body_slots = "head", width = 2, height = 2 })
             end),
             command(5, 2, "player.corpse.recover", { target_id = "player_corpse:saved-body" }), test.step(1),
@@ -165,7 +171,8 @@ return test.suite({
             enter({ health = 0, hardcore = true, death = { hardcore = true } }), test.step(1),
             command(2, 1, "player.continue", { death_tick = 1 }), test.step(1),
             test.run(function()
-                test.assert(require("engine.ecs/v1").get(alice(), "d2legacy.player.death"), "Hardcore Continue was accepted")
+                test.assert(require("engine.ecs/v1").get(alice(), "d2legacy.player.death"),
+                    "Hardcore Continue was accepted")
             end),
         }),
         test.case("capacity_exhausted_saved_death_preserves_equipped_gear", {
@@ -220,7 +227,8 @@ return test.suite({
             test.run(function()
                 local ecs = require("engine.ecs/v1")
                 local death = ecs.get(alice(), "d2legacy.player.death")
-                test.assert(death and death:get("stage") == "capacity_exhausted", "capacity did not refuse death gear transfer")
+                test.assert(death and death:get("stage") == "capacity_exhausted",
+                    "capacity did not refuse death gear transfer")
                 test.expect(#ecs.query({ all = { "d2legacy.player.corpse" } })):equals(16)
                 check_gear("equipment")
                 require("d2legacy.gameplay.player_corpse").continue(alice(), 54, death:get("tick"))
