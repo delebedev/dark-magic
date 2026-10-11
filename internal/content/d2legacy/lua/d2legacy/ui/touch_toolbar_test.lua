@@ -1,5 +1,5 @@
 local test=require("d2legacy.tests/v1")
-return test.suite({name="touch toolbar",profile="module",tier="fast",cases={
+return test.suite({name="touch toolbar",profile = "module",tier = "fast",cases = {
     test.case("touch_release_opens_once_when_pointer_edges_also_arrive",function(t)
         t:run(function()
             local contacts,pressed,released={},false,false

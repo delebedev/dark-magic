@@ -7,7 +7,7 @@ local function mock_presentation()
     test.mock_module("engine.display/v1", {}, {})
     test.mock_module("d2legacy.ui.text", {set=function()end}, {})
 end
-return test.suite({name="touch inventory",profile="module",tier="fast",cases={
+return test.suite({name="touch inventory",profile = "module",tier = "fast",cases = {
     test.case("selects_without_moving_and_submits_only_explicit_actions",function(t)
         t:run(function()
             mock_presentation()
@@ -53,11 +53,13 @@ return test.suite({name="touch inventory",profile="module",tier="fast",cases={
                     set_dc6=function()return 96,32 end,destroy=function()end}
             end
             test.mock_module("engine.render/v1",{create=node},{})
-            test.mock_module("engine.display/v1",{geometry=function()return {scale_x=1.5,scale_y=1.5,left=90,top=0,right=90,bottom=30}end},{})
+            local geometry={scale_x=1.5,scale_y=1.5,left=90,top=0,right=90,bottom=30}
+            test.mock_module("engine.display/v1",{geometry=function()return geometry end},{})
             test.mock_module("d2legacy.ui.text",{set=function()return 64,16 end},{})
             test.mock_module("engine.records/v1",{load=function()return {}end},{})
             local ui=require("d2legacy.ui.touch_inventory")
-            local sword={id="sword",code="ssd",body_slots="rarm,larm",inventory_dc6="sword",container="inventory",width=1,height=3,x=0,y=0}
+            local sword={id="sword",code="ssd",body_slots="rarm,larm",inventory_dc6="sword",
+                container="inventory",width=1,height=3,x=0,y=0}
             local sequence=0
             local self={root=node(),controls=require("d2legacy.ui.controls").new(),equipment_slots={},
                 grid_left=410,grid_top=300,cell_width=32,cell_height=32,item_palette="palette",

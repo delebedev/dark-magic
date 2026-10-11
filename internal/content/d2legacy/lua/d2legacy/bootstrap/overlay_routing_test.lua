@@ -1,5 +1,5 @@
 local test=require("d2legacy.tests/v1")
-return test.suite({name="overlay routing",profile="module",tier="fast",cases={
+return test.suite({name="overlay routing",profile = "module",tier = "fast",cases = {
     test.case("touch_panels_keep_world_input_blocked_while_desktop_keeps_passthrough",function(t)
         t:run(function()
             local touch=true

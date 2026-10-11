@@ -38,10 +38,11 @@ func TestCaptureAllCatalogMatchesRegisteredScenes(t *testing.T) {
 	}
 	// The plain overlays are intentionally one compact list because they need no
 	// routing metadata. Pull those quoted names from that list too.
-	plain := regexp.MustCompile(`ipairs\(\{([^}]+)\}\)`).FindStringSubmatch(bootstrap)
-	if len(plain) == 2 {
+	for _, plain := range regexp.MustCompile(`ipairs\(\{([^}]+)\}\)`).FindAllStringSubmatch(bootstrap, -1) {
 		for _, match := range regexp.MustCompile(`"([a-z0-9_]+)"`).FindAllStringSubmatch(plain[1], -1) {
-			registered = append(registered, match[1])
+			if !slices.Contains(registered, match[1]) {
+				registered = append(registered, match[1])
+			}
 		}
 	}
 

@@ -1,5 +1,5 @@
 local test=require("d2legacy.tests/v1")
-return test.suite({name="touch controls",profile="module",tier="fast",cases={
+return test.suite({name="touch controls",profile = "module",tier = "fast",cases = {
     test.case("uses_only_admitted_skills_and_returns_the_captured_skill",function(t)
         t:run(function()
             local function node()

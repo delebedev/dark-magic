@@ -5,6 +5,8 @@ local text = require("d2legacy.ui.text")
 local widgets = require("d2legacy.ui.touch_widgets")
 local M = {}
 local names
+local next_selection
+local description = require("d2legacy.ui.item_description")
 local slots = {rarm="right hand", larm="left hand", head="head", neck="neck", tors="body",
     rrin="right ring", lrin="left ring", belt="belt", feet="feet", glov="gloves"}
 local reasons = {
@@ -14,7 +16,7 @@ local reasons = {
     ["item footprint is occupied"] = "That space is occupied.",
 }
 
-local function item_name(item)
+function M.name(item)
     if not names then
         names = {}
         for _, path in ipairs({"Weapons", "Armor", "Misc"}) do
@@ -23,8 +25,8 @@ local function item_name(item)
             end
         end
     end
-    local key = names[item.code]
-    return key and (locale.text(key) or key) or item.code
+    local key = names[item.code] or item.label
+    return key and (locale.text(key) or key) or item.code or "Item"
 end
 
 local function rect(root, width, height, x, y, color)
@@ -39,38 +41,51 @@ function M.selected(self)
     for _, item in ipairs(self.item_snapshot.items) do
         if item.id == self.touch.selected_id then return item end
     end
+    return self.touch.ground
 end
 
 function M.select(self, item)
     if self.touch.pending then return end
+    self.touch.ground = nil
     self.touch.selected_id = item and item.id
     self.touch.moving, self.touch.feedback = false, nil
 end
 
 function M.request(self, destination)
     local state, item = self.touch, M.selected(self)
-    if not item or state.pending then return end
+    if not item or state.pending or state.ground then return end
     state.pending = {token = self.items.move(item.id, destination, item.container == "held"),
         item_id = item.id, destination = destination}
     state.feedback = "[gold]Waiting...[/]"
 end
 
-function M.create(self, palette)
+function M.open_inventory(id)
+    next_selection = id
+    require("engine.scene/v1").toggle_overlay("inventory", "right")
+end
+
+function M.create(self, palette, options)
     local root = render.create("modal")
     root:set_z(1500000)
-    local state = {root = root, buttons = {}, borders = {}}
+    local state = {root = root, buttons = {}, borders = {}, options = options or {}}
+    if not options then state.selected_id, next_selection = next_selection, nil end
     self.touch = state
     state.background = rect(root, 1, 1, 0, 0, {9,8,6,240})
     state.trim = rect(root, 1, 1, 0, 0, {120,93,53,255})
     state.title = render.create("modal", root)
     state.details = render.create("modal", root)
+    state.comparison = render.create("modal", root)
     state.message = render.create("modal", root)
     state.icon = render.create("modal", root)
     for index = 1, 3 do
         state.buttons[index] = widgets.button(root, self.controls, "item_action_" .. index, "Equip", function()
             local item = M.selected(self)
             if not item or state.pending then return end
-            if index <= 2 then
+            if state.ground then
+                state.options.take(item)
+            elseif index == 3 and state.options.inventory then
+                state.options.inventory(item.id)
+            elseif index <= 2 then
                 local slot = state.equip_slots[index]
                 M.request(self, {container="equipment", slot=slot,
                     weapon_set=(slot=="rarm" or slot=="larm") and self.item_snapshot.active_weapon_set or 0})
@@ -82,13 +97,14 @@ function M.create(self, palette)
     end
     for index=1,4 do state.borders[index] = rect(self.root,1,1,0,0,{225,185,100,255}) end
     state.close = widgets.button(root, self.controls, "touch_close", "Close", function()
-        require("engine.scene/v1").toggle_overlay("inventory", "right")
+        if state.options.close then state.options.close()
+        else require("engine.scene/v1").toggle_overlay("inventory", "right") end
     end, palette, "modal")
     return state
 end
 
 function M.item_bounds(self, item)
-    if item.container == "inventory" then
+    if item.container == "inventory" and self.grid_left then
         return self.grid_left+item.x*self.cell_width, self.grid_top+item.y*self.cell_height,
             item.width*self.cell_width, item.height*self.cell_height
     elseif item.container == "equipment" then
@@ -132,8 +148,8 @@ function M.refresh(self)
     local width = math.min(250*sx, panel_left - geometry.left - 24*sx)
     local x, y = panel_left - width - 12*sx, geometry.top+16*sy
     state.root:set_position(x,y)
-    state.background:set_scale(width,292*sy)
-    state.background:set_position(width/2,146*sy)
+    state.background:set_scale(width,326*sy)
+    state.background:set_position(width/2,163*sy)
     state.trim:set_scale(width,sy)
     state.trim:set_position(width/2,0)
     if state.pending then
@@ -148,17 +164,21 @@ function M.refresh(self)
         end
     end
     state.equip_slots = {}
-    if item then
+    if item and not state.ground then
         for slot in string.gmatch(item.body_slots or "", "[^,]+") do
             if #state.equip_slots < 2 then state.equip_slots[#state.equip_slots+1] = slot end
         end
     end
-    local title = item and "[gold]" .. item_name(item) .. "[/]" or "[gold]Inventory[/]"
-    local location = item and (item.container=="equipment" and "Equipped: " .. (slots[item.slot] or item.slot) or "Backpack")
-    local details = item and location .. "\n\n" .. item.width .. " x " .. item.height .. " inventory cells"
-        or "Tap an item to inspect.\n\nChoose Equip or Move."
-    local message = state.feedback or "[gold]Select before moving.[/]"
-    for _, entry in ipairs({{state.title,title,40,"title_text"},{state.details,details,151,"details_text"},{state.message,message,192,"message_text"}}) do
+    local title = item and "[gold]" .. M.name(item) .. "[/]" or "[gold]Inventory[/]"
+    local location = item and (state.ground and "On the ground" or item.container=="equipment"
+        and "Equipped: " .. (slots[item.slot] or item.slot) or "Backpack")
+    local details = item and location .. "\n" .. description.facts(item.inspection)
+        or "Tap an item to inspect.\nChoose Equip or Move."
+    local comparison = item and description.comparison(item, self.item_snapshot) or ""
+    local message = state.feedback or (state.ground and "[gold]Take to put in your backpack.[/]"
+        or "[gold]Select before moving.[/]")
+    for _, entry in ipairs({{state.title,title,40,"title_text"},{state.details,details,125,"details_text"},
+        {state.comparison,comparison,180,"comparison_text"},{state.message,message,226,"message_text"}}) do
         if state[entry[4]] ~= entry[2] then
             text.set(entry[1],"font_lab_color",entry[2],(width-24*sx)/sx,"center")
             state[entry[4]] = entry[2]
@@ -175,16 +195,16 @@ function M.refresh(self)
     state.icon:set_scale(sx*0.8,sy*0.8)
     for index, widget in ipairs(state.buttons) do
         local slot = state.equip_slots[index]
-        local visible = index==3 or slot ~= nil
+        local visible = state.ground and index == 1 or not state.ground and (index==3 or slot ~= nil)
         self.controls:set_visible(widget.control.id, visible)
         widget.root:set_visible(visible)
         self.controls:set_enabled(widget.control.id, item ~= nil and not state.pending
             and (index==3 or not (item.container=="equipment" and item.slot==slot)))
-        widgets.label(widget,index==3 and (state.moving and "Cancel move" or "Move")
+        widgets.label(widget,state.ground and "Take" or index==3 and (state.moving and "Cancel move" or "Move")
             or slot=="rarm" and "Equip right" or slot=="larm" and "Equip left" or "Equip")
         local column = index==2 and 1 or 0
         local row = index==3 and 1 or 0
-        widgets.place(widget,column*width/2, (220+row*34)*sy, width/2,30*sy,geometry)
+        widgets.place(widget,column*width/2, (256+row*34)*sy, width/2,30*sy,geometry)
         widget.control.x = x+widget.control.x-self.controls.offset_x
         widget.control.y = y+widget.control.y
     end

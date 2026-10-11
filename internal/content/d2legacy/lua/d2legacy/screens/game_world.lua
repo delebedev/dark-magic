@@ -44,6 +44,7 @@ local input_diagnostics = require("d2legacy.dev.input_diagnostics")
 local click_indicator = require("d2legacy.dev.click_indicator")
 local touch_controls = require("d2legacy.ui.touch_controls")
 local touch_toolbar = require("d2legacy.ui.touch_toolbar")
+local touch_loot = require("d2legacy.ui.touch_loot")
 local touch_input = require("d2legacy.gameplay.touch_input")
 local locale = require("engine.locale/v1")
 
@@ -149,6 +150,7 @@ local function install_current_world(self)
     -- world. It must not survive into the destination presentation.
     self.pending_interaction = nil
     self.held_hostile = nil
+    touch_loot.close(self.touch_loot)
     if self.touch_controls then
         self.touch_controls.pending_cast, self.touch_controls.locked_id = nil, nil
         self.touch_controls.gate, self.touch_controls.stop_pending = nil, nil
@@ -944,6 +946,16 @@ return {
         if self.hud then
             self.touch_controls = touch_controls.create(self.root, self.hud.palette)
             self.touch_toolbar = touch_toolbar.create(self.root, self.hud.palette)
+            self.touch_loot = touch_loot.create(self.root, self.hud.palette, self.items, function(item)
+                self.pending_interaction = {id=item.id, kind="item", x=item.x, y=item.y, radius=item.radius}
+                request_move(self, item.x, item.y, item.radius)
+            end, function()
+                self.pending_interaction = nil
+                if self.gameplay.hero then
+                    local x,y = self.gameplay_world.position(self.gameplay.hero)
+                    request_move(self,x,y)
+                end
+            end)
         end
 
         -- These are capability QUERIES: Lua gets provenance/availability facts,
@@ -1007,6 +1019,7 @@ return {
         end
 
         if not input_allowed then
+            touch_loot.close(self.touch_loot)
             touch_toolbar.update(self.touch_toolbar, false)
             if self.touch_controls then
                 local cancelled = touch_controls.sample(self.touch_controls, viewport_width, viewport_height, false)
@@ -1021,6 +1034,7 @@ return {
 
         local toolbar_consumed = touch_toolbar.update(self.touch_toolbar, world_view == nil or world_view == "center" or world_view == "full")
         if toolbar_consumed then
+            touch_loot.close(self.touch_loot)
             if self.touch_controls then
                 self.touch_controls.pending_cast = nil
                 local cancelled = touch_controls.sample(self.touch_controls, viewport_width, viewport_height, false)
@@ -1248,14 +1262,17 @@ return {
 
         -- Legacy gameplay is pointer-authored. Reverse-project only the visible
         -- world portion; HUD and obscured overlay halves retain their own clicks.
+        local loot_consumed = self.world and touch_loot.update(self.touch_loot, self.world, self.world_level_id,
+            camera_x, camera_y, target_x, target_y, world_view == nil or world_view == "center" or world_view == "full",
+            elapsed, self.pending_interaction ~= nil)
         local touch_consumed = self.world and update_touch(self, elapsed, viewport_width, viewport_height,
             hero_x, hero_y, camera_x, camera_y, target_x, target_y,
             (world_view == nil or world_view == "center" or world_view == "full") and not self.__darkmagic_item_held
-                and not (self.hud and self.hud.skill_selector.open))
+                and not loot_consumed and not (self.hud and self.hud.skill_selector.open))
         local pointer_x, pointer_y = input.cursor()
         local in_world = pointer_x >= 0 and pointer_x < viewport_width
             and pointer_y >= 0 and pointer_y < (screen.world_input_bottom or viewport_height)
-        if touch_consumed or (self.hud and self.hud.controls.pointer_consumed) then in_world = false end
+        if touch_consumed or loot_consumed or (self.hud and self.hud.controls.pointer_consumed) then in_world = false end
         if world_view == "left" then
             in_world = in_world and pointer_x < viewport_width / 2
         elseif world_view == "right" then
@@ -1319,6 +1336,10 @@ return {
                         self.held_hostile = { id = selected.id }
                         request_left_skill(self, selected.x, selected.y, selected.id)
                     end
+                elseif selected.kind == "item" and self.touch_loot then
+                    touch_loot.select(self.touch_loot, selected.id)
+                    self.pending_interaction = nil
+                    request_move(self, hero_x, hero_y)
                 elseif selected.kind == "item" or selected.kind == "player_corpse" or selected.kind == "static-object" or selected.kind == "dynamic-object" then
                     self.pending_interaction = selected
                     request_move(self, selected.x, selected.y, 3.5)
@@ -1385,6 +1406,7 @@ return {
         input_diagnostics.destroy(self.input_diagnostic)
         touch_controls.destroy(self.touch_controls)
         touch_toolbar.destroy(self.touch_toolbar)
+        touch_loot.destroy(self.touch_loot)
         -- gameplay.world owns only its presentation camera entity; its destroy
         -- helper intentionally leaves session-owned hero authority alone.
         self.gameplay_world.destroy(self.gameplay)

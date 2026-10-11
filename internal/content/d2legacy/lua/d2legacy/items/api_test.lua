@@ -1,5 +1,5 @@
 local test = require("d2legacy.tests/v1")
-return test.suite({name="item API",profile="module",tier="fast",cases={
+return test.suite({name="item API",profile = "module",tier = "fast",cases = {
     test.case("does_not_reuse_the_result_retained_across_a_presentation_reload",function(t)
         t:run(function()
             local submitted

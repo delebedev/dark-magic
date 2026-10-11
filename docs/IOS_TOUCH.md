@@ -25,6 +25,15 @@ pads keep their existing three-button layout.
 - Inventory taps select and inspect. **Equip right / Equip left** and **Move**
   submit the existing item command. Move then asks for a grid cell or equipment
   slot. Selection remains visible after authority refuses a destination.
+- Ground labels open the same inspection tray without moving the item. **Take**
+  uses the existing approach and pickup commands. Ownership in the snapshot
+  confirms success, then the tray offers Equip or Move into inventory.
+- Inspection shows supported item damage and defense with identification and
+  partial-data qualifications. Owned items compare matching equipped slots in
+  the active weapon set. Ground artwork and legal slots reuse the core base-item
+  lookup from the public code. Unknown codes defer comparison until pickup.
+  A failed Take invites retry without inventing a rejection reason that the
+  pickup command does not report.
 - Mobile inventory and character panels block all world input. Closing requires
   a fresh contact before movement or combat can resume.
 - Native **Tools / Back** and unfinished-panel shortcuts are diagnostics only.
@@ -103,6 +112,6 @@ position. Normal phone launches leave both overrides disabled.
 
 The native controls and probe panel have UIKit accessibility labels. Rendered
 canvas elements do not have VoiceOver equivalents. Target scoring currently
-covers live visible hostiles. Corpse, loot, NPC and class-specific targeting need
+covers live visible hostiles. Corpse, NPC and class-specific targeting need
 separate work. The controls do not implement progression, durable saves or new
 abilities. Use existing Game World exits for town/Blood Moor travel.

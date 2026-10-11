@@ -1,5 +1,5 @@
 local test = require("d2legacy.tests/v1")
-return test.suite({name="side panel",profile="module",tier="fast",cases={
+return test.suite({name="side panel",profile = "module",tier = "fast",cases = {
     test.case("keeps_art_and_pointer_activation_aligned_after_resize", function(t)
         t:run(function()
             local width, placed = 800, 0

@@ -1,5 +1,5 @@
 local test = require("d2legacy.tests/v1")
-return test.suite({name="touch input",profile="module",tier="fast",cases={
+return test.suite({name="touch input",profile = "module",tier = "fast",cases = {
     test.case("contacts_started_inside_a_modal_need_a_fresh_press",function(t)
         t:run(function()
             local touch=require("d2legacy.gameplay.touch_input")
