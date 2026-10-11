@@ -99,6 +99,8 @@ function M.validate(inventory, progression)
                 end
                 assert(integer(modifier.order,0,2147483647)
                     and integer(modifier.value,-2147483648,2147483647), "durable modifier number is invalid")
+                assert(modifier.operation=="add" or modifier.operation=="percent",
+                    "durable modifier operation is invalid")
                 local id=modifier.source_kind..":"..modifier.order..":"..modifier.source_id
                 assert(not modifier_ids[id], "duplicate durable modifier")
                 modifier_ids[id]=true

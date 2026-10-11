@@ -53,6 +53,9 @@ func TestPortableStateIsClonedAndRejectedBeforeProfileReplacement(t *testing.T) 
 			c.Inventory.Items[0].Container, c.Inventory.Items[0].Slot = "equipment", "tors"
 		},
 		"oversize authority number": func(c *Character) { c.Inventory.Items[0].AttackRating = 1 << 32 },
+		"unsupported modifier": func(c *Character) {
+			c.Inventory.Items[0].StatModifiers[0].Operation = "bogus"
+		},
 	}
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {

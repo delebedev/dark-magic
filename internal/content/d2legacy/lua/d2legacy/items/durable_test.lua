@@ -24,6 +24,10 @@ return test.suite({
                     function(data) data.items[1].id = string.rep("x", 129) end,
                     function(data) data.items[1].physical_min = -1 end,
                     function(data)
+                        data.items[1].stat_modifiers = {{ source_kind = "item", source_id = "bad",
+                            stat = "defense", operation = "bogus", order = 0, value = 1 }}
+                    end,
+                    function(data)
                         data.items[1].container, data.items[1].slot = "equipment", "tors"
                     end,
                     function(data)

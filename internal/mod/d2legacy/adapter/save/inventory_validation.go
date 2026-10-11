@@ -85,7 +85,7 @@ func ValidateCharacterContent(character Character) error {
 			for _, modifier := range item.StatModifiers {
 				key := fmt.Sprintf("%s:%d:%s", modifier.SourceKind, modifier.Order, modifier.SourceID)
 				if modifierIDs[key] || modifier.Order < 0 || modifier.Order > math.MaxInt32 || modifier.Value < math.MinInt32 || modifier.Value > math.MaxInt32 || len(modifier.SourceID) > 128 || len(modifier.SourceKind) > 64 ||
-					len(modifier.Stat) > 128 || len(modifier.Operation) > 32 {
+					len(modifier.Stat) > 128 || modifier.Operation != "add" && modifier.Operation != "percent" {
 					return invalid("invalid durable stat modifier")
 				}
 				modifierIDs[key] = true
