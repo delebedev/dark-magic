@@ -71,13 +71,12 @@ function M.apply_move(command)
         entities
     ))
     local current = assert(ecs.get(item_entity, "d2legacy.item.placement"))
-    if command.payload.place_held then
-        assert(current:get("container") == "held", "item is not held")
-    end
+    -- An earlier command in this tick may already have placed the held item.
+    if command.payload.place_held and current:get("container") ~= "held" then return end
 
     -- A held item may replace exactly one occupied item. That displaced item
     -- becomes the new held item, matching legacy inventory reordering.
-    local displaced = placement.validate(
+    local displaced, refusal = placement.validate(
         layout,
         item_entity,
         item,
@@ -85,6 +84,7 @@ function M.apply_move(command)
         entities,
         command.payload.place_held
     )
+    if refusal then return end
     local destination = command.payload.destination
     placement.set(current, destination)
     if destination.container == "world" then

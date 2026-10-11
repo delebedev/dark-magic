@@ -119,39 +119,43 @@ local function validate_grid(layout, item_entity, item, destination, entities,
         and destination.y >= 0
         and destination.x + item:get("width") <= width
         and destination.y + item:get("height") <= height
-    assert(fits, "item does not fit grid")
+    if not fits then return nil, true, "item does not fit grid" end
     -- One overlap is intentional during inventory reordering: the incoming
     -- held item takes the footprint and the displaced item becomes held.
     local overlaps = M.overlaps(item_entity, item, destination, entities)
-    assert(#overlaps == 0 or allow_one_overlap and #overlaps == 1,
-        "item footprint is occupied")
+    if #overlaps > 0 and not (allow_one_overlap and #overlaps == 1) then
+        return nil, true, "item footprint is occupied"
+    end
     return overlaps[1], true
 end
 
 local function validate_body_slot(item, destination)
     assert(destination.slot ~= "", "body slot is required")
-    assert(has_token(item:get("body_slots"), destination.slot),
-        "item cannot use body slot")
+    if not has_token(item:get("body_slots"), destination.slot) then
+        return "item cannot use body slot"
+    end
     local is_hand = destination.container == "equipment"
         and (destination.slot == "rarm" or destination.slot == "larm")
     if is_hand then
-        assert(destination.weapon_set == 0 or destination.weapon_set == 1,
-            "invalid weapon set")
+        if destination.weapon_set ~= 0 and destination.weapon_set ~= 1 then
+            return "invalid weapon set"
+        end
     else
-        assert(destination.weapon_set == 0,
-            "shared body slot cannot use weapon set")
+        if destination.weapon_set ~= 0 then
+            return "shared body slot cannot use weapon set"
+        end
     end
 end
 
 local function validate_named_slot(layout, item, destination)
     if destination.container == "equipment"
         or destination.container == "hireling" then
-        validate_body_slot(item, destination)
+        return validate_body_slot(item, destination)
     elseif destination.container == "belt" then
         local valid = item:get("belt_eligible")
             and destination.belt_slot >= 0
             and destination.belt_slot < layout:get("belt_capacity")
-        assert(valid, "item cannot use belt slot")
+        if not valid then return "item cannot use belt slot" end
     elseif destination.container == "quest_service" then
         assert(destination.slot ~= "", "service slot is required")
     elseif destination.container ~= "world"
@@ -160,6 +164,7 @@ local function validate_named_slot(layout, item, destination)
     end
 end
 
+-- Invalid drops return a reason without mutating items. Malformed data still raises.
 function M.validate(layout, item_entity, item, destination, entities,
     allow_one_overlap)
     assert(type(destination) == "table", "item destination is required")
@@ -169,7 +174,7 @@ function M.validate(layout, item_entity, item, destination, entities,
 
     -- Grid and named-slot containers have different occupancy rules, but both
     -- return the single item that should be swapped into the held home.
-    local overlap, is_grid = validate_grid(
+    local overlap, is_grid, refusal = validate_grid(
         layout,
         item_entity,
         item,
@@ -177,16 +182,17 @@ function M.validate(layout, item_entity, item, destination, entities,
         entities,
         allow_one_overlap
     )
-    if is_grid then return overlap end
+    if is_grid then return overlap, refusal end
 
-    validate_named_slot(layout, item, destination)
+    refusal = validate_named_slot(layout, item, destination)
+    if refusal then return nil, refusal end
     local occupant = M.slot_occupant(
         item_entity,
         item,
         destination,
         entities
     )
-    assert(not occupant or allow_one_overlap, "item slot is occupied")
+    if occupant and not allow_one_overlap then return nil, "item slot is occupied" end
     return occupant
 end
 

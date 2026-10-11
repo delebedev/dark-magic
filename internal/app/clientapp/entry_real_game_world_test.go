@@ -41,3 +41,48 @@ func TestGameWorldWalksAuthoredExitAndReturns(t *testing.T) {
 		}
 	}
 }
+
+func TestGameWorldSwordRejectsWrongSlotAndEquipsBothHands(t *testing.T) {
+	fixture := newRealD2LegacyFixture(t, realD2LegacyFixtureConfig{
+		startScene: "game_world", fixtureCharacters: 1, fixtureWorldLevel: 1,
+	})
+	if err := fixture.app.network.StartSelected(); err != nil {
+		t.Fatal(err)
+	}
+	fixture.advanceGame(t, 10)
+	items := requireRealStore(t, fixture, "d2legacy.item.identity", "no items")
+	placements := requireRealStore(t, fixture, "d2legacy.item.placement", "no placements")
+	for _, entity := range items.Entities() {
+		item, _ := items.Get(entity)
+		id, _ := item.Get("id")
+		if id != "fixture-short-sword" {
+			continue
+		}
+		placed, _ := placements.Get(entity)
+		move := func(destination map[string]any, held bool) {
+			t.Helper()
+			if err := fixture.app.commandIntents.Submit("item.move", map[string]any{
+				"item_id": id, "destination": destination, "place_held": held,
+			}); err != nil {
+				t.Fatal(err)
+			}
+			fixture.advanceGame(t, 2)
+		}
+		for _, slot := range []string{"rarm", "larm"} {
+			move(map[string]any{"container": "held"}, false)
+			move(map[string]any{"container": "equipment", "slot": "head"}, true)
+			container, _ := placed.Get("container")
+			if container != "held" {
+				t.Fatalf("invalid drop moved sword to %v", container)
+			}
+			move(map[string]any{"container": "equipment", "slot": slot}, true)
+			container, _ = placed.Get("container")
+			actualSlot, _ := placed.Get("slot")
+			if container != "equipment" || actualSlot != slot {
+				t.Fatalf("sword placement = %v/%v, want equipment/%s", container, actualSlot, slot)
+			}
+		}
+		return
+	}
+	t.Fatal("real Game World fixture has no short sword")
+}
