@@ -43,6 +43,27 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
             let controller = GameViewController()
             gameController = controller
             window.rootViewController = controller
+            if ProcessInfo.processInfo.environment["DARK_MAGIC_INPUT_DIAGNOSTICS"] == "1" {
+                let host = UIViewController()
+                host.addChild(controller)
+                controller.view.translatesAutoresizingMaskIntoConstraints = false
+                host.view.addSubview(controller.view)
+                NSLayoutConstraint.activate([
+                    controller.view.leadingAnchor.constraint(equalTo: host.view.leadingAnchor),
+                    controller.view.trailingAnchor.constraint(equalTo: host.view.trailingAnchor),
+                    controller.view.topAnchor.constraint(equalTo: host.view.topAnchor),
+                    controller.view.bottomAnchor.constraint(equalTo: host.view.bottomAnchor)
+                ])
+                controller.didMove(toParent: host)
+                let probe = TapProbeView()
+                host.view.addSubview(probe)
+                NSLayoutConstraint.activate([
+                    probe.leadingAnchor.constraint(equalTo: host.view.safeAreaLayoutGuide.leadingAnchor, constant: 8),
+                    probe.topAnchor.constraint(equalTo: host.view.safeAreaLayoutGuide.topAnchor, constant: 80),
+                    probe.widthAnchor.constraint(equalToConstant: 110)
+                ])
+                window.rootViewController = host
+            }
         } catch {
             let controller = UIViewController()
             controller.view.backgroundColor = .black
@@ -119,5 +140,63 @@ private final class ScenePickerViewController: UIViewController {
 
     @objc private func chooseScene(_ sender: UIButton) {
         selectScene(scenes[sender.tag].1)
+    }
+}
+
+// Diagnostic taps enter the ordinary frame input path, not gameplay commands.
+private final class TapProbeView: UIStackView {
+    private let x = UITextField()
+    private let y = UITextField()
+    private let status = UILabel()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        translatesAutoresizingMaskIntoConstraints = false
+        axis = .vertical
+        spacing = 4
+        backgroundColor = UIColor.black.withAlphaComponent(0.8)
+        layer.cornerRadius = 8
+        isLayoutMarginsRelativeArrangement = true
+        layoutMargins = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
+        for (field, name, value) in [(x, "Probe X", "700"), (y, "Probe Y", "380")] {
+            field.accessibilityLabel = name
+            field.placeholder = name
+            let axis = UILabel(frame: CGRect(x: 0, y: 0, width: 18, height: 20))
+            axis.text = String(name.suffix(1))
+            axis.textColor = .lightGray
+            axis.textAlignment = .center
+            field.leftView = axis
+            field.leftViewMode = .always
+            field.text = value
+            field.textColor = .white
+            field.borderStyle = .roundedRect
+            field.backgroundColor = .darkGray
+            field.keyboardType = .numberPad
+            field.heightAnchor.constraint(equalToConstant: 44).isActive = true
+            addArrangedSubview(field)
+        }
+        let tap = UIButton(type: .system)
+        tap.setTitle("Probe tap", for: .normal)
+        tap.addTarget(self, action: #selector(submit), for: .touchUpInside)
+        tap.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        addArrangedSubview(tap)
+        status.text = "Logical pixels"
+        status.textColor = .lightGray
+        status.font = .preferredFont(forTextStyle: .caption2)
+        status.numberOfLines = 0
+        addArrangedSubview(status)
+    }
+
+    required init(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    @objc private func submit() {
+        endEditing(true)
+        guard let px = Int(x.text ?? ""), let py = Int(y.text ?? "") else {
+            status.text = "Enter integer X/Y"
+            return
+        }
+        var error: NSError?
+        status.text = DarkmagicmobileProbeTap(px, py, &error)
+            ? "Queued \(px),\(py)" : (error?.localizedDescription ?? "Probe failed")
     }
 }

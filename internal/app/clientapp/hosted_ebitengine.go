@@ -26,6 +26,10 @@ func NewHostedGame(options Options) (*HostedGame, error) {
 		cancel()
 		return nil, errors.Join(err, app.shutdown())
 	}
+	if options.InputDiagnostics {
+		width, height := app.renderer.Resolution()
+		app.pointerProbe = &pointerTapProbe{width: width, height: height}
+	}
 	return &HostedGame{Game: game, app: app}, nil
 }
 
@@ -35,6 +39,13 @@ type HostedGame struct {
 	app       *application
 	closeOnce sync.Once
 	closeErr  error
+}
+
+func (g *HostedGame) ProbeTap(x, y int) error {
+	if g.app.pointerProbe == nil {
+		return errors.New("enable input diagnostics to use the tap probe")
+	}
+	return g.app.pointerProbe.queue(x, y)
 }
 
 func (g *HostedGame) Update() error {

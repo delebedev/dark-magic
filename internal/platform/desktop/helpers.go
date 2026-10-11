@@ -43,6 +43,14 @@ func calculateViewport(
 	}, nil
 }
 
+// expandedResolution preserves authored pixel scale while exposing extra horizontal world space.
+func expandedResolution(width, height, outsideWidth, outsideHeight int) (int, int) {
+	if outsideWidth <= 0 || outsideHeight <= 0 {
+		return width, height
+	}
+	return max(width, int(math.Round(float64(height)*float64(outsideWidth)/float64(outsideHeight)))), height
+}
+
 // contiguousRGBA copies any image and non-zero origin into tightly packed, zero-origin RGBA storage required by native
 // texture upload paths.
 func contiguousRGBA(source image.Image) *image.RGBA {

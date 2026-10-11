@@ -1,5 +1,6 @@
 -- Read-only Spell Lab legend over the production game-world scene.
 
+local display = require("engine.display/v1")
 local ecs = require("engine.ecs/v1")
 local render = require("engine.render/v1")
 local text = require("d2legacy.ui.text")
@@ -40,6 +41,7 @@ function M.create(scene)
 end
 
 function M.update(state)
+    state.root:set_position((display.size() - 800) / 2, 0)
     local player = controlled_player()
     if not player then
         return

@@ -385,6 +385,10 @@ function Manager:activate(control)
     -- pointer code able to call one helper without repeating all three guards.
     if not control or not control.enabled or not control.visible then return false end
     if control.on_activate then control.on_activate(control) end
+    if self.pointer_trace then
+        self.pointer_trace.activation = control.id
+        self.pointer_trace.activations = (self.pointer_trace.activations or 0) + 1
+    end
     return true
 end
 
@@ -447,6 +451,7 @@ function Manager:update(elapsed)
 
     -- SECOND: find what the pointer is over.
     local x, y = input.cursor()
+    x, y = x - (self.offset_x or 0), y - (self.offset_y or 0)
     local hovered = nil
     local hovered_priority = -math.huge
     for index, control in ipairs(self.controls) do
@@ -460,6 +465,12 @@ function Manager:update(elapsed)
                 hovered_priority = priority
             end
         end
+    end
+
+    self.pointer_consumed = hovered ~= nil or self.pointer_capture ~= nil
+    if self.pointer_trace then
+        self.pointer_trace.hover = hovered and hovered.id or "none"
+        self.pointer_trace.capture = self.pointer_capture and self.pointer_capture.id or "none"
     end
 
     -- Pointer hover also moves focus, which keeps mouse and keyboard state in sync.

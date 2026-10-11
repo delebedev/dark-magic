@@ -374,6 +374,75 @@ Record device/OS, asset version, build revision, screenshot, and observed result
    sides, lock/unlock, and background/resume without a stuck pointer or time jump.
 5. Repeat in airplane mode. Inspect Xcode console for scene/render errors.
 
+## Wide viewport and input diagnostics
+
+World scenes keep a 600-pixel logical height and expand horizontally to the
+landscape drawable's aspect ratio. The original 800-wide HUD stays centered,
+with its control hit tests translated by the same offset. Camera anchoring,
+chunk residency, pointer projection, and overlay input splits use the live
+display width. UI Lab retains its authored 800×600 contain profile.
+
+Launch the development probe with:
+
+```sh
+SIMCTL_CHILD_DARK_MAGIC_START_SCENE=spell_lab \
+SIMCTL_CHILD_DARK_MAGIC_INPUT_DIAGNOSTICS=1 \
+  xcrun simctl launch --terminate-running-process booted org.darkmagic.experimental
+```
+
+The native Probe X / Probe Y fields accept logical pixel coordinates. Probe tap
+queues a press, hold, and release across three ordinary client input frames.
+Coordinates outside the live viewport and overlapping pending taps are rejected.
+The probe never calls simulation commands directly. The diagnostic strip reports
+viewport size, last pointer source/coordinates, press/release counts, HUD activation,
+last submitted world intent, and the authoritative player position. The gold
+crosshair marks the last pointer event. The source explicitly distinguishes probe
+input from native input.
+
+These controls are opt-in and live above the Ebitengine view in a UIKit container.
+Their accessibility labels allow repeatable Simulator automation. Game canvas
+controls already have Lua accessibility descriptions, but those descriptions are
+not bridged to UIKit accessibility. Probe evidence proves logical input routing
+and gameplay response. It does not replace hardware touch or VoiceOver acceptance.
+
+The first probe found an upstream HUD bug: entity handles are distinct Lua values,
+so comparing a learned skill's owner handle directly with the player dropped all
+learned skills from the HUD snapshot. Comparing entity IDs preserves ownership.
+The skill chooser also used a comparator that could return true in both directions
+for the left side. Its ordering now selects an explicit ascending or descending
+comparison and respects each side’s allowed-skill flag. Icons use the existing
+asset preloader and are admitted four at a time. Hidden skill tooltips are created
+only when shown, avoiding a cold asset-decode burst when the player enters the scene.
+Skill presentation indexes immutable record tables once and returns separate
+semantic values, eliminating repeated table reads for every learned skill each frame.
+The HUD manager marks the whole pointer transaction consumed so a chooser tap
+over the world cannot simultaneously submit a movement command.
+
+Simulator evidence on 2026-10-11 (iPhone 17 Pro, iOS 26.5, original installer MPQs):
+
+- Cold Spell Lab launch renders a 1304×600 logical world with centered original HUD.
+- Probe 393,574 opens the chooser. Probe 414,478 assigns skill 47, closes the
+  chooser, leaves the player at 9.0,203.0, and submits no world intent.
+- Probe 900,450 submits movement beyond the old logical width and visibly moves
+  the player with the camera following.
+- Simulator Home and reopening preserve the process and selected skill. The next
+  probe increments both counters and still moves the player.
+- A post-resume probe at 670,350 submits a skill-47 cast against a named hostile
+  and the scene renders its death animation/corpse.
+- Direct canvas automation produced no pointer events in the same session.
+  Native probe controls consistently queued paired press/release events.
+
+Local proof captures: `.local/ios-wide-selector-proof.png` and
+`.local/ios-wide-final-landscape.png`. Captures contain
+original art and stay outside Git. The wider build with repaired skill selection
+was installed and launched on the paired iPhone 16 Pro. The final build, including
+prevention of chooser-tap movement, was installed afterward. Its remote launch was
+blocked by the phone lock; unlock and open DarkMagic to resume physical acceptance.
+
+This is a world-viewport experiment. Legacy inventory and other fixed-layout
+panels still need a separate responsive-layout pass. Finite isometric zone edges
+can expose black beyond the authored map boundary, even when the drawable is filled.
+
 ## Remaining concerns
 
 The first M2 slice has Simulator movement, camera-follow, and resume evidence,

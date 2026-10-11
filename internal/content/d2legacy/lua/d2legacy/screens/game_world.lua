@@ -16,6 +16,7 @@
 -- player entity, item containers, save system, map decoder, or input device.
 
 local render = require("engine.render/v1")
+local display = require("engine.display/v1")
 local input = require("engine.input/v1")
 local scenes = require("engine.scene/v1")
 local vfs = require("engine.vfs/v1")
@@ -36,6 +37,7 @@ local skill_data = require("d2legacy.data.skill")
 local chunked_map = require("d2legacy.presentation.chunked_map")
 local tooltip = require("d2legacy.ui.tooltip")
 local text = require("d2legacy.ui.text")
+local input_diagnostics = require("d2legacy.dev.input_diagnostics")
 
 local manifest = assert(data.load_manifest("manifests/presentation.v1.json", "d2legacy.presentation/v1"))
 local screen = manifest.screens.game_world
@@ -150,8 +152,8 @@ local function install_current_world(self)
     self.world_canvas_width, self.world_canvas_height = next_world:canvas()
     self.map = chunked_map.create(self.root, recipe, {
         z = screen.map.z,
-        viewport_width = manifest.resolution.width,
-        viewport_height = manifest.resolution.height,
+        viewport_width = display.size(),
+        viewport_height = select(2, display.size()),
         canvas_width = self.world_canvas_width,
         canvas_height = self.world_canvas_height,
     })
@@ -603,12 +605,20 @@ local function update_held_skill_gate(self, side, pressed, down)
     return ready
 end
 
+local function request_move(self, x, y, radius)
+    input_diagnostics.record(self.input_diagnostic, "move", x, y)
+    if radius == nil then self.player.request_move(x, y)
+    else self.player.request_move(x, y, radius) end
+end
+
 local function request_left_skill(self, x, y, target_id)
+    input_diagnostics.record(self.input_diagnostic, "cast-left", x, y, target_id)
     self.player.request_skill("left", x, y, target_id)
     held_skill_input.submitted(self.left_held_skill_gate)
 end
 
 local function request_right_skill(self, x, y, target_id)
+    input_diagnostics.record(self.input_diagnostic, "cast-right", x, y, target_id)
     self.player.request_skill("right", x, y, target_id)
     held_skill_input.submitted(self.right_held_skill_gate)
 end
@@ -829,6 +839,8 @@ return {
             })
         end
 
+        self.input_diagnostic = input_diagnostics.create(self.root, self.hud and self.hud.controls)
+
         -- These are capability QUERIES: Lua gets provenance/availability facts,
         -- not a host filesystem object or native audio device.
         self.content_source = assert(vfs.source("mods/d2legacy/boot.lua"))
@@ -844,6 +856,12 @@ return {
     end,
 
     update = function(self, elapsed, focused, input_allowed, world_view)
+        local viewport_width, viewport_height = display.size()
+        local hud_offset = (viewport_width - manifest.resolution.width) / 2
+        if self.hud then
+            self.hud.root:set_position(hud_offset, 0)
+            self.hud.controls.offset_x = hud_offset
+        end
         -- Identity binding is simulation/presentation synchronization, not user
         -- input. Perform it even while this scene is covered or unfocused.
         local player_id = controlled_player_id()
@@ -1048,12 +1066,12 @@ return {
 
         -- Hero normally targets manifest center. Side overlays ask the world to
         -- frame into the unobscured half instead.
-        local target_x = screen.hero.screen_x
+        local target_x = screen.hero.screen_x + hud_offset
         local target_y = screen.hero.screen_y
         if world_view == "left" then
-            target_x = manifest.resolution.width / 4
+            target_x = viewport_width / 4
         elseif world_view == "right" then
-            target_x = manifest.resolution.width * 3 / 4
+            target_x = viewport_width * 3 / 4
         end
 
         local hero_screen_x, hero_screen_y = target_x, screen.hero.screen_y
@@ -1075,6 +1093,8 @@ return {
         end
 
         if self.map then
+            self.map.viewport_width, self.map.viewport_height = viewport_width, viewport_height
+            self.map.margin = math.max(self.map.margin, viewport_width / 4 + 160)
             -- Absolute authoritative camera coordinates determine both chunk
             -- culling and placement. Re-entering the scene cannot accumulate drift.
             local _, map_error, effective_target_x, effective_target_y =
@@ -1089,11 +1109,13 @@ return {
         -- Legacy gameplay is pointer-authored. Reverse-project only the visible
         -- world portion; HUD and obscured overlay halves retain their own clicks.
         local pointer_x, pointer_y = input.cursor()
-        local in_world = pointer_y >= 0 and pointer_y < (screen.world_input_bottom or manifest.resolution.height)
+        local in_world = pointer_x >= 0 and pointer_x < viewport_width
+            and pointer_y >= 0 and pointer_y < (screen.world_input_bottom or viewport_height)
+        if self.hud and self.hud.controls.pointer_consumed then in_world = false end
         if world_view == "left" then
-            in_world = in_world and pointer_x < manifest.resolution.width / 2
+            in_world = in_world and pointer_x < viewport_width / 2
         elseif world_view == "right" then
-            in_world = in_world and pointer_x >= manifest.resolution.width / 2
+            in_world = in_world and pointer_x >= viewport_width / 2
         elseif world_view == "none" then
             in_world = false
         end
@@ -1155,10 +1177,10 @@ return {
                     end
                 elseif selected.kind == "static-object" or selected.kind == "dynamic-object" then
                     self.pending_interaction = selected
-                    self.player.request_move(selected.x, selected.y, 3.5)
+                    request_move(self, selected.x, selected.y, 3.5)
                 else
                     self.pending_interaction = nil
-                    self.player.request_move(selected.x, selected.y, selected.radius or 0)
+                    request_move(self, selected.x, selected.y, selected.radius or 0)
                 end
             elseif stand_still then
                 -- Shift-click deliberately casts at empty ground. It is the legacy
@@ -1169,7 +1191,7 @@ return {
                 end
             else
                 self.pending_interaction = nil
-                self.player.request_move(target_world_x, target_world_y)
+                request_move(self, target_world_x, target_world_y)
             end
         end
         if self.pending_interaction then
@@ -1188,6 +1210,7 @@ return {
                 -- unlike the locally predicted hero position above. Name the
                 -- selected entity so point overlap cannot actuate a different
                 -- object on the command's eventual apply tick.
+                input_diagnostics.record(self.input_diagnostic, "interact", selected.x, selected.y, selected.id)
                 self.interaction.open(selected.id)
             end
             if finished then
@@ -1208,9 +1231,11 @@ return {
 
         -- Hero screen position is target anchor plus hero-to-camera relative offset.
         self.hero:set_position(hero_screen_x, hero_screen_y)
+        input_diagnostics.update(self.input_diagnostic, hero_x, hero_y)
     end,
 
     destroy = function(self)
+        input_diagnostics.destroy(self.input_diagnostic)
         -- gameplay.world owns only its presentation camera entity; its destroy
         -- helper intentionally leaves session-owned hero authority alone.
         self.gameplay_world.destroy(self.gameplay)

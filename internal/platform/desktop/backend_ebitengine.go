@@ -314,6 +314,9 @@ func (r *ebitRenderer) Resolution() (int, int) {
 	if r.options.NativeResolution {
 		return r.WindowSize()
 	}
+	if r.options.ExpandViewport && r.drawableWidth > 0 && r.drawableHeight > 0 {
+		return expandedResolution(r.options.LogicalWidth, r.options.LogicalHeight, r.drawableWidth, r.drawableHeight)
+	}
 	return r.options.LogicalWidth, r.options.LogicalHeight
 }
 
@@ -328,11 +331,12 @@ func (r *ebitRenderer) ScreenToGame(x, y int) (int, int, bool) {
 		return x, y, true
 	}
 
+	gameWidth, gameHeight := r.Resolution()
 	viewport, err := calculateViewport(
 		windowWidth,
 		windowHeight,
-		r.options.LogicalWidth,
-		r.options.LogicalHeight,
+		gameWidth,
+		gameHeight,
 		r.options.ViewportFit,
 	)
 	if err != nil || float64(x) < viewport.x || float64(y) < viewport.y ||
@@ -341,8 +345,8 @@ func (r *ebitRenderer) ScreenToGame(x, y int) (int, int, bool) {
 		return 0, 0, false
 	}
 
-	gameX := int((float64(x) - viewport.x) * float64(r.options.LogicalWidth) / viewport.width)
-	gameY := int((float64(y) - viewport.y) * float64(r.options.LogicalHeight) / viewport.height)
+	gameX := int((float64(x) - viewport.x) * float64(gameWidth) / viewport.width)
+	gameY := int((float64(y) - viewport.y) * float64(gameHeight) / viewport.height)
 
 	return gameX, gameY, true
 }

@@ -1,5 +1,6 @@
 -- Read-only diagnostics layered over the production game-world scene.
 
+local display = require("engine.display/v1")
 local render = require("engine.render/v1")
 local text = require("d2legacy.ui.text")
 
@@ -71,6 +72,14 @@ function M.create(scene)
 end
 
 function M.update(state, _, elapsed)
+    local width, height = display.size()
+    state.backdrop:set_scale(width, 82)
+    state.backdrop:set_position(width / 2, 41)
+    state.title:set_position(width / 2, 18)
+    state.detail:set_position(width / 2, 48)
+    state.help:set_position(width / 2, 70)
+    state.fade:set_scale(width, height)
+    state.fade:set_position(width / 2, height / 2)
     local player = controlled_player(state.ecs)
     if not player then
         update_fade(state, elapsed)

@@ -17,13 +17,14 @@ func TestInputModuleReadsLogicalFrameSnapshot(t *testing.T) {
 	var input inputstate.Store
 	input.Publish(
 		inputstate.Frame{
-			Actions: map[string]inputstate.ActionState{"confirm": {Pressed: true}},
-			Text:    "hé",
-			CursorX: 12,
-			CursorY: 34,
-			ScrollX: 0.25,
-			ScrollY: -0.75,
-			Owner:   inputstate.FocusOwner{Domain: inputstate.FocusScene, ID: "title"},
+			PointerSource: "probe",
+			Actions:       map[string]inputstate.ActionState{"confirm": {Pressed: true}},
+			Text:          "hé",
+			CursorX:       12,
+			CursorY:       34,
+			ScrollX:       0.25,
+			ScrollY:       -0.75,
+			Owner:         inputstate.FocusOwner{Domain: inputstate.FocusScene, ID: "title"},
 		},
 	)
 
@@ -41,6 +42,7 @@ func TestInputModuleReadsLogicalFrameSnapshot(t *testing.T) {
 		context.Background(),
 		fstest.MapFS{"test.lua": &fstest.MapFile{Data: []byte(`
 local input = require("engine.input/v1")
+pointer_source = input.pointer_source()
 confirmed = input.pressed("confirm")
 cursor_x, cursor_y = input.cursor()
 scroll_x, scroll_y = input.scroll()
@@ -53,7 +55,8 @@ owner_domain, owner_id = input.owner()
 	}
 
 	if err := runtime.Run(context.Background(), func(state *lua.LState) error {
-		if state.GetGlobal("confirmed") != lua.LTrue ||
+		if state.GetGlobal("pointer_source").String() != "probe" ||
+			state.GetGlobal("confirmed") != lua.LTrue ||
 			state.GetGlobal("cursor_x").String() != "12" ||
 			state.GetGlobal("cursor_y").String() != "34" ||
 			state.GetGlobal("scroll_x").String() != "0.25" ||

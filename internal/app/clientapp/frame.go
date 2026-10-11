@@ -106,7 +106,11 @@ func (app *application) publishInput(frameContext context.Context) {
 		frame = app.pointerAcceptance.Frame(frame, x, y, present)
 	}
 
-	frame.WorldSplit = float64(app.profile.Width) / 2
+	width, height := app.renderer.Resolution()
+	if app.pointerProbe != nil {
+		frame = app.pointerProbe.frame(frame, width, height)
+	}
+	frame.WorldSplit = float64(width) / 2
 	owner := app.focusOwner()
 
 	captured := app.console.Handle(frameContext, frame)

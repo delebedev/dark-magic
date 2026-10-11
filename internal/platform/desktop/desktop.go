@@ -28,6 +28,7 @@ type Options struct {
 	// NativeResolution renders directly at the current drawable window size.
 	// It avoids the logical render target's final upscale and is intended for
 	// tools such as the map editor that need a large, responsive workspace.
+	ExpandViewport       bool
 	NativeResolution     bool
 	ViewportFit          string
 	BorderlessFullscreen bool

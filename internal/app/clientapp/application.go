@@ -55,9 +55,11 @@ type Options struct {
 	PlayerProfilePath      string
 	FixtureWorldLevel      int
 	FixtureWorldSpawn      string
+	InputDiagnostics       bool
 	FixturePointerMove     bool
 	OutputPalette          string
 	ViewportFit            string
+	ExpandViewport         bool
 	NativeResolution       bool
 	WindowWidth            int
 	WindowHeight           int
@@ -97,9 +99,10 @@ type CaptureFactory func(string, string, int, Screenshotter) (Capture, error)
 // application is the ownership ledger for one client process. Field grouping
 // mirrors startup/shutdown phases so dependencies are released after their consumers.
 type application struct {
-	options Options
-	ctx     context.Context
-	stop    context.CancelFunc
+	pointerProbe *pointerTapProbe
+	options      Options
+	ctx          context.Context
+	stop         context.CancelFunc
 
 	// User configuration and presentation foundations.
 	shellSettings *shell.Settings

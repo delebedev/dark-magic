@@ -27,6 +27,10 @@ func InputModule(input *inputstate.Store) Module {
 				"engine.input.released(action)",
 				"Report whether an action was released this frame.",
 			),
+			"pointer_source": commandHelp(
+				"engine.input.pointer_source()",
+				"Return native or probe for the current pointer frame.",
+			),
 			"cursor": commandHelp(
 				"engine.input.cursor()",
 				"Return the current cursor coordinates.",
@@ -62,6 +66,14 @@ func InputModule(input *inputstate.Store) Module {
 					action := input.Action(state.CheckString(1))
 					state.Push(lua.LBool(action.Released))
 
+					return 1
+				},
+				"pointer_source": func(state *lua.LState) int {
+					source := input.Snapshot().PointerSource
+					if source == "" {
+						source = "native"
+					}
+					state.Push(lua.LString(source))
 					return 1
 				},
 				"cursor": func(state *lua.LState) int {

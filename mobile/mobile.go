@@ -99,7 +99,7 @@ func (g *mobileGame) start() error {
 
 // Direct world launch uses the upstream disposable character and normal authority.
 func hostedOptions(scene string) (clientapp.Options, error) {
-	options := clientapp.Options{StartScene: "ui_lab", ViewportFit: "contain", DisableNativeAudio: true}
+	options := clientapp.Options{StartScene: "ui_lab", ViewportFit: "contain", DisableNativeAudio: true, InputDiagnostics: os.Getenv("DARK_MAGIC_INPUT_DIAGNOSTICS") == "1"}
 	switch scene {
 	case "ui_lab":
 	case "spell_lab", "warp_lab":
@@ -110,7 +110,18 @@ func hostedOptions(scene string) (clientapp.Options, error) {
 	default:
 		return options, fmt.Errorf("unsupported mobile start scene %q", scene)
 	}
+	options.ExpandViewport = options.StartScene != "ui_lab"
 	return options, nil
+}
+
+// ProbeTap queues a labelled development tap through ordinary logical input.
+func ProbeTap(x, y int) error {
+	game.mu.Lock()
+	defer game.mu.Unlock()
+	if game.client == nil {
+		return errors.New("game is not ready")
+	}
+	return game.client.ProbeTap(x, y)
 }
 
 func (g *mobileGame) Update() error {

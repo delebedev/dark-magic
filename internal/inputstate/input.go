@@ -24,16 +24,17 @@ const (
 
 // Frame is an immutable input snapshot published by a native backend.
 type Frame struct {
-	Actions    map[string]ActionState
-	Text       string
-	CursorX    float64
-	CursorY    float64
-	ScrollX    float64
-	ScrollY    float64
-	Owner      FocusOwner
-	Gameplay   bool
-	WorldView  string
-	WorldSplit float64
+	PointerSource string
+	Actions       map[string]ActionState
+	Text          string
+	CursorX       float64
+	CursorY       float64
+	ScrollX       float64
+	ScrollY       float64
+	Owner         FocusOwner
+	Gameplay      bool
+	WorldView     string
+	WorldSplit    float64
 }
 
 // Route assigns one focus owner. A capturing debug surface receives the raw

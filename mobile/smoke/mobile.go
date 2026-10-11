@@ -14,6 +14,8 @@ import (
 // Configure matches the native host's binding; the diagnostic needs no assets.
 func Configure(assetDirectory, dataDirectory, startScene string) error { return nil }
 
+func ProbeTap(x, y int) error { return fmt.Errorf("tap probe is unavailable in smoke mode") }
+
 type smokeGame struct {
 	ticks int
 	x, y  int

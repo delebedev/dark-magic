@@ -122,6 +122,7 @@ func (app *application) desktopOptions() desktop.Options {
 	options.LogicalHeight = app.profile.Height
 	options.ViewportFit = app.options.ViewportFit
 
+	options.ExpandViewport = app.options.ExpandViewport
 	options.NativeResolution = app.options.NativeResolution
 	if app.options.WindowWidth > 0 && app.options.WindowHeight > 0 {
 		options.WindowWidth = app.options.WindowWidth
