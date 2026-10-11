@@ -133,7 +133,7 @@ func startTestD2LegacyAuthority(t *testing.T, app *application) {
 		t.Fatal(err)
 	}
 
-	if err := app.queueEntryPopulation(); err != nil {
+	if err := app.bootstrapAuthoritativeComponents(nil); err != nil {
 		t.Fatal(err)
 	}
 
