@@ -34,7 +34,7 @@ return test.suite({
             code = "ssd", type = "swor", invwidth = "1", invheight = "3", mindam = "2", maxdam = "7",
             rangeadder = "0", invfile = "invssd", flippyfile = "flpssd", wclass = "1hs", level = "1", levelreq = "1"}},
         ["data/global/excel/itemratio.txt"] = {{
-            Version = "100", Uber = "0", ["Class Specific"] = "0", Unique = "9999", Set = "9999",
+            Version = "1", Uber = "0", ["Class Specific"] = "0", Unique = "9999", Set = "9999",
             Rare = "9999", Magic = "9999", HiQuality = "9999", Normal = "1"}},
     },
     cases = { test.case("death_materializes_one_durable_drop_without_reroll", {
