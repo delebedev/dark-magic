@@ -1,6 +1,11 @@
 <h1 align="center">Dark Magic</h1>
 <h3 align="center">An open-source Diablo II: Lord of Destruction engine rewrite</h3>
 
+This fork carries an experimental iOS host. [Upstream Dark Magic](https://github.com/gravestench/dark-magic)
+remains the reference for the shared engine. `codex/mobile-ui-loop` is the
+documented mobile integration branch; see [iOS build and verification](docs/IOS.md)
+for the native build, asset-free smoke mode, and current limits.
+
 Dark Magic is a clean-room engine rewrite targeting **Diablo II: Lord of
 Destruction 1.14d**. The project aims to reproduce the game's authored behavior
 and presentation on a modern, deterministic, scriptable engine while making the

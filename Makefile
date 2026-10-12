@@ -1,7 +1,11 @@
-.PHONY: test test-lua test-lua-hardening test-lua-format test-lua-syntax test-network-hardening test-network-soak test-network-fuzz architecture test-race fmt lint vet build-client-backends d2legacy ds1-editor-assets bik-view presentation-coverage skill-behavior-coverage skill-evidence profile profile-acceptance profile-render-backends profile-check realm-up realm-down realm-fresh-install realm-drain-game realm-mailpit-up realm-mailpit-down realm-test-production capture capture-all capture-game-world capture-game-world-movement capture-game-world-panels capture-blood-moor capture-act1-seam capture-monster-lab capture-missile-lab capture-combat-lab capture-spell-lab capture-warp-lab play-game-world play-monster-lab play-missile-lab play-combat-lab play-spell-lab play-warp-lab
+.PHONY: test test-mobile test-lua test-lua-hardening test-lua-format test-lua-syntax test-network-hardening test-network-soak test-network-fuzz architecture test-race fmt lint vet build-client-backends d2legacy ds1-editor-assets bik-view presentation-coverage skill-behavior-coverage skill-evidence profile profile-acceptance profile-render-backends profile-check realm-up realm-down realm-fresh-install realm-drain-game realm-mailpit-up realm-mailpit-down realm-test-production capture capture-all capture-game-world capture-game-world-movement capture-game-world-panels capture-blood-moor capture-act1-seam capture-monster-lab capture-missile-lab capture-combat-lab capture-spell-lab capture-warp-lab play-game-world play-monster-lab play-missile-lab play-combat-lab play-spell-lab play-warp-lab
 
 test:
 	go test ./...
+
+test-mobile:
+	go test -tags ebitengine ./mobile/...
+	go test -tags ebitengine ./internal/app/clientapp ./internal/platform/desktop ./internal/runtime/lua -run 'Test(Hosted|ContactProbe|PointerTapProbe|TouchPointer|InputModuleReadsLogicalFrameSnapshot)'
 
 test-lua:
 	DARK_MAGIC_LUA_TEST_TIERS=fast,integration go test ./internal/mod/d2legacy -run 'TestLua(Suites|HarnessContract)'

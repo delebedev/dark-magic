@@ -1,5 +1,8 @@
 # iOS host
 
+`codex/mobile-ui-loop` is this fork's documented mobile integration branch.
+Upstream `main` remains the reference for shared engine behavior.
+
 The experimental UIKit host binds the existing Ebitengine client. Simulation,
 Lua scenes, content and retained presentation stay in their existing layers.
 `mobile` is the binding composition root because gomobile generates an external
@@ -20,6 +23,13 @@ open ios/DarkMagic.xcodeproj
 creates the ignored `ios/Darkmagicmobile.xcframework` for device and Simulator.
 Rebind after Go/Lua changes. Use `./ios/build.sh --smoke` for an asset-free diagnostic
 instead of the engine. Rebind without `--smoke` to restore the real engine.
+The smoke binding needs no Diablo assets and shows a touch marker rather than
+gameplay. The Xcode build also needs no assets; launching gameplay does.
+
+Run `make test-mobile` to select both Ebitengine-tagged mobile Go packages and
+the focused shared hosted-input tests.
+Default `make test` excludes them. The fork's Mobile workflow runs that target
+on mobile branches and pull requests into `codex/mobile-ui-loop`.
 
 Put legally acquired classic Diablo II + LoD MPQs in ignored `ios/Assets`, with
 lowercase filenames: `d2data.mpq`, `d2char.mpq`, `d2exp.mpq`, `patch_d2.mpq`, and
@@ -84,3 +94,4 @@ before claiming save safety. The rendered canvas has no VoiceOver elements.
 The Ebitengine Metal setup has emitted UIKit off-main-thread layer assertions.
 The dependency is unpatched. Real-device input comfort, thermal load, dense combat
 and long sessions need separate verification before distribution.
+A Simulator build checks native compilation, not real-phone behavior.

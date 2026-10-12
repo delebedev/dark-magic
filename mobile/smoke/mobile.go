@@ -18,6 +18,14 @@ func SetScreenGeometry(width, height, left, top, right, bottom float64) error { 
 
 func ProbeTap(x, y int) error { return fmt.Errorf("tap probe is unavailable in smoke mode") }
 
+func PressAction(action string) error { return fmt.Errorf("actions are unavailable in smoke mode") }
+
+func ProbeContacts(encoded string) error {
+	return fmt.Errorf("contact probes are unavailable in smoke mode")
+}
+
+func LogicalWidth() int { return 800 }
+
 type smokeGame struct {
 	ticks int
 	x, y  int
