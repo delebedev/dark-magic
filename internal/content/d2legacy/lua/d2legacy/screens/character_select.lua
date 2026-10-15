@@ -1,3 +1,4 @@
+local frontend_layout = require("d2legacy.ui.frontend_layout")
 -- Saved-character selection scene.
 --
 -- This screen demonstrates a common game-UI pattern: presentation works with
@@ -180,7 +181,7 @@ local function for_mode(mode)
 
                     -- Character animation must stay inside its list cell even if
                     -- source sprite frames extend beyond it.
-                    slot.preview:set_clip(x, y, screen.grid.cell_width, screen.grid.cell_height)
+                    frontend_layout.clip(self.root, slot.preview, x, y, screen.grid.cell_width, screen.grid.cell_height)
                 end
 
                 self.slots[#self.slots + 1] = slot

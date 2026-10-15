@@ -20,6 +20,7 @@ local shells = require("d2legacy.bootstrap.shell_registry")
 
 -- Modules normally return a table containing the functions they export.
 local registry = {}
+local frontend_layout = require("d2legacy.ui.frontend_layout")
 
 -- Small helpers are valuable when they name an idea. Every scene needs the same
 -- manifest cursor definition and palette table, so callers should not repeat
@@ -40,25 +41,25 @@ local function register_screens(manifest)
         -- Loading screens hide the normal pointer because the player cannot use
         -- it there.
         loading={module="d2legacy.screens.loading", cursor={hidden=true}},
-        title={module="d2legacy.screens.title"},
-        main_menu={module="d2legacy.screens.main_menu"},
-        character_select={module="d2legacy.screens.character_select", character_mode="local"},
-        character_create={module="d2legacy.screens.character_create", character_mode="local"},
+        title={frontend=true,module="d2legacy.screens.title"},
+        main_menu={frontend=true,module="d2legacy.screens.main_menu"},
+        character_select={frontend=true,module="d2legacy.screens.character_select", character_mode="local"},
+        character_create={frontend=true,module="d2legacy.screens.character_create", character_mode="local"},
         game_world={module="d2legacy.screens.game_world"},
         game_loading={module="d2legacy.screens.game_loading", cursor={hidden=true}},
-        tcpip={module="d2legacy.screens.tcpip"},
-        realm_connecting={module="d2legacy.screens.realm_connecting"},
-        realm_gateway={module="d2legacy.screens.realm_gateway"},
-        realm_login={module="d2legacy.screens.realm_login"},
-        realm_signup={module="d2legacy.screens.realm_signup"},
-        realm_recovery={module="d2legacy.screens.realm_recovery"},
+        tcpip={frontend=true,module="d2legacy.screens.tcpip"},
+        realm_connecting={frontend=true,module="d2legacy.screens.realm_connecting"},
+        realm_gateway={frontend=true,module="d2legacy.screens.realm_gateway"},
+        realm_login={frontend=true,module="d2legacy.screens.realm_login"},
+        realm_signup={frontend=true,module="d2legacy.screens.realm_signup"},
+        realm_recovery={frontend=true,module="d2legacy.screens.realm_recovery"},
         -- Realm and local play instantiate the same character presentation.
         -- Only the roster authority adapter differs.
-        realm_characters={module="d2legacy.screens.character_select", character_mode="realm"},
-        realm_create={module="d2legacy.screens.character_create", character_mode="realm"},
-        realm_lobby={module="d2legacy.screens.realm_lobby"},
-        realm_game_create={module="d2legacy.screens.realm_game_create"},
-        credits={module="d2legacy.screens.credits"},
+        realm_characters={frontend=true,module="d2legacy.screens.character_select", character_mode="realm"},
+        realm_create={frontend=true,module="d2legacy.screens.character_create", character_mode="realm"},
+        realm_lobby={frontend=true,module="d2legacy.screens.realm_lobby"},
+        realm_game_create={frontend=true,module="d2legacy.screens.realm_game_create"},
+        credits={frontend=true,module="d2legacy.screens.credits"},
         -- Development labs are real scenes too. That is useful: they exercise
         -- the exact same modding APIs as shipping presentation.
         font_lab={module="d2legacy.screens.font_lab"},
@@ -84,6 +85,7 @@ local function register_screens(manifest)
         if item.character_mode then
             definition = definition.for_mode(item.character_mode)
         end
+        if item.frontend then definition = frontend_layout.wrap(definition) end
         scenes.register(name, with_cursor(definition, manifest, item.cursor))
     end
 
@@ -91,7 +93,7 @@ local function register_screens(manifest)
     -- is useful, but while a video owns the whole screen it should disappear.
     -- `visible_when` is a callback passed into the generic cursor decorator.
     local cinematics = require("d2legacy.screens.cinematics")
-    scenes.register("cinematics", with_cursor(cinematics, manifest, {
+    scenes.register("cinematics", with_cursor(frontend_layout.wrap(cinematics), manifest, {
         -- A nil playback handle means no movie is currently active.
         visible_when=function(scene) return scene.playback == nil end,
     }))

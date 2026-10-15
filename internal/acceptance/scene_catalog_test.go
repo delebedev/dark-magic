@@ -9,6 +9,8 @@ import (
 	"testing"
 )
 
+var sceneCatalogPattern = regexp.MustCompile(`(?m)^\s+([a-z0-9_]+)\s*=\s*\{[^\n}]*\b(?:title|module)\s*=`)
+
 // TestCaptureAllCatalogMatchesRegisteredScenes keeps automated capture coverage aligned with boot registration.
 func TestCaptureAllCatalogMatchesRegisteredScenes(t *testing.T) {
 	root := repositoryRoot(t)
@@ -32,8 +34,7 @@ func TestCaptureAllCatalogMatchesRegisteredScenes(t *testing.T) {
 		registered = append(registered, string(match[1]))
 	}
 
-	catalogPattern := regexp.MustCompile(`(?m)^\s+([a-z0-9_]+)=\{(?:title|module)=`)
-	for _, match := range catalogPattern.FindAllStringSubmatch(bootstrap, -1) {
+	for _, match := range sceneCatalogPattern.FindAllStringSubmatch(bootstrap, -1) {
 		registered = append(registered, string(match[1]))
 	}
 	// The plain overlays are intentionally one compact list because they need no

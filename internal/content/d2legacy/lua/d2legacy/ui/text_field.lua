@@ -1,3 +1,4 @@
+local frontend_layout = require("d2legacy.ui.frontend_layout")
 -- Authored Diablo II text-entry composition.
 --
 -- controls.lua already owns the hard input work: UTF-8 cursor movement,
@@ -213,7 +214,7 @@ function M.create(root, manager, id, definition, label, options)
     })
 
     if value_node then
-        value_node:set_clip(
+        frontend_layout.clip(root, value_node,
             x + defaults.text_x,
             y + defaults.background_y,
             math.max(1, width - defaults.text_x - 4),

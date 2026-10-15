@@ -95,11 +95,18 @@ client discards large elapsed gaps, retains the session's bounded fixed-tick
 clock and performs idempotent cleanup. Scene errors retain their original text
 in the native error view.
 
-World scenes keep a 600-pixel logical height and expand to the landscape aspect
-ratio. The original HUD remains centered. Normal launches and UI Lab stay 800×600 with contain
-scaling. Normal launch enters the main menu directly, skipping desktop startup warm-up. Ebitengine supplies logical touch coordinates. No second desktop
-coordinate conversion is applied. See [touch controls](IOS_TOUCH.md) for input,
-panels and diagnostic probes.
+The mobile surface keeps a 600-pixel logical height and expands to the landscape
+aspect ratio, including after ordinary menu-to-game transitions. UI Lab alone
+retains the fixed 800×600 diagnostic canvas.
+
+Lobby screens share `d2legacy.ui.frontend_layout`, selected by the scene registry.
+It centers the authored 800×600 controls inside the safe area, scales them down
+uniformly when needed, and applies the inverse transform to pointer hit testing
+and the software cursor. Tiled backgrounds preserve their authored center, including baked-in labels,
+over a dimmed, uniformly scaled backdrop filling the surrounding space. Resize updates cancel an old control capture.
+Gameplay keeps its own world and HUD layout. Normal startup enters the main menu
+directly, skipping desktop startup warm-up. See [touch controls](IOS_TOUCH.md)
+for input, panels and diagnostic probes.
 
 ## Backend limitations
 

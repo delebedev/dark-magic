@@ -12,7 +12,7 @@ return test.suite({
     cases = {
         test.case("pointer_trace_distinguishes_capture_from_activation", function(t)
             t:run(function()
-                local frame = { x = 210, y = 10 }
+                local frame = { x = 220, y = 20 }
                 test.mock_module("engine.input/v1", {
                     cursor = function()
                         return frame.x, frame.y
@@ -30,6 +30,7 @@ return test.suite({
                 local manager = require("d2legacy.ui.controls").new()
                 manager.pointer_trace = {}
                 manager.offset_x = 200
+                manager.pointer_scale = 2
                 local activations = 0
                 manager:add({
                     id = "skill",
@@ -54,7 +55,7 @@ return test.suite({
                 frame.released = false
                 manager:update()
                 test.expect(manager.pointer_consumed):equals(false)
-                frame.x, frame.pressed, frame.released = 210, true, false
+                frame.x, frame.pressed, frame.released = 220, true, false
                 manager:update()
                 frame.pressed, frame.released = false, true
                 manager:update()
