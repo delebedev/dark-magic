@@ -9,6 +9,24 @@ import (
 	"testing"
 )
 
+var sceneCatalogPattern = regexp.MustCompile(`(?m)^\s+([a-z0-9_]+)\s*=\s*\{[^\n}]*\b(?:title|module)\s*=`)
+
+func TestSceneCatalogAcceptsMetadataBeforeModule(t *testing.T) {
+	t.Parallel()
+
+	for _, source := range []string{
+		` main_menu={module="menu",frontend=true}`,
+		` main_menu={frontend=true,module="menu"}`,
+		` main_menu = { frontend = true, module = "menu" }`,
+		` main_menu={title="menu"}`,
+	} {
+		match := sceneCatalogPattern.FindStringSubmatch(source)
+		if len(match) != 2 || match[1] != "main_menu" {
+			t.Errorf("scene catalog missed %q", source)
+		}
+	}
+}
+
 // TestCaptureAllCatalogMatchesRegisteredScenes keeps automated capture coverage aligned with boot registration.
 func TestCaptureAllCatalogMatchesRegisteredScenes(t *testing.T) {
 	root := repositoryRoot(t)
@@ -32,8 +50,7 @@ func TestCaptureAllCatalogMatchesRegisteredScenes(t *testing.T) {
 		registered = append(registered, string(match[1]))
 	}
 
-	catalogPattern := regexp.MustCompile(`(?m)^\s+([a-z0-9_]+)=\{(?:title|module)=`)
-	for _, match := range catalogPattern.FindAllStringSubmatch(bootstrap, -1) {
+	for _, match := range sceneCatalogPattern.FindAllStringSubmatch(bootstrap, -1) {
 		registered = append(registered, string(match[1]))
 	}
 	// The plain overlays are intentionally one compact list because they need no
