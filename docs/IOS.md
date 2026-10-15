@@ -26,8 +26,8 @@ instead of the engine. Rebind without `--smoke` to restore the real engine.
 The smoke binding needs no Diablo assets and shows a touch marker rather than
 gameplay. The Xcode build also needs no assets; launching gameplay does.
 
-Run `make test-mobile` to select both Ebitengine-tagged mobile Go packages and
-the focused shared hosted-input tests.
+Run `make test-mobile` to check native launch preferences, Ebitengine-tagged
+mobile Go packages and the focused shared hosted-input tests.
 Default `make test` excludes them. The fork's Mobile workflow runs that target
 on mobile branches and pull requests into `codex/mobile-ui-loop`.
 
@@ -57,10 +57,28 @@ directory.
 
 ## Scenes and lifecycle
 
-The host opens a scene picker: Game World · Amazon, Spell Lab, Warp Lab and UI Lab.
-Force-close and reopen to select another scene. Background/resume retains the
-running scene. `DARK_MAGIC_START_SCENE=game_world|spell_lab|warp_lab|ui_lab` skips
-the picker. For an installed Simulator application:
+The host defaults to the ordinary main menu and character roster. Shake opens a
+native Developer panel with two remembered preferences: launch mode and Input
+diagnostics. Launch modes are Normal game, Game World · Amazon, Spell Lab, Warp
+Lab and UI Lab. Changes apply after force-closing and reopening the app. The
+panel pauses the game until Done, including across background/foreground changes.
+It remains available in optimized private builds.
+
+Agents can open the same panel in a running process through LLDB. After attaching:
+
+```text
+expression -l objc++ -- @import UIKit
+expression -l objc++ -- (void)[(NSObject *)[[UIApplication sharedApplication] delegate] performSelectorOnMainThread:NSSelectorFromString(@"showDeveloperPanel") withObject:nil waitUntilDone:NO]
+process detach
+```
+
+The presenter also dispatches calls made off the main thread. Simulator shake is
+Control-Command-Z. Native controls expose `developer.*` accessibility identifiers.
+Debugger attachment on a physical phone requires a separately qualified connection.
+
+`DARK_MAGIC_START_SCENE=normal|game_world|spell_lab|warp_lab|ui_lab` and
+`DARK_MAGIC_INPUT_DIAGNOSTICS=0|1` override remembered values for that process.
+They do not replace saved preferences. For an installed Simulator application:
 
 ```sh
 SIMCTL_CHILD_DARK_MAGIC_START_SCENE=game_world \
@@ -78,10 +96,47 @@ clock and performs idempotent cleanup. Scene errors retain their original text
 in the native error view.
 
 World scenes keep a 600-pixel logical height and expand to the landscape aspect
-ratio. The original HUD remains centered. UI Lab stays 800×600 with contain
-scaling. Ebitengine supplies logical touch coordinates. No second desktop
+ratio. The original HUD remains centered. Normal launches and UI Lab stay 800×600 with contain
+scaling. Normal launch enters the main menu directly, skipping desktop startup warm-up. Ebitengine supplies logical touch coordinates. No second desktop
 coordinate conversion is applied. See [touch controls](IOS_TOUCH.md) for input,
 panels and diagnostic probes.
+
+## Review workflow
+
+Open iPhone-related PRs in `delebedev/dark-magic` against
+`codex/mobile-ui-loop` for Denis to review. Keep the historical mobile baseline
+and develop each change on a feature branch. Upstream extraction is separate.
+
+Use a concise body specific to the change until a fork template is agreed.
+Explain the user-visible problem and result, plus any consequential constraint.
+Attach a short video for visible UI changes, showing the action and its result.
+State Simulator or physical iPhone, any fixture, and material untested behavior.
+Touch, lifecycle, persistence and performance claims require matching evidence.
+Build success alone proves compilation. Keep raw logs and exact check commands
+in private receipts; include only useful observed outcomes in the PR.
+
+GitHub CLI provides native media attachments through `--attach`. Check local
+`gh pr create --help` before submission. Write the body to a file, with a video
+reference alone in its paragraph, then pass that same absolute path:
+
+```sh
+gh pr create -R delebedev/dark-magic --base codex/mobile-ui-loop \
+  --head YOUR_FEATURE_BRANCH --title 'Concrete visible change' \
+  --body-file /absolute/path/pr-body.md \
+  --attach /absolute/path/review.mp4
+```
+
+The body can contain `![](/absolute/path/review.mp4)` where the video belongs.
+GitHub replaces it with an uploaded attachment that renders as a player.
+Read back the PR body and verify the uploaded attachment. If upload partly
+fails, inspect whether the PR was created before retrying. Upload only curated,
+reviewed media; keep assets, saves, device identifiers and raw evidence private.
+Native iPhone tooling does not need the upstream retail-comparison layout.
+
+OTA installation happens only when Denis requests it. Simulator evidence is the
+default; avoid offering OTA or asking for phone/network changes during ordinary
+implementation and review. Physical-device checks require separate access and
+must be reported separately from Simulator results.
 
 ## Backend limitations
 

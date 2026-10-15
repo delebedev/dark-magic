@@ -79,7 +79,13 @@ func TestHostedOptionsKeepUIProfileAndWorldFixtureSeparate(t *testing.T) {
 	if err != nil || options.StartScene != "ui_lab" || options.FixtureCharacters != 0 || options.ExpandViewport {
 		t.Fatalf("UI startup acquired a disposable character: %+v, %v", options, err)
 	}
-	for _, scene := range []string{"", "game_world"} {
+	for _, scene := range []string{"", "normal"} {
+		options, err := hostedOptions(scene)
+		if err != nil || options.StartScene != "main_menu" || options.FixtureCharacters != 0 || !options.TouchControls || options.ExpandViewport {
+			t.Fatalf("normal startup acquired a development fixture: %+v, %v", options, err)
+		}
+	}
+	for _, scene := range []string{"game_world"} {
 		options, err := hostedOptions(scene)
 		if err != nil || options.FixtureCharacters != 1 || options.FixtureWorldLevel != 1 || options.StartScene != "game_world" || !options.ExpandViewport {
 			t.Fatalf("world startup cannot admit its upstream town fixture: %+v, %v", options, err)
