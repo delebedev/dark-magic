@@ -1,6 +1,6 @@
 # iOS host
 
-`codex/mobile-ui-loop` is this fork's documented mobile integration branch.
+`mobile` is this fork's documented mobile integration branch.
 Upstream `main` remains the reference for shared engine behavior.
 
 The experimental UIKit host binds the existing Ebitengine client. Simulation,
@@ -29,7 +29,7 @@ gameplay. The Xcode build also needs no assets; launching gameplay does.
 Run `make test-mobile` to check native launch preferences, Ebitengine-tagged
 mobile Go packages and the focused shared hosted-input tests.
 Default `make test` excludes them. The fork's Mobile workflow runs that target
-on mobile branches and pull requests into `codex/mobile-ui-loop`.
+on mobile branches and pull requests into `mobile`.
 
 Put legally acquired classic Diablo II + LoD MPQs in ignored `ios/Assets`, with
 lowercase filenames: `d2data.mpq`, `d2char.mpq`, `d2exp.mpq`, `patch_d2.mpq`, and
@@ -100,43 +100,6 @@ ratio. The original HUD remains centered. Normal launches and UI Lab stay 800×6
 scaling. Normal launch enters the main menu directly, skipping desktop startup warm-up. Ebitengine supplies logical touch coordinates. No second desktop
 coordinate conversion is applied. See [touch controls](IOS_TOUCH.md) for input,
 panels and diagnostic probes.
-
-## Review workflow
-
-Open iPhone-related PRs in `delebedev/dark-magic` against
-`codex/mobile-ui-loop` for Denis to review. Keep the historical mobile baseline
-and develop each change on a feature branch. Upstream extraction is separate.
-
-Use a concise body specific to the change until a fork template is agreed.
-Explain the user-visible problem and result, plus any consequential constraint.
-Attach a short video for visible UI changes, showing the action and its result.
-State Simulator or physical iPhone, any fixture, and material untested behavior.
-Touch, lifecycle, persistence and performance claims require matching evidence.
-Build success alone proves compilation. Keep raw logs and exact check commands
-in private receipts; include only useful observed outcomes in the PR.
-
-GitHub CLI provides native media attachments through `--attach`. Check local
-`gh pr create --help` before submission. Write the body to a file, with a video
-reference alone in its paragraph, then pass that same absolute path:
-
-```sh
-gh pr create -R delebedev/dark-magic --base codex/mobile-ui-loop \
-  --head YOUR_FEATURE_BRANCH --title 'Concrete visible change' \
-  --body-file /absolute/path/pr-body.md \
-  --attach /absolute/path/review.mp4
-```
-
-The body can contain `![](/absolute/path/review.mp4)` where the video belongs.
-GitHub replaces it with an uploaded attachment that renders as a player.
-Read back the PR body and verify the uploaded attachment. If upload partly
-fails, inspect whether the PR was created before retrying. Upload only curated,
-reviewed media; keep assets, saves, device identifiers and raw evidence private.
-Native iPhone tooling does not need the upstream retail-comparison layout.
-
-OTA installation happens only when Denis requests it. Simulator evidence is the
-default; avoid offering OTA or asking for phone/network changes during ordinary
-implementation and review. Physical-device checks require separate access and
-must be reported separately from Simulator results.
 
 ## Backend limitations
 

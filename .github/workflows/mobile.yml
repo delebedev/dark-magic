@@ -2,9 +2,9 @@ name: Mobile
 
 on:
   push:
-    branches: ['codex/mobile-*']
+    branches: ['mobile', 'codex/mobile-*']
   pull_request:
-    branches: ['codex/mobile-ui-loop']
+    branches: ['mobile']
 
 permissions:
   contents: read

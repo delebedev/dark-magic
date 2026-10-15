@@ -2,7 +2,7 @@
 <h3 align="center">An open-source Diablo II: Lord of Destruction engine rewrite</h3>
 
 This fork carries an experimental iOS host. [Upstream Dark Magic](https://github.com/gravestench/dark-magic)
-remains the reference for the shared engine. `codex/mobile-ui-loop` is the
+remains the reference for the shared engine. `mobile` is the
 documented mobile integration branch; see [iOS build and verification](docs/IOS.md)
 for the native build, asset-free smoke mode, and current limits.
 
