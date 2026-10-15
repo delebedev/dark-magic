@@ -115,20 +115,23 @@ func (g *mobileGame) start() error {
 	return err
 }
 
-// Direct world launch uses the upstream disposable character and normal authority.
+// Ordinary startup keeps the engine roster flow; direct world launch uses a disposable character.
 func hostedOptions(scene string) (clientapp.Options, error) {
 	options := clientapp.Options{StartScene: "ui_lab", ViewportFit: "contain", DisableNativeAudio: true, InputDiagnostics: os.Getenv("DARK_MAGIC_INPUT_DIAGNOSTICS") == "1"}
 	switch scene {
 	case "ui_lab":
 	case "spell_lab", "warp_lab":
 		options.StartScene = scene
-	case "", "game_world":
+	case "", "normal":
+		// Mobile enters the ordinary roster flow without the desktop startup warm-up.
+		options.StartScene = "main_menu"
+	case "game_world":
 		options.StartScene = "game_world"
 		options.FixtureCharacters, options.FixtureWorldLevel = 1, 1
 	default:
 		return options, fmt.Errorf("unsupported mobile start scene %q", scene)
 	}
-	options.ExpandViewport = options.StartScene != "ui_lab"
+	options.ExpandViewport = options.StartScene != "ui_lab" && options.StartScene != "main_menu"
 	options.TouchControls = options.StartScene != "ui_lab"
 	options.ScreenGeometry = func() modruntime.ScreenGeometry {
 		if value := game.geometry.Load(); value != nil {

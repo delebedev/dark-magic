@@ -2,22 +2,27 @@ import UIKit
 import Darkmagicmobile
 
 @main
-final class AppDelegate: UIResponder, UIApplicationDelegate {
+final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentationControllerDelegate {
     var window: UIWindow?
     private var gameController: GameViewController?
+    private let developerSettings = DeveloperSettings()
+    private var developerPanelOpen = false
+    private var runningScene = ""
+    private var launchOverrides = false
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        let window = UIWindow(frame: UIScreen.main.bounds)
+        let window = DeveloperWindow(frame: UIScreen.main.bounds)
         self.window = window
-        if let scene = ProcessInfo.processInfo.environment["DARK_MAGIC_START_SCENE"], !scene.isEmpty {
-            startGame(scene: scene)
-        } else {
-            window.rootViewController = ScenePickerViewController { [weak self] scene in
-                self?.startGame(scene: scene)
-            }
-        }
+        window.onShake = { [weak self] in self?.showDeveloperPanel() }
+        let environment = ProcessInfo.processInfo.environment
+        runningScene = developerSettings.resolvedScene(environment: environment)
+        launchOverrides = environment["DARK_MAGIC_START_SCENE"] != nil || environment["DARK_MAGIC_INPUT_DIAGNOSTICS"] != nil
+        let diagnostics = developerSettings.resolvedDiagnostics(environment: environment)
+        setenv("DARK_MAGIC_INPUT_DIAGNOSTICS", diagnostics ? "1" : "0", 1)
+        startGame(scene: runningScene)
         window.makeKeyAndVisible()
+        window.becomeFirstResponder()
         return true
     }
 
@@ -93,7 +98,48 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationWillResignActive(_ application: UIApplication) { gameController?.suspendGame() }
-    func applicationDidBecomeActive(_ application: UIApplication) { gameController?.resumeGame() }
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        if !developerPanelOpen { gameController?.resumeGame() }
+    }
+
+    func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle { .none }
+    func popoverPresentationControllerShouldDismissPopover(_ popoverPresentationController: UIPopoverPresentationController) -> Bool { false }
+
+    // Shake and debugger invocation share this presenter and its pause ownership.
+    @objc func showDeveloperPanel() {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { [weak self] in self?.showDeveloperPanel() }
+            return
+        }
+        guard !developerPanelOpen, UIApplication.shared.applicationState == .active,
+              let root = window?.rootViewController, root.presentedViewController == nil else { return }
+        developerPanelOpen = true
+        // Disabling interaction cancels UIKit touches before the native loop is suspended.
+        gameController?.view.isUserInteractionEnabled = false
+        gameController?.suspendGame()
+        let panel = DeveloperPanel(settings: developerSettings, runningScene: runningScene, overridden: launchOverrides)
+        let navigation = UINavigationController(rootViewController: panel)
+        navigation.overrideUserInterfaceStyle = .dark
+        navigation.modalPresentationStyle = .popover
+        navigation.preferredContentSize = CGSize(width: 560, height: 330)
+        if let popover = navigation.popoverPresentationController {
+            popover.sourceView = root.view
+            popover.sourceRect = CGRect(x: root.view.bounds.midX, y: root.view.bounds.midY, width: 0, height: 0)
+            popover.permittedArrowDirections = []
+            popover.delegate = self
+        }
+        navigation.isModalInPresentation = true
+        panel.onDone = { [weak self, weak navigation] in
+            navigation?.dismiss(animated: true) {
+                guard let self = self else { return }
+                self.developerPanelOpen = false
+                self.gameController?.view.isUserInteractionEnabled = true
+                if UIApplication.shared.applicationState == .active { self.gameController?.resumeGame() }
+                self.window?.becomeFirstResponder()
+            }
+        }
+        root.present(navigation, animated: true)
+    }
 }
 
 private final class GameHostViewController: UIViewController {
@@ -109,62 +155,5 @@ private final class GameHostViewController: UIViewController {
             Double(safe.left), Double(safe.top), Double(safe.right), Double(safe.bottom), &error) {
             NSLog("Dark Magic geometry: %@", error?.localizedDescription ?? "invalid geometry")
         }
-    }
-}
-
-private final class ScenePickerViewController: UIViewController {
-    private let scenes = [
-        ("Game World · Amazon", "game_world"),
-        ("Spell Lab · Sorceress in Blood Moor", "spell_lab"),
-        ("Warp Lab · Town and wilderness portals", "warp_lab"),
-        ("UI Lab · Buttons and slider", "ui_lab")
-    ]
-    private let selectScene: (String) -> Void
-
-    init(selectScene: @escaping (String) -> Void) {
-        self.selectScene = selectScene
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .black
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        let title = UILabel()
-        title.text = "Dark Magic · Experiments"
-        title.font = .preferredFont(forTextStyle: .title2)
-        title.textColor = .white
-        stack.addArrangedSubview(title)
-        for (index, scene) in scenes.enumerated() {
-            let button = UIButton(type: .system)
-            button.setTitle(scene.0, for: .normal)
-            button.contentHorizontalAlignment = .leading
-            button.titleLabel?.font = .preferredFont(forTextStyle: .body)
-            button.tag = index
-            button.addTarget(self, action: #selector(chooseScene(_:)), for: .touchUpInside)
-            button.heightAnchor.constraint(greaterThanOrEqualToConstant: 44).isActive = true
-            stack.addArrangedSubview(button)
-        }
-        let hint = UILabel()
-        hint.text = "Disposable characters. Force-close and reopen to choose another scene."
-        hint.font = .preferredFont(forTextStyle: .footnote)
-        hint.textColor = .lightGray
-        hint.numberOfLines = 0
-        stack.addArrangedSubview(hint)
-        view.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
-            stack.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
-            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
-    }
-
-    @objc private func chooseScene(_ sender: UIButton) {
-        selectScene(scenes[sender.tag].1)
     }
 }
