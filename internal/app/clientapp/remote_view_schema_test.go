@@ -25,8 +25,26 @@ func registerRemoteViewSchemas(t *testing.T, engine *gameecs.Engine) {
 // field that was not intentionally exposed.
 func remoteViewTestSchemas() []akara.Schema {
 	schemas := remoteIdentityAndMonsterTestSchemas()
-	schemas = append(schemas, remoteTestSchema("d2legacy.quest.progress", append(remoteTestFields(akara.FieldInt64, "quest_id", "stage"), remoteTestFields(akara.FieldBool, "completed", "rewarded")...)))
-	schemas = append(schemas, remoteTestSchema("d2legacy.player.death", remoteTestFields(akara.FieldInt64, "tick", "experience_lost"), remoteTestFields(akara.FieldString, "stage", "killer_id", "credited_id"), remoteTestFields(akara.FieldBool, "hardcore", "consequences_pending")))
+	schemas = append(schemas,
+		remoteTestSchema("d2legacy.quest.progress",
+			append(remoteTestFields(akara.FieldInt64,
+				"quest_id",
+				"stage"),
+				remoteTestFields(akara.FieldBool,
+					"completed",
+					"rewarded")...)))
+	schemas = append(schemas,
+		remoteTestSchema("d2legacy.player.death",
+			remoteTestFields(akara.FieldInt64,
+				"tick",
+				"experience_lost"),
+			remoteTestFields(akara.FieldString,
+				"stage",
+				"killer_id",
+				"credited_id"),
+			remoteTestFields(akara.FieldBool,
+				"hardcore",
+				"consequences_pending")))
 	schemas = append(schemas, remotePlayerAndPresentationTestSchemas()...)
 	schemas = append(schemas, remoteItemAndInteractionTestSchemas()...)
 	schemas = append(schemas, remoteWorldTestSchemas()...)
@@ -128,7 +146,18 @@ func remoteItemAndInteractionTestSchemas() []akara.Schema {
 		remoteTestSchema("d2legacy.item.identity", remoteItemIdentityTestFields()),
 		remoteTestSchema("d2legacy.item.placement", remoteItemPlacementTestFields()),
 		remoteTestSchema("d2legacy.item.presentation", remoteItemPresentationTestFields()),
-		remoteTestSchema("d2legacy.item.inspection", remoteTestFields(akara.FieldBool, "identified", "damage_known", "defense_known"), remoteTestFields(akara.FieldString, "status"), remoteTestFields(akara.FieldInt64, "damage_min_raw", "damage_max_raw", "defense")),
+		remoteTestSchema("d2legacy.item.inspection",
+			remoteTestFields(akara.FieldBool,
+				"identified",
+				"damage_known",
+				"defense_known"),
+			remoteTestFields(akara.FieldString,
+				"status"),
+			remoteTestFields(akara.FieldInt64,
+				"damage_min_raw",
+				"damage_max_raw",
+				"defense")),
+
 		remoteTestSchema("d2legacy.interaction.target", remoteInteractionTargetTestFields()),
 		remoteTestSchema("d2legacy.interaction.context",
 			remoteTestFields(akara.FieldString, "owner"),

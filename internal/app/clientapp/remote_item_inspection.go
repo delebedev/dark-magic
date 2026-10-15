@@ -8,12 +8,19 @@ func remoteItemInspection(view *playeradapter.ItemInspectionView) map[string]any
 	if view == nil {
 		return values
 	}
+
 	values["identified"], values["status"] = view.Identified, view.Status
 	if view.Damage != nil {
-		values["damage_known"], values["damage_min_raw"], values["damage_max_raw"] = true, view.Damage.MinRaw, view.Damage.MaxRaw
+		values["damage_known"],
+			values["damage_min_raw"],
+			values["damage_max_raw"] = true,
+			view.Damage.MinRaw,
+			view.Damage.MaxRaw
 	}
+
 	if view.Defense != nil {
 		values["defense_known"], values["defense"] = true, *view.Defense
 	}
+
 	return values
 }

@@ -95,3 +95,10 @@ func (g *HostedGame) Close() error {
 	})
 	return g.closeErr
 }
+
+func (p *pointerTapProbe) logicalWidth() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return p.width
+}

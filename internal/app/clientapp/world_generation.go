@@ -75,11 +75,13 @@ func (app *application) resolveEntryWorldSpawns(
 	if err != nil {
 		return nil, err
 	}
+
 	for level, spawn := range prepared.Spawns {
 		if _, found := spawns[level]; !found {
 			spawns[level] = spawn
 		}
 	}
+
 	return spawns, nil
 }
 

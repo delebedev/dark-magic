@@ -23,8 +23,16 @@ func installPrivateProjection(
 
 	if deaths, found := akara.GetDynamicStore(world, "d2legacy.player.death"); found {
 		deaths.Remove(hero)
+
 		if death := private.Death; death != nil {
-			if _, err := deaths.Set(hero, map[string]any{"tick": death.Tick, "hardcore": death.Hardcore, "stage": death.Stage, "killer_id": "", "credited_id": "", "experience_lost": int64(0), "consequences_pending": false}); err != nil {
+			if _, err := deaths.Set(hero,
+				map[string]any{"tick": death.Tick,
+					"hardcore":             death.Hardcore,
+					"stage":                death.Stage,
+					"killer_id":            "",
+					"credited_id":          "",
+					"experience_lost":      int64(0),
+					"consequences_pending": false}); err != nil {
 				return err
 			}
 		}
@@ -36,12 +44,19 @@ func installPrivateProjection(
 	if !found {
 		return fmt.Errorf("remote presentation: quest store is unavailable")
 	}
+
 	questStore.Remove(hero)
+
 	if q := private.Quest; q != nil {
-		if _, err := questStore.Set(hero, map[string]any{"quest_id": q.QuestID, "stage": q.Stage, "completed": q.Completed, "rewarded": q.Rewarded}); err != nil {
+		if _, err := questStore.Set(hero,
+			map[string]any{"quest_id": q.QuestID,
+				"stage":     q.Stage,
+				"completed": q.Completed,
+				"rewarded":  q.Rewarded}); err != nil {
 			return err
 		}
 	}
+
 	if err := installLearnedSkills(world, hero, learned); err != nil {
 		return err
 	}
@@ -189,7 +204,10 @@ func installPrivateItems(
 		if _, err := presentationStore.Set(entity, privateItemPresentation(item)); err != nil {
 			return err
 		}
-		if err := setRemoteComponents(world, entity, map[string]map[string]any{"d2legacy.item.inspection": remoteItemInspection(item.Inspection)}); err != nil {
+
+		if err := setRemoteComponents(world,
+			entity,
+			map[string]map[string]any{"d2legacy.item.inspection": remoteItemInspection(item.Inspection)}); err != nil {
 			return err
 		}
 	}

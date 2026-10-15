@@ -53,13 +53,15 @@ return test.suite({
         test.case("indexes_presentation_records_once_and_returns_copies", {
             test.run(function()
                 local reads = 0
-                test.mock_module("engine.records/v1", { load = function(path)
-                    reads = reads + 1
-                    if path == "data/global/excel/skills.txt" then
-                        return { { Id = "36", skilldesc = "firebolt", leftskill = "1" } }
-                    end
-                    return { { skilldesc = "firebolt", IconCel = "1", ListRow = "1" } }
-                end }, {})
+                test.mock_module("engine.records/v1", {
+                    load = function(path)
+                        reads = reads + 1
+                        if path == "data/global/excel/skills.txt" then
+                            return { { Id = "36", skilldesc = "firebolt", leftskill = "1" } }
+                        end
+                        return { { skilldesc = "firebolt", IconCel = "1", ListRow = "1" } }
+                    end,
+                }, {})
                 local skills = require("d2legacy.data.skill")
                 local first = skills.load(36)
                 first.icon = 99

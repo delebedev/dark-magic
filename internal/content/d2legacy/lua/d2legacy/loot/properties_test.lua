@@ -73,7 +73,9 @@ local function quality_affix_and_property_vectors()
     })
     test.assert(rolled == "magic", [=[rolled == "magic"]=])
     test.expect(quality.roll(sword, {
-        version = 0, monster_level = 1, magic_find = 0,
+        version = 0,
+        monster_level = 1,
+        magic_find = 0,
     })):equals("normal")
 
     local prefixes = roll_prefixes(affixes, sword, rolled)

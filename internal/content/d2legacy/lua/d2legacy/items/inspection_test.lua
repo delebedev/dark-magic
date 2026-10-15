@@ -1,18 +1,58 @@
 local test = require("d2legacy.tests/v1")
 
-return test.suite({ profile = "authority", tier = "fast", covers = { "internal/game/item" },
-    initial_data = { ["d2legacy.items"] = { owner = "local-player", items = {
-        { id = "blade", code = "ssd", width = 1, height = 3, container = "inventory",
-            physical_min = 512, physical_max = 1536 },
-        { id = "cap", code = "cap", width = 2, height = 2, container = "inventory",
-            defense = 6, base_defense_max = 10, stat_modifiers = {
-                { source_id = "enhanced", stat = "defense", operation = "local_percent", value = 50 } } },
-        { id = "unknown", code = "cap", width = 2, height = 2, container = "inventory",
-            identified = false, defense = 666 },
-        { id = "partial", code = "ssd", width = 1, height = 3, container = "inventory",
-            physical_min = 256, physical_max = 768, stat_modifiers = {
-                { source_id = "added", stat = "physical_min", operation = "add", value = 256 } } },
-    } } },
+return test.suite({
+    profile = "authority",
+    tier = "fast",
+    covers = { "internal/game/item" },
+    initial_data = {
+        ["d2legacy.items"] = {
+            owner = "local-player",
+            items = {
+                {
+                    id = "blade",
+                    code = "ssd",
+                    width = 1,
+                    height = 3,
+                    container = "inventory",
+                    physical_min = 512,
+                    physical_max = 1536,
+                },
+                {
+                    id = "cap",
+                    code = "cap",
+                    width = 2,
+                    height = 2,
+                    container = "inventory",
+                    defense = 6,
+                    base_defense_max = 10,
+                    stat_modifiers = {
+                        { source_id = "enhanced", stat = "defense", operation = "local_percent", value = 50 },
+                    },
+                },
+                {
+                    id = "unknown",
+                    code = "cap",
+                    width = 2,
+                    height = 2,
+                    container = "inventory",
+                    identified = false,
+                    defense = 666,
+                },
+                {
+                    id = "partial",
+                    code = "ssd",
+                    width = 1,
+                    height = 3,
+                    container = "inventory",
+                    physical_min = 256,
+                    physical_max = 768,
+                    stat_modifiers = {
+                        { source_id = "added", stat = "physical_min", operation = "add", value = 256 },
+                    },
+                },
+            },
+        },
+    },
     cases = {
         test.case("reports_item_contributions_and_hides_unidentified_values", {
             test.step(1),
