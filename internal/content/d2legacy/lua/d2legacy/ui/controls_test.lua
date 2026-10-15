@@ -14,17 +14,34 @@ return test.suite({
             t:run(function()
                 local frame = { x = 210, y = 10 }
                 test.mock_module("engine.input/v1", {
-                    cursor = function() return frame.x, frame.y end,
-                    pressed = function(action) return action == "pointer_primary" and frame.pressed or false end,
-                    released = function(action) return action == "pointer_primary" and frame.released or false end,
-                    down = function() return false end,
+                    cursor = function()
+                        return frame.x, frame.y
+                    end,
+                    pressed = function(action)
+                        return action == "pointer_primary" and frame.pressed or false
+                    end,
+                    released = function(action)
+                        return action == "pointer_primary" and frame.released or false
+                    end,
+                    down = function()
+                        return false
+                    end,
                 }, {})
                 local manager = require("d2legacy.ui.controls").new()
                 manager.pointer_trace = {}
                 manager.offset_x = 200
                 local activations = 0
-                manager:add({ id = "skill", x = 0, y = 0, width = 44, height = 44,
-                    focusable = false, on_activate = function() activations = activations + 1 end })
+                manager:add({
+                    id = "skill",
+                    x = 0,
+                    y = 0,
+                    width = 44,
+                    height = 44,
+                    focusable = false,
+                    on_activate = function()
+                        activations = activations + 1
+                    end,
+                })
                 frame.pressed = true
                 manager:update()
                 test.expect(manager.pointer_consumed):equals(true)

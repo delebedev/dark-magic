@@ -1,7 +1,9 @@
 local test = require("d2legacy.tests/v1")
 
 return test.suite({
-    name = "input diagnostics", profile = "module", tier = "fast",
+    name = "input diagnostics",
+    profile = "module",
+    tier = "fast",
     cases = {
         test.case("observes_taps_and_viewport_without_changing_intent", function(t)
             t:run(function()
@@ -9,22 +11,51 @@ return test.suite({
                 local created, label = 0, ""
                 local function node()
                     created = created + 1
-                    return { set_z = function() end, fill_rect = function() end,
-                        set_scale = function() end, set_position = function() end,
-                        set_visible = function() end, destroy = function() end }
+                    return {
+                        set_z = function() end,
+                        fill_rect = function() end,
+                        set_scale = function() end,
+                        set_position = function() end,
+                        set_visible = function() end,
+                        destroy = function() end,
+                    }
                 end
-                test.mock_module("engine.dev/v1", { option = function() return enabled end }, {})
-                test.mock_module("engine.display/v1", { size = function() return width, 600 end }, {})
+                test.mock_module("engine.dev/v1", {
+                    option = function()
+                        return enabled
+                    end,
+                }, {})
+                test.mock_module("engine.display/v1", {
+                    size = function()
+                        return width, 600
+                    end,
+                }, {})
                 test.mock_module("engine.render/v1", { create = node }, {})
                 test.mock_module("engine.input/v1", {
-                    cursor = function() return 1100, 200 end,
-                    contacts = function() return {} end,
-                    pressed = function() return pressed end,
-                    released = function() return released end,
-                    down = function() return pressed end,
-                    pointer_source = function() return "probe" end,
+                    cursor = function()
+                        return 1100, 200
+                    end,
+                    contacts = function()
+                        return {}
+                    end,
+                    pressed = function()
+                        return pressed
+                    end,
+                    released = function()
+                        return released
+                    end,
+                    down = function()
+                        return pressed
+                    end,
+                    pointer_source = function()
+                        return "probe"
+                    end,
                 }, {})
-                test.mock_module("d2legacy.ui.text", { set = function(_, _, value) label = value end }, {})
+                test.mock_module("d2legacy.ui.text", {
+                    set = function(_, _, value)
+                        label = value
+                    end,
+                }, {})
                 local diagnostic = require("d2legacy.dev.input_diagnostics")
                 test.expect(diagnostic.create(nil, nil)):equals(nil)
                 test.expect(created):equals(0)

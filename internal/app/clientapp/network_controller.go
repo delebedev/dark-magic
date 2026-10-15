@@ -498,10 +498,12 @@ func (controller *networkController) persistSelfHostedCharacter(
 	if !selected {
 		return errors.New("persist self-hosted character: no selected character")
 	}
+
 	updated, err := playeradapter.MergePrivateCharacter(baseline, hud, client.PrivateView())
 	if err != nil {
 		return fmt.Errorf("persist self-hosted character: %w", err)
 	}
+
 	return controller.app.saves.UpdateSelected(updated)
 }
 

@@ -1,32 +1,68 @@
 local test = require("d2legacy.tests/v1")
 
 return test.suite({
-    name = "skill selector", profile = "module", tier = "fast",
+    name = "skill selector",
+    profile = "module",
+    tier = "fast",
     cases = {
         test.case("orders_both_sides_and_assigns_through_the_hud", function(t)
             t:run(function()
                 local tips, ready = 0, false
                 local function node()
-                    return { set_dc6 = function() end, set_position = function() end,
-                        set_visible = function() end }
+                    return {
+                        set_dc6 = function() end,
+                        set_position = function() end,
+                        set_visible = function() end,
+                    }
                 end
-                test.mock_module("engine.render/v1", { create = node,
-                    preload = function(requests) test.expect(#requests):equals(5) return 1 end,
-                    preload_status = function() return { done = ready, failed = 0 } end,
+                test.mock_module("engine.render/v1", {
+                    create = node,
+                    preload = function(requests)
+                        test.expect(#requests):equals(5)
+                        return 1
+                    end,
+                    preload_status = function()
+                        return { done = ready, failed = 0 }
+                    end,
                 }, {})
-                test.mock_module("engine.locale/v1", { text = function(key) return key end }, {})
-                test.mock_module("d2legacy.ui.tooltip", { create = function() tips = tips + 1 return node() end }, {})
-                local controls = { add = function(_, control) return control end }
-                local definition = { left = { y = 550 }, width = 48, height = 48,
-                    selector_left = 90, selector_right = 720 }
+                test.mock_module("engine.locale/v1", {
+                    text = function(key)
+                        return key
+                    end,
+                }, {})
+                test.mock_module("d2legacy.ui.tooltip", {
+                    create = function()
+                        tips = tips + 1
+                        return node()
+                    end,
+                }, {})
+                local controls = {
+                    add = function(_, control)
+                        return control
+                    end,
+                }
+                local definition = {
+                    left = { y = 550 },
+                    width = 48,
+                    height = 48,
+                    selector_left = 90,
+                    selector_right = 720,
+                }
                 local selected
                 local module = require("d2legacy.ui.skill_selector")
-                local selector = module.create(nil, definition, "sky", controls,
-                    function(side, id) selected = { side, id } end)
+                local selector = module.create(nil, definition, "sky", controls, function(side, id)
+                    selected = { side, id }
+                end)
                 local skills = {}
                 for _, id in ipairs({ 40, 36, 38, 37, 39 }) do
-                    skills[#skills + 1] = { id = id, list_row = 0, left_allowed = true,
-                        right_allowed = true, sheet = "test", icon = id }
+                    skills[#skills + 1] = {
+                        id = id,
+                        list_row = 0,
+                        left_allowed = true,
+                        right_allowed = true,
+                        sheet = "test",
+                        icon = id,
+                    }
                 end
                 skills[1].left_allowed = false
                 module.set_skills(selector, skills)
