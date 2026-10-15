@@ -451,7 +451,8 @@ function Manager:update(elapsed)
 
     -- SECOND: find what the pointer is over.
     local x, y = input.cursor()
-    x, y = x - (self.offset_x or 0), y - (self.offset_y or 0)
+    local scale = self.pointer_scale or 1
+    x, y = (x - (self.offset_x or 0)) / scale, (y - (self.offset_y or 0)) / scale
     local hovered = nil
     local hovered_priority = -math.huge
     for index, control in ipairs(self.controls) do

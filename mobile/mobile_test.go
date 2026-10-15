@@ -81,7 +81,7 @@ func TestHostedOptionsKeepUIProfileAndWorldFixtureSeparate(t *testing.T) {
 	}
 	for _, scene := range []string{"", "normal"} {
 		options, err := hostedOptions(scene)
-		if err != nil || options.StartScene != "main_menu" || options.FixtureCharacters != 0 || !options.TouchControls || options.ExpandViewport {
+		if err != nil || options.StartScene != "main_menu" || options.FixtureCharacters != 0 || !options.TouchControls || !options.ExpandViewport {
 			t.Fatalf("normal startup acquired a development fixture: %+v, %v", options, err)
 		}
 	}

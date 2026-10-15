@@ -131,7 +131,7 @@ func hostedOptions(scene string) (clientapp.Options, error) {
 	default:
 		return options, fmt.Errorf("unsupported mobile start scene %q", scene)
 	}
-	options.ExpandViewport = options.StartScene != "ui_lab" && options.StartScene != "main_menu"
+	options.ExpandViewport = options.StartScene != "ui_lab"
 	options.TouchControls = options.StartScene != "ui_lab"
 	options.ScreenGeometry = func() modruntime.ScreenGeometry {
 		if value := game.geometry.Load(); value != nil {

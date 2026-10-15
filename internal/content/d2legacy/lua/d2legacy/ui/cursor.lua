@@ -119,6 +119,8 @@ local function create(parent, definition, palettes)
         if not self.node then return end
 
         local x, y = input.cursor()
+        local scale = self.canvas_scale or 1
+        x, y = (x - (self.canvas_x or 0)) / scale, (y - (self.canvas_y or 0)) / scale
 
         -- Input coordinates describe the logical pointer HOTSPOT. The retained
         -- node wants its image CENTER. Therefore:

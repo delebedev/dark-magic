@@ -13,6 +13,7 @@
 local render = require("engine.render/v1")
 
 local M = {}
+local backgrounds = setmetatable({}, { __mode = "k" })
 
 -- Diablo II's 800x600 front-end backgrounds are stored as a grid of DC6 frames
 -- rather than one giant image. `layout.columns` and `layout.rows` contain the
@@ -65,7 +66,58 @@ function M.frontend_background(parent, layer, path, palette, layout)
         y = y + heights[row]
     end
 
+    backgrounds[parent] = {
+        copies = { center = nodes }, columns = widths, rows = heights,
+        path = path, palette = palette, direction = layout.direction, first_frame = layout.first_frame, layer = layer,
+    }
     return nodes
+end
+
+-- Preserve the labeled center over a uniformly scaled, dimmed backdrop.
+function M.resize_frontend_background(parent, width, height, x, y, content_scale)
+    local background = backgrounds[parent]
+    if not background then return end
+    local authored_width, authored_height = 0, 0
+    for _, size in ipairs(background.columns) do authored_width = authored_width + size end
+    for _, size in ipairs(background.rows) do authored_height = authored_height + size end
+    local scale = height / authored_height
+    local left = (width - authored_width * scale) / 2
+    local right = width - left
+    local cover = math.max(width / authored_width, height / authored_height)
+    local function place(key, origin_x, scale_x, clip_x, clip_width)
+        local copy = background.copies[key] or {}
+        background.copies[key] = copy
+        local vertical_scale = key == "center" and scale or cover
+        local origin_y = (height - authored_height * vertical_scale) / 2
+        local tint = key == "center" and 255 or 90
+        local index, tile_y = 1, 0
+        for _, tile_height in ipairs(background.rows) do
+            local tile_x = 0
+            for _, tile_width in ipairs(background.columns) do
+                local node = copy[index]
+                if not node then
+                    node = render.create(background.layer, parent)
+                    node:set_dc6(background.path, background.palette, background.direction, background.first_frame + index - 1)
+                    node:set_z(-100)
+                    copy[index] = node
+                end
+                node:set_visible(clip_width > 0)
+                node:set_tint(tint, tint, tint)
+                node:set_scale(scale_x / content_scale, vertical_scale / content_scale)
+                node:set_position((origin_x + (tile_x + tile_width / 2) * scale_x - x) / content_scale,
+                    (origin_y + (tile_y + tile_height / 2) * vertical_scale - y) / content_scale)
+                node:set_clip(clip_x, 0, math.max(1, clip_width), height)
+                tile_x, index = tile_x + tile_width, index + 1
+            end
+            tile_y = tile_y + tile_height
+        end
+    end
+    place("center", left, scale, math.max(0, left), math.min(width, authored_width * scale))
+    if left > 0 or background.copies.left then
+        local backdrop_x = (width - authored_width * cover) / 2
+        place("left", backdrop_x, cover, 0, math.max(0, left))
+        place("right", backdrop_x, cover, right, math.max(0, left))
+    end
 end
 
 -- DC6 frames can be cropped differently from one another. Their stored offsets
