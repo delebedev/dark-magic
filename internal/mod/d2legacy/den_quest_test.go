@@ -54,7 +54,7 @@ func TestGeneratedDenClearAndAkaraRewardRestore(t *testing.T) {
 	}
 	rooms := []any{}
 	for i := 0; i < 4; i++ {
-		rooms = append(rooms, map[string]any{"id": string(rune('a' + i)), "populate": true, "x": i * 8, "y": -2, "width": 8, "height": 8, "points": []any{map[string]any{"x": i*8 + 4, "y": 0}}})
+		rooms = append(rooms, map[string]any{"id": string(rune('a' + i)), "populate": true, "x": i * 8, "y": -2, "width": 8, "height": 8, "points": []any{map[string]any{"x": i*8 + 4, "y": 3}}})
 	}
 	submit(session, 1, "system", 1, "system.population.bootstrap", map[string]any{"act": 1, "level_id": 8, "difficulty": 0, "rooms": rooms, "links": []any{}})
 	stepSession(t, session, 1)
@@ -80,7 +80,7 @@ func TestGeneratedDenClearAndAkaraRewardRestore(t *testing.T) {
 	kill := func(e *gameecs.Engine, s *gamesession.Session, room string) {
 		seq++
 		x := int(room[0]-'a')*8 + 4
-		submit(s, e.Tick()+1, "alice", seq, "player.use_skill", map[string]any{"side": "left", "target_x": x, "target_y": 0, "target_id": fmt.Sprintf("monster:level:8:room:%s:monster:1", room)})
+		submit(s, e.Tick()+1, "alice", seq, "player.use_skill", map[string]any{"side": "left", "target_x": x, "target_y": 3, "target_id": fmt.Sprintf("monster:level:8:room:%s:monster:1", room)})
 		stepSession(t, s, 12)
 		monster := monsterEntity(t, e, fmt.Sprintf("level:8:room:%s:monster:1", room))
 		if _, ok := dynamicStore(t, e, "d2legacy.monster.death").Get(monster); !ok {
