@@ -21,6 +21,7 @@ final class DeveloperSettings {
     private let defaults: UserDefaults
     private static let modeKey = "developer.launchMode"
     private static let diagnosticsKey = "developer.inputDiagnostics"
+    private static let performanceKey = "developer.performanceOverlay"
 
     init(defaults: UserDefaults = .standard) { self.defaults = defaults }
 
@@ -32,6 +33,11 @@ final class DeveloperSettings {
     var inputDiagnostics: Bool {
         get { defaults.bool(forKey: Self.diagnosticsKey) }
         set { defaults.set(newValue, forKey: Self.diagnosticsKey) }
+    }
+
+    var performanceOverlay: Bool {
+        get { defaults.bool(forKey: Self.performanceKey) }
+        set { defaults.set(newValue, forKey: Self.performanceKey) }
     }
 
     func resolvedScene(environment: [String: String]) -> String {

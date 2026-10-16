@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/gravestench/dark-magic/internal/app/clientapp"
 	"github.com/gravestench/dark-magic/internal/content"
@@ -243,6 +244,9 @@ func (g *mobileGame) Layout(width, height int) (int, int) {
 }
 
 func (g *mobileGame) DrawFinalScreen(screen ebiten.FinalScreen, offscreen *ebiten.Image, geoM ebiten.GeoM) {
+	if performance.enabled.Load() {
+		performance.record(time.Now())
+	}
 	if g.client != nil {
 		g.client.DrawFinalScreen(screen, offscreen, geoM)
 	}

@@ -151,6 +151,20 @@ func Command(
 	if err := d2save.ValidateCharacterContent(d2save.Character{Inventory: entry.Inventory, Progression: entry.Progression, Death: entry.Death, Hardcore: entry.Hardcore, Stats: &d2save.Stats{Health: int(entry.Health)}}); err != nil {
 		return simulation.Command{}, err
 	}
+
+	// Lua requires arrays for empty collections; older profiles can contain JSON null.
+	if entry.Inventory != nil && entry.Inventory.Items == nil {
+		inventory := *entry.Inventory
+		inventory.Items = []d2save.Item{}
+		entry.Inventory = &inventory
+	}
+
+	if entry.Progression != nil && entry.Progression.Skills == nil {
+		progression := *entry.Progression
+		progression.Skills = []d2save.LearnedSkill{}
+		entry.Progression = &progression
+	}
+
 	payload, err := json.Marshal(entry)
 	if err != nil {
 		return simulation.Command{}, err

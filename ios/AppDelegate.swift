@@ -9,6 +9,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
     private let developerSettings = DeveloperSettings()
     private var developerPanelOpen = false
     private var textInputOpen = false
+    private var performanceOverlay: PerformanceOverlay?
     private var textInput: NativeTextInput?
     private var runningScene = ""
     private var launchOverrides = false
@@ -63,6 +64,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
                   !self.developerPanelOpen, !self.textInputOpen,
                   let root = self.window?.rootViewController, root.presentedViewController == nil else { return false }
             self.textInputOpen = true
+            self.updatePerformanceOverlay()
             self.gameController?.view.isUserInteractionEnabled = false
             self.gameController?.suspendGame()
             root.present(alert, animated: true)
@@ -71,6 +73,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
         textInput.finished = { [weak self] in
             guard let self = self, self.textInputOpen else { return }
             self.textInputOpen = false
+            self.updatePerformanceOverlay()
             self.gameController?.view.isUserInteractionEnabled = true
             if UIApplication.shared.applicationState == .active { self.gameController?.resumeGame() }
             self.window?.becomeFirstResponder()
@@ -152,6 +155,16 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
             } else {
                 window.rootViewController = controller
             }
+            let overlay = PerformanceOverlay()
+            let view = window.rootViewController!.view!
+            view.addSubview(overlay)
+            NSLayoutConstraint.activate([
+                overlay.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 8),
+                overlay.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+                overlay.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -8)
+            ])
+            performanceOverlay = overlay
+            updatePerformanceOverlay()
             if UIApplication.shared.applicationState != .active { controller.suspendGame() }
         } catch {
             showStartupError(error)
@@ -180,9 +193,18 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
         window?.rootViewController = controller
     }
 
-    func applicationWillResignActive(_ application: UIApplication) { gameController?.suspendGame() }
+    func applicationWillResignActive(_ application: UIApplication) {
+        performanceOverlay?.setEnabled(false)
+        gameController?.suspendGame()
+    }
     func applicationDidBecomeActive(_ application: UIApplication) {
         if !developerPanelOpen && !textInputOpen { gameController?.resumeGame() }
+        updatePerformanceOverlay()
+    }
+
+    private func updatePerformanceOverlay() {
+        performanceOverlay?.setEnabled(developerSettings.performanceOverlay
+            && UIApplication.shared.applicationState == .active && !developerPanelOpen && !textInputOpen)
     }
 
     func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle { .none }
@@ -197,6 +219,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
         guard gameController != nil, !developerPanelOpen, UIApplication.shared.applicationState == .active,
               let root = window?.rootViewController, root.presentedViewController == nil else { return }
         developerPanelOpen = true
+        updatePerformanceOverlay()
         // Disabling interaction cancels UIKit touches before the native loop is suspended.
         gameController?.view.isUserInteractionEnabled = false
         gameController?.suspendGame()
@@ -216,6 +239,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
             navigation?.dismiss(animated: true) {
                 guard let self = self else { return }
                 self.developerPanelOpen = false
+                self.updatePerformanceOverlay()
                 self.gameController?.view.isUserInteractionEnabled = true
                 if UIApplication.shared.applicationState == .active { self.gameController?.resumeGame() }
                 self.window?.becomeFirstResponder()

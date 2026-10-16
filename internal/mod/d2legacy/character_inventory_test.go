@@ -1,6 +1,8 @@
 package d2legacy
 
 import (
+	"context"
+	"errors"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -101,5 +103,89 @@ func TestCharacterInventorySurvivesFreshProfileAdmission(t *testing.T) {
 			t.Fatal(err)
 		}
 		character, _ = restored.Selected()
+	}
+}
+
+func TestEmptyCharacterInventorySurvivesFreshProfileAdmission(t *testing.T) {
+	character := d2save.Character{ID: "empty", Name: "Empty", Class: "Amazon", Level: 1,
+		Stats: &d2save.Stats{Vitality: 20, Health: 50, MaxHealth: 50},
+		Inventory: &d2save.Inventory{InventoryWidth: 10, InventoryHeight: 4,
+			StashWidth: 6, StashHeight: 8, CubeWidth: 3, CubeHeight: 4, BeltCapacity: 4,
+			VendorWidth: 10, VendorHeight: 10, Items: []d2save.Item{}},
+	}
+	path := filepath.Join(t.TempDir(), "profile.json")
+
+	for range 2 {
+		store := d2save.New(character)
+		if err := store.Select(character.ID); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := d2save.WriteProfileFile(path, store.Profile()); err != nil {
+			t.Fatal(err)
+		}
+
+		profile, err := d2save.ReadProfileFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		restored, err := d2save.NewFromProfile(profile)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		character, _ = restored.Selected()
+		engine := gameecs.New()
+
+		session, err := gamesession.New(engine, gamesession.Config{CheckpointInterval: 1})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		authority, err := StartWithConfig(
+			t.Context(), content.D2Legacy(), generatedHostileRecords(), engine, session, Config{Seed: 1},
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		t.Cleanup(func() {
+			if err := errors.Join(authority.Stop(context.Background()), session.Close(), engine.Close()); err != nil {
+				t.Error(err)
+			}
+		})
+
+		destination, err := playeradapter.NewDestination(1, 1, 100, 100, 1, 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		command, err := playeradapter.AdmissionCommand(
+			character, "alice", destination, "system", 1, 1, simulation.AuthoritySystem,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err := session.Submit(command); err != nil {
+			t.Fatal(err)
+		}
+
+		stepSession(t, session, 3)
+
+		checkpoint, err := session.CanonicalCheckpoint()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		character, err = playeradapter.ProjectCharacter("alice", character, checkpoint)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if character.Inventory == nil || len(character.Inventory.Items) != 0 {
+			t.Fatal("empty inventory changed during fresh admission")
+		}
 	}
 }

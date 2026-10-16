@@ -29,6 +29,10 @@ func ProbeContacts(encoded string) error {
 
 func LogicalWidth() int { return 800 }
 
+func SetPerformanceOverlayEnabled(enabled bool) {}
+
+func PerformanceSummary() string { return fmt.Sprintf("%.0f FPS | frame n/a", ebiten.ActualFPS()) }
+
 type smokeGame struct {
 	ticks int
 	x, y  int

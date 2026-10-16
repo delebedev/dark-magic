@@ -14,6 +14,7 @@ import (
 func TestAdmissionCommandCarriesDurableFactsWithoutInterpretingD2Policy(t *testing.T) {
 	character := d2save.Character{
 		ID: "hero", Name: "Hero", Class: "Amazon", Level: 3, Expansion: true,
+		Inventory: &d2save.Inventory{}, Progression: &d2save.Progression{},
 		Stats: &d2save.Stats{
 			Dexterity: 20, Vitality: 20, Defense: 7, Experience: 100,
 			Health: 25, MaxHealth: 30, Mana: 12, MaxMana: 15, Stamina: 42, MaxStamina: 84,
@@ -43,6 +44,14 @@ func TestAdmissionCommandCarriesDurableFactsWithoutInterpretingD2Policy(t *testi
 	}
 
 	encoded := string(command.Payload)
+
+	if entry.Inventory.Items == nil || entry.Progression.Skills == nil {
+		t.Fatal("empty collections were encoded as null instead of arrays")
+	}
+
+	if character.Inventory.Items != nil || character.Progression.Skills != nil {
+		t.Fatal("command encoding mutated the saved character")
+	}
 
 	forbiddenFields := []string{
 		"attack_rating", "physical_min_raw", "melee_range", "weapon_class", "\"token\"",
