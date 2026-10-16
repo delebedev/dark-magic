@@ -15,7 +15,7 @@ import (
 func RequiresGameAssets() bool { return false }
 
 // Configure matches the native host's binding; the diagnostic needs no assets.
-func Configure(assetDirectory, dataDirectory, startScene string) error { return nil }
+func Configure(assetDirectory, dataDirectory, startScene string, nativeAudio bool) error { return nil }
 
 func SetScreenGeometry(width, height, left, top, right, bottom float64) error { return nil }
 

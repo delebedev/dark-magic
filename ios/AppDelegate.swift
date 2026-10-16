@@ -108,7 +108,12 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
         guard let window = window else { return }
         do {
             var error: NSError?
-            guard DarkmagicmobileConfigure(assets.path, support.path, scene, &error) else {
+            #if targetEnvironment(simulator)
+            let nativeAudio = false
+            #else
+            let nativeAudio = true
+            #endif
+            guard DarkmagicmobileConfigure(assets.path, support.path, scene, nativeAudio, &error) else {
                 throw error ?? NSError(domain: "DarkMagic", code: 1,
                     userInfo: [NSLocalizedDescriptionKey: "Asset configuration failed"])
             }

@@ -36,25 +36,29 @@ func TestConfigureUsesSandboxPathsAndRejectsReconfiguration(t *testing.T) {
 	}
 	assets := t.TempDir()
 	data := filepath.Join(t.TempDir(), "support")
-	if err := Configure("relative", data, "spell_lab"); err == nil {
+	if err := Configure("relative", data, "spell_lab", true); err == nil {
 		t.Fatal("accepted relative asset path")
 	}
-	if err := Configure(assets, data, "unknown"); err == nil {
+
+	if err := Configure(assets, data, "unknown", true); err == nil {
 		t.Fatal("accepted unknown scene during configuration")
 	}
-	if err := Configure(assets, data, "spell_lab"); err != nil {
+
+	if err := Configure(assets, data, "spell_lab", true); err != nil {
 		t.Fatal(err)
 	}
 	if os.Getenv("MPQ_DIRECTORY") != assets || os.Getenv("DARK_MAGIC_PREFERENCES") != filepath.Join(data, "preferences.json") {
 		t.Fatal("sandbox paths were not propagated")
 	}
-	if game.startScene != "spell_lab" {
-		t.Fatal("selected scene was not retained")
+
+	if game.startScene != "spell_lab" || !game.nativeAudio {
+		t.Fatal("selected host configuration was not retained")
 	}
 	if info, err := os.Stat(data); err != nil || !info.IsDir() {
 		t.Fatalf("data directory: %v", err)
 	}
-	if err := Configure(assets, data, "spell_lab"); err == nil {
+
+	if err := Configure(assets, data, "spell_lab", true); err == nil {
 		t.Fatal("accepted repeated configuration")
 	}
 }
@@ -75,46 +79,65 @@ func TestMobileGameRejectsMissingOriginalAssets(t *testing.T) {
 }
 
 func TestHostedOptionsKeepUIProfileAndWorldFixtureSeparate(t *testing.T) {
-	options, err := hostedOptions("ui_lab")
+	options, err := hostedOptions("ui_lab", true)
 	if err != nil || options.StartScene != "ui_lab" || options.FixtureCharacters != 0 || options.ExpandViewport {
 		t.Fatalf("UI startup acquired a disposable character: %+v, %v", options, err)
 	}
 	for _, scene := range []string{"", "normal"} {
-		options, err := hostedOptions(scene)
+		options, err := hostedOptions(scene, true)
 		if err != nil || options.StartScene != "title" || options.FixtureCharacters != 0 || !options.TouchControls || !options.ExpandViewport {
 			t.Fatalf("normal startup must show the touch-enabled title without a fixture: %+v, %v", options, err)
 		}
 	}
 	for _, scene := range []string{"game_world"} {
-		options, err := hostedOptions(scene)
+		options, err := hostedOptions(scene, true)
 		if err != nil || options.FixtureCharacters != 1 || options.FixtureWorldLevel != 1 || options.StartScene != "game_world" || !options.ExpandViewport {
 			t.Fatalf("world startup cannot admit its upstream town fixture: %+v, %v", options, err)
 		}
 	}
 	for _, scene := range []string{"spell_lab", "warp_lab"} {
-		options, err := hostedOptions(scene)
+		options, err := hostedOptions(scene, true)
 		if err != nil || options.StartScene != scene || options.FixtureCharacters != 0 || options.FixtureWorldLevel != 0 || !options.ExpandViewport {
 			t.Fatalf("lab startup overrides upstream fixture defaults: %+v, %v", options, err)
 		}
 	}
-	if _, err := hostedOptions("unknown"); err == nil {
+
+	if _, err := hostedOptions("unknown", true); err == nil {
 		t.Fatal("accepted an unsupported direct-start scene")
+	}
+}
+
+func TestHostedOptionsUseHostAudioConfiguration(t *testing.T) {
+	for _, nativeAudio := range []bool{false, true} {
+		for _, scene := range []string{"normal", "game_world"} {
+			options, err := hostedOptions(scene, nativeAudio)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if options.DisableNativeAudio == nativeAudio {
+				t.Fatalf("scene %q with native audio %v: disabled = %v", scene, nativeAudio, options.DisableNativeAudio)
+			}
+		}
 	}
 }
 
 func TestHostedOptionsRestrictSeamFixtureToDiagnostics(t *testing.T) {
 	t.Setenv("DARK_MAGIC_FIXTURE_WORLD_SPAWN", "seam")
 	t.Setenv("DARK_MAGIC_INPUT_DIAGNOSTICS", "0")
-	options, _ := hostedOptions("game_world")
+
+	options, _ := hostedOptions("game_world", true)
 	if options.FixtureWorldSpawn != "" {
 		t.Fatal("normal Game World moved to the seam")
 	}
 	t.Setenv("DARK_MAGIC_INPUT_DIAGNOSTICS", "1")
-	options, _ = hostedOptions("game_world")
+
+	options, _ = hostedOptions("game_world", true)
 	if options.FixtureWorldSpawn != "seam" {
 		t.Fatal("diagnostic seam fixture was ignored")
 	}
-	options, _ = hostedOptions("spell_lab")
+
+	options, _ = hostedOptions("spell_lab", true)
 	if options.FixtureWorldSpawn != "" {
 		t.Fatal("overrode lab fixture")
 	}
