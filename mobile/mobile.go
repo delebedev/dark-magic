@@ -152,8 +152,8 @@ func hostedOptions(scene string) (clientapp.Options, error) {
 	case "spell_lab", "warp_lab":
 		options.StartScene = scene
 	case "", "normal":
-		// Mobile enters the ordinary roster flow without the desktop startup warm-up.
-		options.StartScene = "main_menu"
+		// Mobile enters the title flow without the desktop startup warm-up.
+		options.StartScene = "title"
 	case "game_world":
 		options.StartScene = "game_world"
 		options.FixtureCharacters, options.FixtureWorldLevel = 1, 1

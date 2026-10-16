@@ -81,8 +81,9 @@ bindings, clean the target or use a fresh derived-data directory.
 
 ## Scenes and lifecycle
 
-The host defaults to the ordinary main menu and character roster. Shake opens a
-native Developer panel with two remembered preferences: launch mode and Input
+The host defaults to the title screen. Tap once to reach the ordinary main menu,
+then continue to the character roster. Shake opens a native Developer panel
+with two remembered preferences: launch mode and Input
 diagnostics. Launch modes are Normal game, Game World · Amazon, Spell Lab, Warp
 Lab and UI Lab. Changes apply after force-closing and reopening the app. The
 panel pauses the game until Done, including across background/foreground changes.
@@ -130,9 +131,10 @@ and the software cursor. Tiled backgrounds preserve their authored center, inclu
 over a dimmed, uniformly scaled backdrop filling the surrounding space. Character
 selection and creation instead cover the canvas with their background art, without
 the framed center and side panels. Resize updates cancel an old control capture.
-Gameplay keeps its own world and HUD layout. Normal startup enters the main menu
-directly, skipping desktop startup warm-up. See [touch controls](IOS_TOUCH.md)
-for input, panels and diagnostic probes.
+Gameplay keeps its own world and HUD layout. Normal startup enters the title
+screen, skipping desktop startup warm-up and cinematics. The title's existing
+frontend music continues through the menus and stops when game loading begins.
+See [touch controls](IOS_TOUCH.md) for input, panels and diagnostic probes.
 
 Tapping a text field opens a native iOS editor with the system keyboard. Done
 applies the field's existing filter and character limit; Cancel keeps its value.

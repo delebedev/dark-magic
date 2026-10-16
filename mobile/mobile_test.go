@@ -81,8 +81,8 @@ func TestHostedOptionsKeepUIProfileAndWorldFixtureSeparate(t *testing.T) {
 	}
 	for _, scene := range []string{"", "normal"} {
 		options, err := hostedOptions(scene)
-		if err != nil || options.StartScene != "main_menu" || options.FixtureCharacters != 0 || !options.TouchControls || !options.ExpandViewport {
-			t.Fatalf("normal startup acquired a development fixture: %+v, %v", options, err)
+		if err != nil || options.StartScene != "title" || options.FixtureCharacters != 0 || !options.TouchControls || !options.ExpandViewport {
+			t.Fatalf("normal startup must show the touch-enabled title without a fixture: %+v, %v", options, err)
 		}
 	}
 	for _, scene := range []string{"game_world"} {
