@@ -27,6 +27,7 @@ type mobileGame struct {
 	configured    bool
 	dataDirectory string
 	startScene    string
+	nativeAudio   bool
 	client        *clientapp.HostedGame
 	content       *content.FS
 	mods          *distribution.ModSet
@@ -77,7 +78,7 @@ func RequiresGameAssets() bool { return true }
 
 // Configure must run once before creating the generated view controller.
 // Assets are read-only; all persistent output goes to Application Support.
-func Configure(assetDirectory, dataDirectory, startScene string) error {
+func Configure(assetDirectory, dataDirectory, startScene string, nativeAudio bool) error {
 	game.mu.Lock()
 	defer game.mu.Unlock()
 	if game.configured {
@@ -86,7 +87,8 @@ func Configure(assetDirectory, dataDirectory, startScene string) error {
 	if !filepath.IsAbs(assetDirectory) || !filepath.IsAbs(dataDirectory) || strings.Contains(assetDirectory, ",") {
 		return errors.New("asset and data directories must be absolute; asset directory cannot contain commas")
 	}
-	if _, err := hostedOptions(startScene); err != nil {
+
+	if _, err := hostedOptions(startScene, nativeAudio); err != nil {
 		return err
 	}
 	info, err := os.Stat(assetDirectory)
@@ -107,7 +109,8 @@ func Configure(assetDirectory, dataDirectory, startScene string) error {
 			return err
 		}
 	}
-	game.dataDirectory, game.startScene, game.configured = dataDirectory, startScene, true
+
+	game.dataDirectory, game.startScene, game.nativeAudio, game.configured = dataDirectory, startScene, nativeAudio, true
 	return nil
 }
 
@@ -117,7 +120,8 @@ func (g *mobileGame) start() error {
 	if !g.configured {
 		return errors.New("call Configure before creating the Ebitengine view controller")
 	}
-	options, err := hostedOptions(g.startScene)
+
+	options, err := hostedOptions(g.startScene, g.nativeAudio)
 	options.TextEditor = g.textEditor
 	if err != nil {
 		return err
@@ -145,9 +149,9 @@ func (g *mobileGame) start() error {
 }
 
 // Ordinary startup keeps the engine roster flow; direct world launch uses a disposable character.
-func hostedOptions(scene string) (clientapp.Options, error) {
+func hostedOptions(scene string, nativeAudio bool) (clientapp.Options, error) {
 	options := clientapp.Options{StartScene: "ui_lab", ViewportFit: "contain", InputDiagnostics: os.Getenv("DARK_MAGIC_INPUT_DIAGNOSTICS") == "1"}
-	options.DisableNativeAudio = os.Getenv("DARK_MAGIC_DISABLE_NATIVE_AUDIO") == "1"
+	options.DisableNativeAudio = !nativeAudio
 	switch scene {
 	case "ui_lab":
 	case "spell_lab", "warp_lab":
