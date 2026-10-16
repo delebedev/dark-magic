@@ -7,6 +7,22 @@ struct GameAssets {
         let files = FileManager.default
         if files.fileExists(atPath: documents.path) {
             try validate(documents)
+            let music = documents.appendingPathComponent("d2xmusic.mpq")
+            let source = bundled.appendingPathComponent("d2xmusic.mpq")
+            if !files.fileExists(atPath: music.path), files.fileExists(atPath: source.path) {
+                guard readableArchive(source) else {
+                    throw NSError(domain: "DarkMagic.Assets", code: 1, userInfo: [NSLocalizedDescriptionKey:
+                        "Missing or empty title music archive: d2xmusic.mpq."])
+                }
+                let staging = documents.appendingPathComponent(".d2xmusic.mpq-importing")
+                if files.fileExists(atPath: staging.path) { try files.removeItem(at: staging) }
+                try files.copyItem(at: source, to: staging)
+                guard readableArchive(staging) else {
+                    throw NSError(domain: "DarkMagic.Assets", code: 1, userInfo: [NSLocalizedDescriptionKey:
+                        "Missing or empty title music archive: d2xmusic.mpq."])
+                }
+                try files.moveItem(at: staging, to: music)
+            }
         } else {
             try validate(bundled)
             let staging = documents.deletingLastPathComponent().appendingPathComponent(".Assets-importing")
@@ -21,12 +37,16 @@ struct GameAssets {
         return documents
     }
 
+    private static func readableArchive(_ file: URL) -> Bool {
+        guard let values = try? file.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
+              values.isRegularFile == true, (values.fileSize ?? 0) > 0 else { return false }
+        return FileManager.default.isReadableFile(atPath: file.path)
+    }
+
     private static func validate(_ directory: URL) throws {
         let missing = archives.filter { name in
             let file = directory.appendingPathComponent(name)
-            guard let values = try? file.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
-                  values.isRegularFile == true, (values.fileSize ?? 0) > 0 else { return true }
-            return !FileManager.default.isReadableFile(atPath: file.path)
+            return !readableArchive(file)
         }
         guard missing.isEmpty else {
             throw NSError(domain: "DarkMagic.Assets", code: 1, userInfo: [NSLocalizedDescriptionKey:
