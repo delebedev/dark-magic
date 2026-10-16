@@ -25,9 +25,9 @@ test ! -e "$UPLOAD_RECEIPT"
 export PLATFORM_NAME=iphoneos
 AUTH_EXIT=1 bash "$script" > "$trial/warning"
 test ! -e "$UPLOAD_RECEIPT"
-rg -q 'symbols were not uploaded' "$trial/warning"
+grep -q 'symbols were not uploaded' "$trial/warning"
 bash "$script"
-rg -Fxq "$trial/build/DarkMagic.app.dSYM" "$UPLOAD_RECEIPT"
+grep -Fxq "$trial/build/DarkMagic.app.dSYM" "$UPLOAD_RECEIPT"
 if UPLOAD_EXIT=7 bash "$script"; then
     echo 'Symbol upload failure must fail the build' >&2
     exit 1
