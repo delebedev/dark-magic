@@ -98,7 +98,7 @@ func (app *application) baseLuaModules(mapEditorStorage *mapeditor.Storage) []mo
 			app.currentWorld,
 			app.worldObjectResolver,
 		),
-		modruntime.InputModule(app.inputState),
+		modruntime.InputModule(app.inputState, app.options.TextEditor),
 		modruntime.DevModule(map[string]any{
 			"input_diagnostics": app.options.InputDiagnostics,
 			"show_clicks":       app.options.ShowClicks,

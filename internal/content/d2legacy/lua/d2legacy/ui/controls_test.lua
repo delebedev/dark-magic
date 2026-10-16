@@ -10,6 +10,75 @@ return test.suite({
     profile = "module",
     tier = "fast",
     cases = {
+        test.case("native_text_edit_preserves_validation_cancel_and_confirm", function(t)
+            t:run(function()
+                local accepted, confirm = true, false
+                local requests, activations = 0, 0
+                test.mock_module("engine.input/v1", {
+                    cursor = function()
+                        return -1, -1
+                    end,
+                    pressed = function(action)
+                        return action == "confirm" and confirm
+                    end,
+                    released = function()
+                        return false
+                    end,
+                    down = function()
+                        return false
+                    end,
+                    text = function()
+                        return ""
+                    end,
+                    edit_text = function(value, title, secure)
+                        requests = requests + 1
+                        test.expect(title):equals("Name")
+                        test.expect(secure):equals(false)
+                        return 42
+                    end,
+                    text_edit_result = function(id)
+                        test.expect(id):equals(42)
+                        return true, accepted, "newname"
+                    end,
+                }, {})
+                local manager = require("d2legacy.ui.controls").new()
+                local field = manager:add_text_field({
+                    id = "name",
+                    label = "Name",
+                    x = 0,
+                    y = 0,
+                    width = 100,
+                    height = 30,
+                    value = "old",
+                    max_length = 5,
+                    filter = string.upper,
+                    on_activate = function()
+                        activations = activations + 1
+                    end,
+                })
+                manager:activate(field)
+                manager:update()
+                test.expect(field.value):equals("NEWNA")
+                accepted = false
+                manager:activate(field)
+                manager:update()
+                test.expect(field.value):equals("NEWNA")
+                accepted = true
+                field.filter = function()
+                    return nil
+                end
+                manager:activate(field)
+                manager:update()
+                test.expect(field.value):equals("")
+                local previous_requests, previous_activations = requests, activations
+                field.value = "Hero"
+                confirm = true
+                manager:update()
+                test.expect(activations):equals(previous_activations + 1)
+                test.expect(requests):equals(previous_requests)
+                test.expect(field.value):equals("Hero")
+            end)
+        end),
         test.case("pointer_trace_distinguishes_capture_from_activation", function(t)
             t:run(function()
                 local frame = { x = 220, y = 20 }

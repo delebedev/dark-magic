@@ -7,10 +7,16 @@ import (
 
 // InputModule exposes frame-stable logical actions rather than backend key
 // codes or direct Raylib calls.
-func InputModule(input *inputstate.Store) Module {
+func InputModule(input *inputstate.Store, editors ...*TextEditor) Module {
+	var editor *TextEditor
+	if len(editors) > 0 {
+		editor = editors[0]
+	}
 	return Module{
 		Name: "engine.input/v1",
 		Help: documentedModule("Read the current normalized input frame.", map[string]CommandHelp{
+			"edit_text":        commandHelp("engine.input.edit_text(value, title, secure)", "Open an optional native editor; return its request ID or zero when unavailable."),
+			"text_edit_result": commandHelp("engine.input.text_edit_result(id)", "Consume a native edit result as done, accepted, value."),
 			"text": commandHelp(
 				"engine.input.text()",
 				"Return text entered during the current frame.",
@@ -47,6 +53,22 @@ func InputModule(input *inputstate.Store) Module {
 		}),
 		Loader: func(state *lua.LState) int {
 			module := state.SetFuncs(state.NewTable(), map[string]lua.LGFunction{
+				"edit_text": func(state *lua.LState) int {
+					id, err := editor.Begin(state.CheckString(1), state.CheckString(2), state.OptBool(3, false))
+					if err != nil {
+						state.RaiseError("%v", err)
+						return 0
+					}
+					state.Push(lua.LNumber(id))
+					return 1
+				},
+				"text_edit_result": func(state *lua.LState) int {
+					done, accepted, value := editor.Result(int64(state.CheckNumber(1)))
+					state.Push(lua.LBool(done))
+					state.Push(lua.LBool(accepted))
+					state.Push(lua.LString(value))
+					return 3
+				},
 				"text": func(state *lua.LState) int {
 					state.Push(lua.LString(input.Text()))
 					return 1

@@ -43,10 +43,10 @@ local function register_screens(manifest)
         loading={module="d2legacy.screens.loading", cursor={hidden=true}},
         title={frontend=true,module="d2legacy.screens.title"},
         main_menu={frontend=true,module="d2legacy.screens.main_menu"},
-        character_select={frontend=true,module="d2legacy.screens.character_select", character_mode="local"},
-        character_create={frontend=true,module="d2legacy.screens.character_create", character_mode="local"},
+        character_select={frontend="cover",module="d2legacy.screens.character_select", character_mode="local"},
+        character_create={frontend="cover",module="d2legacy.screens.character_create", character_mode="local"},
         game_world={module="d2legacy.screens.game_world"},
-        game_loading={module="d2legacy.screens.game_loading", cursor={hidden=true}},
+        game_loading={frontend=true,module="d2legacy.screens.game_loading", cursor={hidden=true}},
         tcpip={frontend=true,module="d2legacy.screens.tcpip"},
         realm_connecting={frontend=true,module="d2legacy.screens.realm_connecting"},
         realm_gateway={frontend=true,module="d2legacy.screens.realm_gateway"},
@@ -55,8 +55,8 @@ local function register_screens(manifest)
         realm_recovery={frontend=true,module="d2legacy.screens.realm_recovery"},
         -- Realm and local play instantiate the same character presentation.
         -- Only the roster authority adapter differs.
-        realm_characters={frontend=true,module="d2legacy.screens.character_select", character_mode="realm"},
-        realm_create={frontend=true,module="d2legacy.screens.character_create", character_mode="realm"},
+        realm_characters={frontend="cover",module="d2legacy.screens.character_select", character_mode="realm"},
+        realm_create={frontend="cover",module="d2legacy.screens.character_create", character_mode="realm"},
         realm_lobby={frontend=true,module="d2legacy.screens.realm_lobby"},
         realm_game_create={frontend=true,module="d2legacy.screens.realm_game_create"},
         credits={frontend=true,module="d2legacy.screens.credits"},
@@ -85,7 +85,7 @@ local function register_screens(manifest)
         if item.character_mode then
             definition = definition.for_mode(item.character_mode)
         end
-        if item.frontend then definition = frontend_layout.wrap(definition) end
+        if item.frontend then definition = frontend_layout.wrap(definition, item.frontend) end
         scenes.register(name, with_cursor(definition, manifest, item.cursor))
     end
 

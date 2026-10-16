@@ -47,3 +47,10 @@ func (g *smokeGame) Draw(screen *ebiten.Image) {
 }
 
 func (*smokeGame) Layout(width, height int) (int, int) { return 800, 600 }
+
+type TextInputHandler interface {
+	EditText(id int64, value, title string, secure bool)
+}
+
+func SetTextInputHandler(handler TextInputHandler)                  {}
+func CompleteTextInput(id int64, value string, accepted bool) error { return nil }

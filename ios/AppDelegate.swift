@@ -7,6 +7,8 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
     private var gameController: GameViewController?
     private let developerSettings = DeveloperSettings()
     private var developerPanelOpen = false
+    private var textInputOpen = false
+    private var textInput: NativeTextInput?
     private var runningScene = ""
     private var launchOverrides = false
 
@@ -20,6 +22,26 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
         launchOverrides = environment["DARK_MAGIC_START_SCENE"] != nil || environment["DARK_MAGIC_INPUT_DIAGNOSTICS"] != nil
         let diagnostics = developerSettings.resolvedDiagnostics(environment: environment)
         setenv("DARK_MAGIC_INPUT_DIAGNOSTICS", diagnostics ? "1" : "0", 1)
+        let textInput = NativeTextInput()
+        textInput.present = { [weak self] alert in
+            guard let self = self, UIApplication.shared.applicationState == .active,
+                  !self.developerPanelOpen, !self.textInputOpen,
+                  let root = self.window?.rootViewController, root.presentedViewController == nil else { return false }
+            self.textInputOpen = true
+            self.gameController?.view.isUserInteractionEnabled = false
+            self.gameController?.suspendGame()
+            root.present(alert, animated: true)
+            return true
+        }
+        textInput.finished = { [weak self] in
+            guard let self = self, self.textInputOpen else { return }
+            self.textInputOpen = false
+            self.gameController?.view.isUserInteractionEnabled = true
+            if UIApplication.shared.applicationState == .active { self.gameController?.resumeGame() }
+            self.window?.becomeFirstResponder()
+        }
+        self.textInput = textInput
+        DarkmagicmobileSetTextInputHandler(textInput)
         startGame(scene: runningScene)
         window.makeKeyAndVisible()
         window.becomeFirstResponder()
@@ -99,7 +121,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
 
     func applicationWillResignActive(_ application: UIApplication) { gameController?.suspendGame() }
     func applicationDidBecomeActive(_ application: UIApplication) {
-        if !developerPanelOpen { gameController?.resumeGame() }
+        if !developerPanelOpen && !textInputOpen { gameController?.resumeGame() }
     }
 
     func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle { .none }

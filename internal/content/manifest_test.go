@@ -544,7 +544,9 @@ func TestD2LegacyPresentationAssetCoverageBaseline(t *testing.T) {
 	// dependency.
 	// The natural loot fixture pins flpssd.dc6 as code-owned item-art evidence.
 	// Runtime ground art remains selected through the existing dynamic items prefix.
-	const auditedFingerprint = "d82960582c34c310c986217f15139b37bb0478c9c1238369a093dd87667dd94a"
+	// Character selection shares the frameless creation backdrop. Its framed
+	// characterselectscreenEXP sheet remains catalogued but is not selected.
+	const auditedFingerprint = "9034da8364c411a804146847f1b8fa4e0efd730a24056f05c8d845b31ef079b1"
 	if coverage.Fingerprint != auditedFingerprint {
 		t.Fatalf(
 			"presentation asset coverage changed: got %s, want audited %s; "+
