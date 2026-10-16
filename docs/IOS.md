@@ -81,8 +81,9 @@ bindings, clean the target or use a fresh derived-data directory.
 
 ## Scenes and lifecycle
 
-The host defaults to the ordinary main menu and character roster. Shake opens a
-native Developer panel with two remembered preferences: launch mode and Input
+The host defaults to the title screen. Tap once to reach the ordinary main menu,
+then continue to the character roster. Shake opens a native Developer panel
+with two remembered preferences: launch mode and Input
 diagnostics. Launch modes are Normal game, Game World · Amazon, Spell Lab, Warp
 Lab and UI Lab. Changes apply after force-closing and reopening the app. The
 panel pauses the game until Done, including across background/foreground changes.
@@ -130,9 +131,10 @@ and the software cursor. Tiled backgrounds preserve their authored center, inclu
 over a dimmed, uniformly scaled backdrop filling the surrounding space. Character
 selection and creation instead cover the canvas with their background art, without
 the framed center and side panels. Resize updates cancel an old control capture.
-Gameplay keeps its own world and HUD layout. Normal startup enters the main menu
-directly, skipping desktop startup warm-up. See [touch controls](IOS_TOUCH.md)
-for input, panels and diagnostic probes.
+Gameplay keeps its own world and HUD layout. Normal startup enters the title
+screen, skipping desktop startup warm-up and cinematics. The title's existing
+frontend music continues through the menus and stops when game loading begins.
+See [touch controls](IOS_TOUCH.md) for input, panels and diagnostic probes.
 
 Tapping a text field opens a native iOS editor with the system keyboard. Done
 applies the field's existing filter and character limit; Cancel keeps its value.
@@ -180,8 +182,17 @@ Embedded Go fatal crashes still need their own stack-reporting qualification.
 
 ## Backend limitations
 
-Ebitengine currently discards audio mixer commands on desktop and iOS. Renderer
-palette/effect gaps are documented in [PERFORMANCE.md](PERFORMANCE.md). Automap,
+The mobile host enables Ebitengine's WAV effect and music adapter. Cinematic PCM
+remains muted. The optional `d2xmusic.mpq` supplies the expansion title track, while
+`d2music.mpq` supplies base-game music. The required five-archive seed alone does
+not contain these tracks. Import optional music archives into the same `Documents/Assets` directory when music is wanted.
+An existing complete installation can also receive a seed containing only
+`d2xmusic.mpq`: launch copies that archive through staging if it is missing.
+Existing required and optional archives are never replaced. Subsequent builds
+can return to the normal asset exclusions.
+The WAV adapter accepts the pinned decoder's PCM encodings and rejects odd-sized
+pre-data chunks. Cinematic audio and device-consumed PCM timing remain deferred.
+Renderer palette/effect gaps are documented in [PERFORMANCE.md](PERFORMANCE.md). Automap,
 quests and skill allocation retain the existing incomplete scene implementations.
 UIKit may terminate a suspended process. Durable gameplay checkpoints are needed
 before claiming save safety. The rendered canvas has no VoiceOver elements.

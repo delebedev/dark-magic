@@ -146,14 +146,14 @@ func (g *mobileGame) start() error {
 
 // Ordinary startup keeps the engine roster flow; direct world launch uses a disposable character.
 func hostedOptions(scene string) (clientapp.Options, error) {
-	options := clientapp.Options{StartScene: "ui_lab", ViewportFit: "contain", DisableNativeAudio: true, InputDiagnostics: os.Getenv("DARK_MAGIC_INPUT_DIAGNOSTICS") == "1"}
+	options := clientapp.Options{StartScene: "ui_lab", ViewportFit: "contain", InputDiagnostics: os.Getenv("DARK_MAGIC_INPUT_DIAGNOSTICS") == "1"}
 	switch scene {
 	case "ui_lab":
 	case "spell_lab", "warp_lab":
 		options.StartScene = scene
 	case "", "normal":
-		// Mobile enters the ordinary roster flow without the desktop startup warm-up.
-		options.StartScene = "main_menu"
+		// Mobile enters the title flow without the desktop startup warm-up.
+		options.StartScene = "title"
 	case "game_world":
 		options.StartScene = "game_world"
 		options.FixtureCharacters, options.FixtureWorldLevel = 1, 1
