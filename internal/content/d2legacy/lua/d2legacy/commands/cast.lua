@@ -88,7 +88,10 @@ function M.apply(command)
         target_id = payload.target_id or "",
         request_tick = command.tick,
     }
-    local definition = assert(definitions[skill_id], "assigned skill has not migrated to d2legacy")
+    local definition = assert(
+        definitions[skill_id],
+        "assigned skill has not migrated to d2legacy: " .. tostring(skill_id) .. " side=" .. payload.side
+    )
     if definition.activation == "selected_right" then
         assert(payload.side == "right", "selected aura must use the right skill assignment")
         -- The assignment itself is the authoritative passive activation. A

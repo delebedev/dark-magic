@@ -115,6 +115,45 @@ applies the field's existing filter and character limit; Cancel keeps its value.
 The game pauses while editing. UIKit owns keyboard presentation in
 `ios/NativeTextInput.swift`; Lua controls retain validation and field ownership.
 
+## Error reporting
+
+Sentry is opt-in. Put your project's public ingestion DSN in ignored
+`ios/Sentry.local.xcconfig` (xcconfig URLs escape the double slash):
+
+```text
+SENTRY_DSN = https:/$()/PUBLIC_KEY@HOST/PROJECT_ID
+SENTRY_ORG = YOUR_ORG
+SENTRY_PROJECT = YOUR_PROJECT
+```
+
+An empty DSN disables reporting. Simulator builds clear the configured DSN by
+default. For a deliberate reporting check, pass `SENTRY_DSN=YOUR_DSN` on the
+`xcodebuild` command line. Configured phone builds report even in Debug.
+The pinned Sentry Cocoa 8.x package preserves the host's iOS 13 deployment target. The host reports native crashes and explicitly
+captures startup and game-update errors, including the original Lua traceback.
+Go-bound errors use their error text as the issue title. Lua errors use the
+source path and cause for grouping, so changing command sequences or source line
+numbers does not split the same failure. The complete original error, including
+the Lua traceback and command sequence, remains in the NSError mechanism details.
+Native crash grouping is unchanged.
+
+Events carry the launch scene and a release based on the build's Git revision
+(with a dirty marker for uncommitted changes). App hangs, session tracking,
+automatic breadcrumbs, tracing, screenshots and view hierarchies are disabled.
+No save files or assets are attached. A process crash is sent on a subsequent
+launch. Handled errors can be sent while the stopped-game view remains open.
+
+Debug and Release builds generate dSYMs. Install the current CLI with
+`brew install getsentry/tools/sentry` and run `sentry auth login` once.
+Browser authorization stores credentials outside the checkout and supports
+refreshing OAuth tokens. The phone build phase uses that login to upload symbols.
+Missing CLI/authentication warns and keeps the build usable. Upload failures fail
+the build. Simulator builds skip symbol upload. CI can supply `SENTRY_AUTH_TOKEN`
+instead. Keep tokens in a secret store, never in xcconfig or Git. The DSN permits
+ingestion only. Authenticated agents can read errors with
+`sentry issue list YOUR_ORG/YOUR_PROJECT`.
+Embedded Go fatal crashes still need their own stack-reporting qualification.
+
 ## Backend limitations
 
 Ebitengine currently discards audio mixer commands on desktop and iOS. Renderer

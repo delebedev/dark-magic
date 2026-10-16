@@ -1,4 +1,5 @@
 import UIKit
+import Sentry
 import Darkmagicmobile
 
 @main
@@ -14,11 +15,45 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        if let dsn = Bundle.main.object(forInfoDictionaryKey: "SentryDSN") as? String, !dsn.isEmpty {
+            let revision = Bundle.main.url(forResource: "build-revision", withExtension: "txt")
+                .flatMap { try? String(contentsOf: $0, encoding: .utf8) }?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? "unknown"
+            SentrySDK.start { options in
+                options.dsn = dsn
+                options.releaseName = "org.darkmagic.experimental@0.1+\(revision)"
+                options.environment = "ios-iteration"
+                options.beforeSend = { event in
+                    guard let error = event.error as NSError?, error.domain == "go",
+                          let exception = event.exceptions?.last else { return event }
+                    let summary = GameErrorSummary(error.localizedDescription)
+                    exception.type = summary.type
+                    exception.value = summary.message
+                    event.fingerprint = summary.fingerprint
+                    if let source = summary.source {
+                        var tags = event.tags ?? [:]
+                        tags["lua_source"] = source
+                        event.tags = tags
+                    }
+                    return event
+                }
+                options.sendDefaultPii = false
+                options.tracesSampleRate = 0
+                options.enableAutoSessionTracking = false
+                options.enableAppHangTracking = false
+                options.enableAutoBreadcrumbTracking = false
+                options.attachScreenshot = false
+                options.attachViewHierarchy = false
+            }
+        }
         let window = DeveloperWindow(frame: UIScreen.main.bounds)
         self.window = window
         window.onShake = { [weak self] in self?.showDeveloperPanel() }
         let environment = ProcessInfo.processInfo.environment
         runningScene = developerSettings.resolvedScene(environment: environment)
+        SentrySDK.configureScope { scope in
+            scope.setTag(value: self.runningScene, key: "launch_scene")
+        }
         launchOverrides = environment["DARK_MAGIC_START_SCENE"] != nil || environment["DARK_MAGIC_INPUT_DIAGNOSTICS"] != nil
         let diagnostics = developerSettings.resolvedDiagnostics(environment: environment)
         setenv("DARK_MAGIC_INPUT_DIAGNOSTICS", diagnostics ? "1" : "0", 1)
@@ -102,6 +137,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
                 window.rootViewController = host
             }
         } catch {
+            SentrySDK.capture(error: error) { scope in scope.setTag(value: "startup", key: "failure_phase") }
             let controller = UIViewController()
             controller.view.backgroundColor = .black
             let label = UILabel()

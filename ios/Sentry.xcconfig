@@ -1,0 +1,5 @@
+// Reporting is opt-in per checkout. DSNs are public ingestion addresses.
+SENTRY_DSN =
+#include? "Sentry.local.xcconfig"
+// Local Simulator runs use the console. A command-line DSN opts into reporting tests.
+SENTRY_DSN[sdk=iphonesimulator*] =

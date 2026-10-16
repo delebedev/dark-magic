@@ -4,6 +4,13 @@
 	classes = {};
 	objectVersion = 56;
 	objects = {
+        000000000000000000000075 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameErrorSummary.swift; sourceTree = "<group>"; };
+        000000000000000000000076 = { isa = PBXBuildFile; fileRef = 000000000000000000000075; };
+        000000000000000000000070 = { isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/getsentry/sentry-cocoa.git"; requirement = { kind = exactVersion; version = 8.58.4; }; };
+        000000000000000000000071 = { isa = XCSwiftPackageProductDependency; package = 000000000000000000000070; productName = Sentry; };
+        000000000000000000000072 = { isa = PBXBuildFile; productRef = 000000000000000000000071; };
+        000000000000000000000073 = { isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Sentry.xcconfig; sourceTree = "<group>"; };
+        000000000000000000000074 = { isa = PBXShellScriptBuildPhase; buildActionMask = 2147483647; files = (); inputPaths = ("$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Resources/DWARF/$(TARGET_NAME)",); outputPaths = (); alwaysOutOfDate = 1; name = "Build identity and Sentry symbols"; runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/bash; shellScript = "bash \"$PROJECT_DIR/sentry-build.sh\""; };
         000000000000000000000039 = { isa = PBXBuildFile; fileRef = 000000000000000000000014; };
         000000000000000000000014 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NativeTextInput.swift"; sourceTree = "<group>"; };
 		000000000000000000000038 = { isa = PBXBuildFile; fileRef = 000000000000000000000013; };
@@ -42,15 +49,15 @@
 		000000000000000000000042 = { isa = PBXBuildFile; fileRef = 000000000000000000000024; };
 		000000000000000000000043 = { isa = PBXBuildFile; fileRef = 000000000000000000000025; };
 		000000000000000000000044 = { isa = PBXBuildFile; fileRef = 000000000000000000000026; };
-		000000000000000000000046 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000039, 000000000000000000000038, 000000000000000000000037, 000000000000000000000032, 000000000000000000000036, 000000000000000000000033,); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000046 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000076, 000000000000000000000039, 000000000000000000000038, 000000000000000000000037, 000000000000000000000032, 000000000000000000000036, 000000000000000000000033,); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000047 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000034,); runOnlyForDeploymentPostprocessing = 0; };
-		000000000000000000000048 = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000035, 00000000000000000000003C, 00000000000000000000003D, 00000000000000000000003E, 00000000000000000000003F, 000000000000000000000040, 000000000000000000000041, 000000000000000000000042, 000000000000000000000043, 000000000000000000000044,); runOnlyForDeploymentPostprocessing = 0; };
-		000000000000000000000050 = { isa = PBXGroup; children = (000000000000000000000014, 000000000000000000000013, 000000000000000000000012, 00000000000000000000000A, 000000000000000000000011, 00000000000000000000000B, 00000000000000000000000C, 00000000000000000000000D, 00000000000000000000000E, 00000000000000000000000F, 000000000000000000000010, 000000000000000000000051, 000000000000000000000052,); sourceTree = "<group>"; };
+		000000000000000000000048 = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000072, 000000000000000000000035, 00000000000000000000003C, 00000000000000000000003D, 00000000000000000000003E, 00000000000000000000003F, 000000000000000000000040, 000000000000000000000041, 000000000000000000000042, 000000000000000000000043, 000000000000000000000044,); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000050 = { isa = PBXGroup; children = (000000000000000000000075, 000000000000000000000073, 000000000000000000000014, 000000000000000000000013, 000000000000000000000012, 00000000000000000000000A, 000000000000000000000011, 00000000000000000000000B, 00000000000000000000000C, 00000000000000000000000D, 00000000000000000000000E, 00000000000000000000000F, 000000000000000000000010, 000000000000000000000051, 000000000000000000000052,); sourceTree = "<group>"; };
 		000000000000000000000051 = { isa = PBXGroup; name = Frameworks; children = (00000000000000000000001E, 00000000000000000000001F, 000000000000000000000020, 000000000000000000000021, 000000000000000000000022, 000000000000000000000023, 000000000000000000000024, 000000000000000000000025, 000000000000000000000026,); sourceTree = "<group>"; };
 		000000000000000000000052 = { isa = PBXGroup; name = Products; children = (000000000000000000000028,); sourceTree = "<group>"; };
-		00000000000000000000005A = { isa = XCBuildConfiguration; name = Debug; buildSettings = { CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; IPHONEOS_DEPLOYMENT_TARGET = 13.0; SDKROOT = iphoneos; DEBUG_INFORMATION_FORMAT = dwarf; }; };
+		00000000000000000000005A = { isa = XCBuildConfiguration; name = Debug; buildSettings = { CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; IPHONEOS_DEPLOYMENT_TARGET = 13.0; SDKROOT = iphoneos; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; }; };
 		00000000000000000000005B = { isa = XCBuildConfiguration; name = Release; buildSettings = { CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; IPHONEOS_DEPLOYMENT_TARGET = 13.0; SDKROOT = iphoneos; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; }; };
-		00000000000000000000005C = { isa = XCBuildConfiguration; name = Debug; buildSettings = {
+		00000000000000000000005C = { isa = XCBuildConfiguration; name = Debug; baseConfigurationReference = 000000000000000000000073; buildSettings = {
         CODE_SIGN_STYLE = Automatic;
         FRAMEWORK_SEARCH_PATHS = ("$(inherited)", "$(PROJECT_DIR)",);
         INFOPLIST_FILE = Info.plist;
@@ -63,7 +70,7 @@
         SWIFT_OPTIMIZATION_LEVEL = "-Onone";
         TARGETED_DEVICE_FAMILY = 1;
     }; };
-		00000000000000000000005D = { isa = XCBuildConfiguration; name = Release; buildSettings = {
+		00000000000000000000005D = { isa = XCBuildConfiguration; name = Release; baseConfigurationReference = 000000000000000000000073; buildSettings = {
         CODE_SIGN_STYLE = Automatic;
         FRAMEWORK_SEARCH_PATHS = ("$(inherited)", "$(PROJECT_DIR)",);
         INFOPLIST_FILE = Info.plist;
@@ -78,8 +85,8 @@
     }; };
 		00000000000000000000005E = { isa = XCConfigurationList; buildConfigurations = (00000000000000000000005A, 00000000000000000000005B,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 		00000000000000000000005F = { isa = XCConfigurationList; buildConfigurations = (00000000000000000000005C, 00000000000000000000005D,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		000000000000000000000064 = { isa = PBXNativeTarget; name = DarkMagic; productName = DarkMagic; productType = "com.apple.product-type.application"; productReference = 000000000000000000000028; buildConfigurationList = 00000000000000000000005F; buildPhases = (000000000000000000000046, 000000000000000000000048, 000000000000000000000047,); buildRules = (); dependencies = (); };
-		000000000000000000000001 = { isa = PBXProject; attributes = { LastUpgradeCheck = 1600; }; buildConfigurationList = 00000000000000000000005E; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base,); mainGroup = 000000000000000000000050; productRefGroup = 000000000000000000000052; projectDirPath = ""; projectRoot = ""; targets = (000000000000000000000064,); };
+		000000000000000000000064 = { isa = PBXNativeTarget; name = DarkMagic; productName = DarkMagic; productType = "com.apple.product-type.application"; productReference = 000000000000000000000028; buildConfigurationList = 00000000000000000000005F; buildPhases = (000000000000000000000046, 000000000000000000000048, 000000000000000000000047, 000000000000000000000074,); buildRules = (); dependencies = (); packageProductDependencies = (000000000000000000000071,); };
+		000000000000000000000001 = { isa = PBXProject; attributes = { LastUpgradeCheck = 1600; }; buildConfigurationList = 00000000000000000000005E; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base,); mainGroup = 000000000000000000000050; productRefGroup = 000000000000000000000052; packageReferences = (000000000000000000000070,); projectDirPath = ""; projectRoot = ""; targets = (000000000000000000000064,); };
 	};
 	rootObject = 000000000000000000000001;
 }
