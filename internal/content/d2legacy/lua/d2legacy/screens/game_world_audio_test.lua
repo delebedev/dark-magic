@@ -3,6 +3,9 @@ local test = require("d2legacy.tests/v1")
 local function fixture()
     for _, name in ipairs({
         "engine.input/v1",
+        "engine.ecs/v1",
+        "engine.locale/v1",
+        "d2legacy.gameplay.touch_input",
         "engine.scene/v1",
         "engine.vfs/v1",
         "d2legacy.save/v1",
@@ -18,6 +21,27 @@ local function fixture()
         "d2legacy.ui.text",
     }) do
         test.mock_module(name, {})
+    end
+    for _, name in ipairs({
+        "d2legacy.dev.input_diagnostics",
+        "d2legacy.dev.click_indicator",
+        "d2legacy.ui.touch_controls",
+        "d2legacy.ui.touch_toolbar",
+        "d2legacy.ui.touch_loot",
+    }) do
+        test.mock_module(name, { update = function() end, close = function() end, destroy = function() end })
+    end
+    test.mock_module("engine.display/v1", {
+        size = function()
+            return 800, 600
+        end,
+    })
+    for _, name in ipairs({ "d2legacy.gameplay.ground_items", "d2legacy.gameplay.corpse_markers" }) do
+        test.mock_module(name, {
+            new = function()
+                return { update = function() end, destroy = function() end }
+            end,
+        })
     end
     local function node()
         return {
@@ -38,7 +62,7 @@ local function fixture()
     })
     test.mock_module("engine.data/v1", {
         load_manifest = function()
-            return { resolution = { width = 800, height = 600 }, screens = { game_world = { map = {} } } }
+            return { resolution = { width = 800, height = 600 }, screens = { game_world = { map = {} } }, palettes = {} }
         end,
     })
     test.mock_module("engine.network/v1", {
