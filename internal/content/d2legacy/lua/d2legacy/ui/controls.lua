@@ -203,7 +203,7 @@ function Manager:add_text_field(control)
     control.role = "textbox"
     local activate = control.on_activate
     control.on_activate = function(current)
-        if input.edit_text then
+        if input.edit_text and not input.pressed("confirm") then
             local id = input.edit_text(current.value, current.label or current.id, current.mask == true)
             if id > 0 then current.native_edit = id end
         end
@@ -535,7 +535,7 @@ function Manager:update(elapsed)
             if done then
                 control.native_edit = nil
                 if accepted and self.focus == control and eligible(self, control) then
-                    value = control.filter and control.filter(value) or value
+                    if control.filter then value = control.filter(value) or "" end
                     control.value = first_characters(value, control.max_length)
                     control.cursor = character_count(control.value)
                     if control.on_change then control.on_change(control, control.value) end

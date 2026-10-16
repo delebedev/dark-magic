@@ -34,8 +34,9 @@ return {
         loading.begin(screen.dependencies)
 
         self.root = render.create("transition")
-        self.root:set_position(screen.x, screen.y)
-        self.root:fill_rect(
+        local background = render.create("transition", self.root)
+        background:set_position(screen.x, screen.y)
+        background:fill_rect(
             screen.width,
             screen.height,
             screen.fill.red,
@@ -45,7 +46,7 @@ return {
         )
 
         if render.assets_available() then
-            self.animation = render.create("transition", self.root)
+            self.animation = render.create("transition", background)
 
             -- loading_graphic turns the progressive DC6 into a paused animation
             -- that can be driven by a 0..1 progress value instead of wall time.

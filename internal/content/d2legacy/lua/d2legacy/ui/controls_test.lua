@@ -17,7 +17,7 @@ return test.suite({
                     cursor = function()
                         return -1, -1
                     end,
-                    pressed = function()
+                    pressed = function(action)
                         return false
                     end,
                     released = function()
@@ -58,6 +58,59 @@ return test.suite({
                 manager:activate(field)
                 manager:update()
                 test.expect(field.value):equals("NEWNA")
+                accepted = true
+                field.filter = function()
+                    return nil
+                end
+                manager:activate(field)
+                manager:update()
+                test.expect(field.value):equals("")
+            end)
+        end),
+        test.case("confirm_submits_a_text_field_without_opening_native_editor", function(t)
+            t:run(function()
+                local requests, submissions = 0, 0
+                test.mock_module("engine.input/v1", {
+                    cursor = function()
+                        return -1, -1
+                    end,
+                    pressed = function(action)
+                        return action == "confirm"
+                    end,
+                    released = function()
+                        return false
+                    end,
+                    down = function()
+                        return false
+                    end,
+                    text = function()
+                        return ""
+                    end,
+                    edit_text = function()
+                        requests = requests + 1
+                        return 42
+                    end,
+                    text_edit_result = function()
+                        return false, false, ""
+                    end,
+                }, {})
+                local manager = require("d2legacy.ui.controls").new()
+                local field = manager:add_text_field({
+                    id = "name",
+                    value = "Hero",
+                    x = 0,
+                    y = 0,
+                    width = 100,
+                    height = 30,
+                    on_activate = function()
+                        submissions = submissions + 1
+                    end,
+                })
+                manager:set_focus(field)
+                manager:update()
+                test.expect(submissions):equals(1)
+                test.expect(requests):equals(0)
+                test.expect(field.native_edit):equals(nil)
             end)
         end),
         test.case("pointer_trace_distinguishes_capture_from_activation", function(t)
