@@ -546,7 +546,9 @@ func TestD2LegacyPresentationAssetCoverageBaseline(t *testing.T) {
 	// Runtime ground art remains selected through the existing dynamic items prefix.
 	// Character selection shares the frameless creation backdrop. Its framed
 	// characterselectscreenEXP sheet remains catalogued but is not selected.
-	const auditedFingerprint = "9034da8364c411a804146847f1b8fa4e0efd730a24056f05c8d845b31ef079b1"
+	// The divergent skill-ID fixture names the selected Sorceress icon sheet;
+	// this adds one static code-owned path under the existing spells prefix.
+	const auditedFingerprint = "1e2d5789f5e712bc905236aa122858b8a726a6712c36d4ce1f1482836c93fefb"
 	if coverage.Fingerprint != auditedFingerprint {
 		t.Fatalf(
 			"presentation asset coverage changed: got %s, want audited %s; "+

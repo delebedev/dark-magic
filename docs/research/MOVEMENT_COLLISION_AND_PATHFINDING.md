@@ -1,6 +1,12 @@
 # Movement, collision, pathfinding, and room-streaming research
 
-Status: implementation-oriented research baseline for expansion 1.14d. This document deliberately distinguishes **Dark Magic's current deterministic movement policy** from older behavior recovered through D2MOO. That 1.10f code is secondary evidence only and must be revalidated where the 1.14d target may differ. The current implementation is already useful and should be extended rather than replaced wholesale.
+Status: implementation-oriented research baseline from owned Expansion 1.14d
+evidence. Dark Magic targets 1.13c and 1.14d feature parity, but 1.13c movement
+equivalence remains unverified. This document distinguishes **Dark Magic's
+current deterministic movement policy** from older behavior recovered through
+D2MOO. That 1.10f code is secondary evidence only and must be revalidated
+where either target patch may differ. The current implementation is already
+useful and should be extended rather than replaced wholesale.
 
 ## Executive conclusion
 
@@ -222,24 +228,64 @@ continues to describe continuous footprint radius, while a separate
 ordinary unit motion. Players and living monsters carry both facts; inactive
 monster archive/restore retains them. The Lua movement phase processes stable
 ECS order and consults each other same-level unit's current or already-committed
-position during both axis steps. Two contenders therefore cannot swap through
+position during both axis steps. Two contenders under this Lua resolver cannot swap through
 one another or enter the same footprint, and an explicitly nonblocking unit is
 passable. Admission and warp placement can temporarily overlap footprints; a
 unit may move only when its candidate position strictly increases separation,
 preventing that transient condition from trapping locomotion. Static DT1
 collision remains an independent input.
 
+Blocker discovery includes active position/collider/occupancy footprints even
+when they lack velocity or movement bounds. This includes stationary bodies
+and monsters moved by `engine.world.velocity_mover`; only entities with
+velocity and bounds are integrated by the Lua resolver. The native monster
+mover still checks terrain without reciprocally reserving unit footprints.
+Ordinary A* still plans against static terrain. Town interaction targets are
+metadata without spatial bodies, so the NPC observations below do not yet
+constitute NPC materialization or category-policy integration.
+
 Remaining target questions include:
 
 - do monsters block players and each other during planning or only during motion resolution?
 - can friendly owned units be pushed/passed?
-- what is the collision behavior of NPCs in town?
+- what are the remaining town NPC subcategory rules beyond the holdouts below?
 - are dead bodies blocking?
 - do missiles use entity collision in path planning, contact checks, or both?
 - when multiple entities attempt to enter the same space on one tick, which stable ordering resolves the conflict?
 
 The remaining planning and category rules must extend this deterministic fixed-
 tick policy; they must not introduce mutex/timing winners.
+
+### Owned town NPC holdouts
+
+Unchanged owned LoD 1.14d on Wine 11.18 Staging was observed on 2026-10-11,
+with `Game.exe` SHA-256
+`631066c1649c4ea9ffe48bf97e24c00bca1f7a6759c21150f1a79982589adaaf`. A
+synthetic level-one Sorceress retained the stock Barbarian equipment/quest
+tail. Ordinary ground clicks and passive client-unit path reads distinguish
+two town NPC cases; raw data and imagery remain private. The immutable receipt
+has SHA-256 `e258cd2282ba21cc3f0c5490be013cd97751e067ad65202257a6e5e91686fdc4`.
+
+The stationary Rogue guard, identified by owned `MonStats` index 152 and unit
+ID 2, stayed at `(4516.5, 4626.5)`. A running player crossed its center, reaching
+a sampled separation of 0.4463 subtiles before continuing beyond it. Kashya,
+index 150 and unit ID 3, stayed at `(4498.5, 4633.5)` after an ordinary dialogue
+was closed. Ground clicks across her position from both sides produced detours:
+both traces reached a closest sampled separation of `sqrt(2)`, with a route
+point two cells south of her center. A control crossing five cells south kept
+its Y coordinate constant throughout, excluding a systematic projection bend
+without excluding every local terrain confound. These are trajectories, not a
+recovered planning algorithm or a proof of exact step-collision ordering.
+
+A passive room-grid snapshot showed `0x100` in the four cardinal neighbors of
+each NPC. Kashya's center was `0x1100`, while the guard's was `0x2100`; nearby
+cells were clear. Those distinct raw masks support the behavioral distinction
+without assigning universal meanings to their bits. Both owned rows had
+`Align=1`, `soft=1`, and a 2-by-2 size, so those facts alone do not explain the
+difference. Other NPCs, actual player/hireling/summon categories, and whether
+each category participates in initial planning or later resolution remain
+holdouts. A circle-radius approximation must not be presented as the measured
+retail footprint.
 
 ## Doors and objects
 
@@ -275,6 +321,53 @@ joins the velocity channel. Walk begins at 100%; run begins at the integer
 `100 * RunVelocity / WalkVelocity` ratio; the diminished item term and additive
 skill/state/armor terms then join before the final 25% floor. This one integer
 rule is shared by authority, prediction, and player locomotion presentation.
+
+Raw `CharStats` velocities are not subtiles per second. After resolving the
+percentage, the shared rule truncates `WalkVelocity * 256 * percentage / 100`,
+then converts that velocity to subtiles per second with `25 / 4096`. For the
+owned 6/9 class facts, baseline walk/run is 9.375/14.0625 subtiles per second.
+The prior direct 6/9 interpretation moved at 64% of the measured target rate.
+
+### Owned positive-speed holdouts
+
+On 2026-10-11, the unchanged Windows LoD 1.14d reference under Wine was sampled
+through ordinary ground movement and Burst of Speed casts. Two private,
+synthetic Assassin saves supplied skill ID 258 at ranks 1 and 20, with raw
+level/XP and the selected skill chain checked before casting. They retain the
+stock Barbarian equipment and quest/item tail. A second candidate unit and
+the client agreed on rank-one steps; the candidate's server role remains an
+inference. Rank 20 was sampled from the client unit.
+
+The immutable private receipt `speed-evidence-index-001.json` has SHA-256
+`ab0d6445f9414d0e6e49aff0cbf50e67dbb948c0d27f87ea03fce92b3721f84b`.
+It pins the fixtures, closed watches, ordinary inputs, selected-skill reads,
+screenshots, source hashes, exclusions, and observed stat transitions.
+Consecutive straight-axis samples had these dominant 16.16 position deltas:
+
+| State | Walk percentage / step | Run percentage / step | attackrate / other_animrate |
+| --- | --- | --- | --- |
+| Baseline and after expiry | 100 / 24576 | 150 / 36864 | 100 / 100 |
+| Burst rank 1 | 123 / 30224 | 173 / 42512 | 121 / 121 |
+| Burst rank 20 | 161 / 39552 | 211 / 51840 | 152 / 152 |
+
+Dominant-step intervals were approximately 40 ms. All six deltas fit the
+integer velocity conversion above. The run observations distinguish adding
+the skill contribution from multiplying the 150% run baseline by it. Raw
+speed stats returned to baseline approximately 120 and 348 seconds after the
+respective effects began, followed by baseline movement repeats. Passive reads
+are non-atomic; observation timestamps do not identify exact instructions.
+
+The corrected rate also requires close-target protection: authority caps a
+waypoint step by the remaining distance and actual tick duration. Prediction
+re-resolves retained pending target input each replay step, and exhaustion
+preserves a smaller target-capped velocity. These are regression safeguards,
+not proof of retail arrival or target redirection policy. Prediction seeded
+only from a HUD still lacks the authority's retained target, and the connected
+client currently supplies a 40 ms step.
+
+This advances #375's positive movement evidence only. It does not enable
+Burst of Speed content, prove attack timing, settle extreme modifiers or
+cold/freeze policy, or establish bit-exact diagonal/terminal position rounding.
 
 Owned Expansion 1.14d `Armor.txt` rows now pin representative zero/five/ten
 speed penalties for both torso armor and shields, and equipment coverage proves
@@ -325,6 +418,30 @@ The remaining player locomotion model needs:
 - terrain/skill-specific movement modifiers if present.
 
 All of these are authoritative. HUD stamina is a snapshot of this system, not its owner.
+
+## Straight-route waypoint cadence
+
+Player route commands skip only same-direction collinear intermediate stops.
+Turns, reversals, the actual fractional start approach, and the final two
+nodes remain. The penultimate node anchors sub-cell held-pointer endpoint
+updates, so those updates cannot redirect an entire long segment.
+
+`TestStraightRouteMatchesDirectMovementCadence` compares the production command
+source, movement resolver, and collision integrator with a direct target at the
+same configured rates. Its high-rate synthetic case distinguishes the old
+per-cell route, which can reverse after overshooting intermediate nodes.
+`TestOwnedPointMovementMaintainsConfiguredRoutePace` checks consecutive full-rate
+steps and arrival through ordinary admission, pointer intent, managed Lua
+motion, and collision integration with owned data at 25 Hz.
+
+These checks establish route cadence at the configured scale. Matching native
+1.14d distance per tick additionally requires the movement-scale conversion and
+its target-distance clamp. Historical combined application traces showed
+running steps alternating between 0.5625 and 0.4375 subtiles before intermediate
+stops were removed. Those traces do not establish native-rate parity on a branch
+without that conversion. Native directional observations remain qualified
+context, not proof of retail path selection, corner timing, mouse projection,
+or bit-exact diagonal/terminal rounding. This advances #375 only partially.
 
 ## Movement action versus animation speed
 
@@ -688,6 +805,8 @@ MV4.
 Deterministic same-level unit-footprint occupancy/contact resolution now covers
 simultaneous contenders, explicit nonblocking policy, archive/restore, and
 checkpoint parity, including escape from a pre-existing admission/warp overlap.
+Stationary and native-moved blocking footprints are included in Lua-controlled
+step checks without acquiring Lua movement ownership.
 Extend it with target-verified unit categories and decide which dynamic
 footprints affect A* planning before calling MV3 complete.
 
@@ -731,9 +850,9 @@ probe rather than a compatibility claim.
 2. A*/IDA* neighbor order, score/tie-break behavior and maximum lengths.
 3. Straight/toward/wall-follow algorithms and fallback rules.
 4. 16-bit fractional position stepping and exact rounding.
-5. Velocity/acceleration update cadence and unit conversion.
-6. Remaining fixed-point path-velocity rounding after the pinned `CharStats`
-   class conversion.
+5. Velocity/acceleration update cadence and conversion for other unit families.
+6. Fixed-point diagonal and terminal path stepping beyond the player
+   straight-axis baseline and positive-speed holdouts.
 7. Expansion 1.14d holdout vectors for the implemented drain/recovery cadence,
    town exception, torso multiplier, and exhaustion tick.
 8. Faster Run/Walk, slows, chill and state ordering.

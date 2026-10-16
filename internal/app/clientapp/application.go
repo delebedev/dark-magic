@@ -61,6 +61,7 @@ type Options struct {
 	ScreenGeometry         func() modruntime.ScreenGeometry
 	TextEditor             *modruntime.TextEditor
 	FixturePointerMove     bool
+	GameDifficulty         int
 	OutputPalette          string
 	ViewportFit            string
 	ExpandViewport         bool

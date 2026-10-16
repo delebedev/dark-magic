@@ -97,8 +97,9 @@ local function implicit_class(name)
     tier = tonumber(tier)
     if not tier or tier < 3 or tier > 96 or tier % 3 ~= 0 then return nil end
     if not item_types then
+        local rows = assert(records.load("data/global/excel/ItemTypes.txt"))
         item_types = {}
-        for _, row in ipairs(records.load("data/global/excel/ItemTypes.txt") or {}) do
+        for _, row in ipairs(rows) do
             local code = row.Code or row.code
             if code and code ~= "" then item_types[code] = row end
         end
@@ -118,12 +119,13 @@ local function implicit_class(name)
         return found
     end
     if not base_rows then
-        base_rows = {}
+        local rows = {}
         for _, file in ipairs({ "weapons.txt", "armor.txt", "misc.txt" }) do
-            for _, row in ipairs(records.load("data/global/excel/" .. file) or {}) do
-                base_rows[#base_rows + 1] = row
+            for _, row in ipairs(assert(records.load("data/global/excel/" .. file))) do
+                rows[#rows + 1] = row
             end
         end
+        base_rows = rows
     end
 
     -- Recovered 1.10f DATATBLS_CreateItemTypeTreasureClasses groups three qlevels
@@ -134,6 +136,7 @@ local function implicit_class(name)
         local member = matches(row.type, kind, {}) or matches(row.type2, kind, {})
         local missile_potion = matches(row.type, "mpot", {}) or matches(row.type2, "mpot", {})
         if integer(row, "spawnable") ~= 0 and integer(row, "quest") == 0
+            and row.code and row.code ~= ""
             and level > tier - 3 and level <= tier and member
             and (kind == "mpot" or not missile_potion) then
             class.entries[#class.entries + 1] = {
@@ -217,9 +220,14 @@ local function weighted_entry(class, total, no_drop)
 end
 
 local function random_entries(class, context)
+    -- Native picks stop when no item has weight, even with NoDrop set, so an
+    -- empty generated family such as 1.14d bow15 drops nothing.
+    local item_total = weighted_total(class) - class.no_drop
+    if item_total <= 0 then
+        return {}
+    end
     local no_drop = adjusted_no_drop(class, context)
-    local total = weighted_total(class) - class.no_drop + no_drop
-    assert(total > 0, "treasure class has no weighted outcomes")
+    local total = item_total + no_drop
 
     local result = {}
     for _ = 1, class.picks do

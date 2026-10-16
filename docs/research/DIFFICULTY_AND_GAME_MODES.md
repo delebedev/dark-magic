@@ -122,6 +122,40 @@ The client difficulty button is only a request.
 
 Exact quest flags used for each unlock belong in the probe queue.
 
+### Audit of quest, waypoint, and eligibility consumers (#371)
+
+Current state of each consumer of the game's selected difficulty:
+
+- **Active difficulty.** It is read only from the immutable game rules
+  (`d2legacy.policy.game_rules`). Players carry no copy of it:
+  `d2legacy.player.difficulty` holds only the character's
+  `highest_completed` progression.
+- **Character eligibility.** `system.player.enter` rejects a character whose
+  supplied `highest_completed_difficulty` is more than one below the game's
+  difficulty. Hosts do not yet supply that field, because the native
+  character save has no difficulty progression; until durable progression
+  exists (G15), entry without it is not checked.
+- **Act V unlock.** `system.difficulty.advance` records the next unlock on
+  the character without changing the game (#414). The record lasts only for
+  the session until it is persisted (G15).
+- **Quests.** In-session quest progress (`d2legacy.quest.progress`) holds one
+  quest per player and is not keyed by difficulty. That is correct within a
+  game, whose difficulty cannot change, but the original keeps separate quest
+  state for each difficulty, so durable per-difficulty quest state belongs to
+  G15. Only the Den of Evil reward is implemented.
+- **Waypoints.** No waypoint activation state exists yet; only the waypoint
+  panel UI and path-following "waypoints" in movement code. Per-difficulty
+  activation belongs with the waypoint world object (G12) and durable
+  character state (G15).
+- **Choosing the difficulty.** The standalone server takes
+  `--game-difficulty normal|nightmare|hell`. The client takes the same flag
+  for offline and self-hosted games, applied to both the game rules and the
+  generated entry world. A joiner must use the host's value, since difficulty
+  is part of the runtime identity. There is no in-game difficulty picker yet:
+  the offline session is built before character selection, and no
+  progression exists to gate the choice, so any character can enter any
+  difficulty.
+
 ## Resistance penalty
 
 Difficulty resistance penalty should be represented as a rules/stat source applied to player effective resistance, not by rewriting base item/character resistance values.
@@ -206,6 +240,29 @@ Difficulty can affect:
 
 Keep the effective monster-materialization policy centralized rather than letting combat independently guess a Hell multiplier.
 
+High-confidence recovered monster level (pinned 1.10f D2MOO
+`MONSTER/Monster.cpp` spawn initialization and `DATATBLS_GetMonsterLevelInArea`),
+implemented in `d2legacy.data.monster`:
+
+- Normal uses MonStats `Level`.
+- Expansion Nightmare and Hell use the spawning area's Levels.txt `MonLvl2Ex` /
+  `MonLvl3Ex`, unless the monster is a `boss` or `noRatio` unit, which keeps
+  MonStats `Level(N)` / `Level(H)`. Hirelings always use Normal (not yet
+  applied; hirelings do not exist yet).
+- Stats then come from the MonLvl row for that level, scaled by the MonStats
+  difficulty percentages, or straight from MonStats for `noRatio` units.
+
+In owned 1.14d data the Blood Moor is 1 / 36 / 67 and a Fallen's own MonStats
+level is 1 / 36 / 67. Before this was implemented, every difficulty used the
+Normal `Level` column, so a Hell Blood Moor Fallen was built from the level-1
+MonLvl row. Population passes its Levels.txt row; callers without an area, such
+as labs, fall back to MonStats `Level(N)` / `Level(H)`.
+
+The recovered stat lookup switches to MonLvl's `L-` columns when the game type
+is nonzero (`dwGameType` is recovered as "1 = Ladder"). Dark Magic uses the
+plain columns, which is correct for single-player and open games; whether
+realm games should read the `L-` columns is unresolved.
+
 ## Monster skill bonus
 
 The difficulty row exposes a monster skill-level bonus. Monster skill materialization should apply it through the normalized skill definition/learned-level model.
@@ -257,8 +314,9 @@ difficulty, and any other defender uses 100. When leech applies, life and mana
 leech are shifted left by 6 (fixed point), and then, only for player attackers,
 divided by `LifeStealDivisor` and `ManaStealDivisor`. Owned 1.14d
 `patch_d2.mpq` authors 1 / 2 / 3 for both columns. The base expansion
-`d2exp.mpq` still has 1 / 2 / 2, so the Hell value changed in a later patch;
-only the 1.14d row is in scope.
+`d2exp.mpq` still has 1 / 2 / 2, so the Hell value changed in a later patch.
+The implemented value is supported by owned 1.14d data; the 1.13c row must be
+checked before claiming parity for this rule.
 
 Current implementation: `d2legacy.policy.leech` runs after landed basic melee
 and projectile hits. Players and hirelings (owned units of the `hireable` pet
@@ -387,6 +445,21 @@ state. With no override, consumers read live join/leave population. Neither the
 admission cap nor a client-supplied drop result is a gameplay multiplier.
 
 Subsystems should receive the effective count they need from one service, not parse chat/UI commands themselves.
+
+High-confidence recovered player-count consumers (pinned 1.10f D2MOO
+`MONSTER/Monster.cpp` `MONSTER_GetPlayerCountBonus` and `ITEMS/Items.cpp`),
+all matched by `d2legacy.policy.player_count` (#373):
+
+- Only evil-aligned monsters scale; others count as one player.
+- Life and experience each gain 0 / 50 / 100 … 350 percent for 1 … 8 players,
+  applied once at spawn. Whole life is capped at 2^23 - 1.
+- The spawn count is stored on the monster (`STAT_MONSTER_PLAYERCOUNT`,
+  `spawn_player_count`) and caps later NoDrop benefits.
+- NoDrop uses `(players - party) / 2 + party`, where party is the credited
+  owner's living members in the same level (no distance check), capped by the
+  monster's spawn count, then raises the base NoDrop chance to that power. See
+  `ITEM_GENERATION_AND_LOOT.md`.
+- The `/players` override replaces the live count for all of these.
 
 ## Game type / PvP / arena
 

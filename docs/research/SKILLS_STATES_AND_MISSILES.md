@@ -1297,6 +1297,93 @@ field for visual handoff or a separate client state scheduler.
 
 Skill behavior should not create an unowned generic monster. Summoning must enter the owned-unit system described in [HIRELINGS_AND_OWNED_UNITS.md](HIRELINGS_AND_OWNED_UNITS.md): owner, pet type, limit/replacement policy, inherited/snapshotted stats, AI, and lifecycle are authoritative.
 
+## Owned base missile velocity
+
+Owned Expansion 1.14d room-list probes connect each emitted missile to its
+source sentry through matching type/ID owner words and visible game output.
+Lightning Sentry's missile 526 has authored `Vel=30`: seven stable axial
+increments are exactly `-92160` in 16.16 Y coordinates, or 1.40625 subtiles per
+update. Eleven oblique increments also match the stored step vector. An
+independent Charged Bolt Sentry missile 495 holdout has `Vel=12`: 288 stable
+increments across eleven exact identities include axial steps of `36864`, or
+0.5625 subtiles, and diagonal steps of `(26064, -26064)`. Both axial speeds
+match `Vel * 3 / 64`. The previous `Vel / 25` decoding made base motion too slow.
+
+Straight, radial, trap and reactive-state decoders share this base conversion.
+Derived maximum range uses the converted speed times the authored tick
+lifetime. Runtime coverage carries the decoded speed through axial movement,
+owner attribution, expiry and checkpoint replay. This does not establish
+acceleration, rank-dependent velocity, angular quantization or steering policy.
+In particular, native charged bolts turn during travel while the current
+projectile policy keeps straight rays.
+
+Private evidence indexes: `trap-first-fire-001`
+`27927c4ee673a0dd22f00e9f06388dbaa49816e3b58f402e48cbb31328fa712d`
+and `cbs-speed-001`
+`6a9069ab1a5330db86570e3cf101edde76fece679575e94e02fd75354b40c434`.
+The CBS case closed with partial observer failures: an immediate-mana guard
+and a non-atomic multi-room walk failed. The failing traversal was discarded;
+the later accepted cast and normally closed motion watch supply the holdout,
+with eight transient observer errors excluded. These are scoped client
+observations, not exhaustive missile lifecycle or engine-frame timestamps. First-shot phase, spread, target
+range and footprint remain open in
+[issue #418](https://github.com/gravestench/dark-magic/issues/418).
+
+## Owned Charged Bolt Sentry initializer lifetime
+
+Two accepted rank-one casts in an owned Expansion 1.14d client emitted ten
+sampled missile 495 identities with initial total/current frame words `(77, 77)`,
+although the owned `sentrychargedbolt` row has `Range=98`. The total stayed 77
+while the sampled current counter reached 20 in both casts. The joined
+`BoltSentry` helper selects server skill function 17 and
+`srvmissilea=sentrychargedbolt`.
+
+Trap decoding caps function-17 helper lifetimes at 77 ticks after reading the
+missile row, preserving shorter authored lifetimes and other helper initializers.
+Synthetic coverage carries the decoded lifetime through production projectile
+spawning, remaining ticks, expiry, and checkpoint continuation. These tests
+establish Dark Magic behavior, not native full expiry or authoritative damage.
+The native evidence supports the sampled rank-one initialization only.
+Generalized rank/angle behavior, steering, first-shot phase, spread, target range,
+and footprint remain open in
+[issue #418](https://github.com/gravestench/dark-magic/issues/418).
+
+Private case `cbs-route-001` has partial evidence index
+`c364d87f5b109c1f037cfeeb7a6606632f0ad4c33308c42051552635dbde1084`.
+It retains a failed first room watch, two normally closed fixed-identity flight
+watches, and two route/counter comparison mismatches. The older D2MOO 1.10f
+initializer is corroborating hypothesis evidence, not target-version authority.
+
+## Owned Blade Fury logical and visual missiles
+
+The owned skill 266 selects `bladefragment1` for `srvmissilea` and
+`bladefragment2` for `cltmissilea`. Their missile IDs are 506 and 508, with
+authored lifetimes 40 and 33 respectively. Both have `Vel=22`.
+Two ordinary one-second secondary-button holds produced client room-list
+missile 508 identities with owner words `(0, 1)`. Repeated paused reads preserve
+total/current counters `(33, 15)`, `(33, 21)`, `(33, 27)` and `(33, 33)`.
+
+A bounded writable-allocation scan also found three distinct missile 506
+candidates with the same owner and total/current counters `(40, 21)`,
+`(40, 27)` and `(40, 33)`. Briefly resuming the game yielded 50 logical-candidate
+and 47 visual increments of exactly `-67584` in 16.16 Y coordinates, matching
+`22 * 3 / 64` subtiles per update. Sampled counters decrement alongside motion.
+Both groups retain six-counter spacing between coexisting blades.
+
+The owned server row preserves the logical missile's 40-tick definition.
+Owned `Param4=5` gives the current decoder's `Param4 + 1` completion interval
+of six. The observed six-counter spacing is consistent with that interval,
+but does not establish accepted release timestamps or startup latency.
+The client visual's 33-tick counter is not a replacement for the logical lifetime. The allocation
+matches do not establish damage authority, contacts, equipment capture timing,
+continuous channel admission or first-shot latency in
+[issue #419](https://github.com/gravestench/dark-magic/issues/419).
+
+Private case `blade-fury-cadence-001` has evidence index
+`a52beb1c451ec5236bb7d21b5d3c6e992a8a7c318e32127f34d4b93dd35051e7`.
+It retains the first actor's failed expectation of missile 506 in a client
+room walk, both native casts, candidate scan, live watches and rejected reads.
+
 ## Assassin trap family
 
 The exact player IDs 251, 256, 257, 261, 262, 266, 271, 272, 276, and 277 now

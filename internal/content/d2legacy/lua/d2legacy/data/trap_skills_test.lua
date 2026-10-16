@@ -1,4 +1,5 @@
 local test = require("d2legacy.tests/v1")
+local fixtures = require("d2legacy.tests.support.fixtures")
 
 local function copy(values)
     local result = {}
@@ -117,9 +118,10 @@ local skills = {
         ["repeat"] = "1",
         usemanaondo = "1",
         srvmissilea = "blade-fury-missile",
+        cltmissilea = "blade-fury-visual",
         SrcDam = "96",
         Param3 = "6",
-        Param4 = "3",
+        Param4 = "5",
     }),
     skill(271, "Lightning Sentry", {
         srvdofunc = "45",
@@ -162,17 +164,21 @@ local skills = {
         Param4 = "5",
         range = "none",
     }),
-    skill(
-        900,
-        "Charged Helper",
-        { srvmissile = "charged-shot", calc4 = "par1+skill('Fire Blast'.blvl)/3", Param1 = "3", Param2 = "1" }
-    ),
-    skill(901, "Wake Fire Helper", { srvmissile = "wake-fire-shot", Param1 = "1", Param2 = "0" }),
-    skill(
-        902,
-        "Lightning Helper",
-        { srvmissile = "lightning-shot", calc4 = "skill('Death Sentry'.blvl)/3", Param1 = "1", Param2 = "0" }
-    ),
+    skill(900, "Charged Helper", {
+        srvdofunc = "17",
+        srvmissile = "charged-shot",
+        calc4 = "par1+skill('Fire Blast'.blvl)/3",
+        Param1 = "3",
+        Param2 = "1",
+    }),
+    skill(901, "Wake Fire Helper", { srvdofunc = "17", srvmissile = "wake-fire-shot", Param1 = "1", Param2 = "0" }),
+    skill(902, "Lightning Helper", {
+        srvdofunc = "19",
+        srvmissile = "lightning-shot",
+        calc4 = "skill('Death Sentry'.blvl)/3",
+        Param1 = "1",
+        Param2 = "0",
+    }),
     skill(903, "Inferno Helper", { srvmissile = "inferno-shot", Param1 = "1", Param2 = "0" }),
     skill(
         904,
@@ -199,10 +205,11 @@ local missiles = {
     missile("web-air", { HitSubMissile1 = "web-ground" }),
     missile("web-ground", { Vel = "0", CollideKill = "" }),
     missile("blade-sentinel-missile"),
-    missile("blade-fury-missile"),
-    missile("charged-shot"),
+    missile("blade-fury-missile", { Vel = "22", Range = "40" }),
+    missile("blade-fury-visual", { Vel = "22", Range = "33" }),
+    missile("charged-shot", { Vel = "12", Range = "98" }),
     missile("wake-fire-shot"),
-    missile("lightning-shot"),
+    missile("lightning-shot", { Vel = "30", Range = "98" }),
     missile("inferno-shot"),
     missile("death-shot"),
     missile("blade-shield-attachment", { CltSubMissile1 = "blade-shield-overlay" }),
@@ -210,7 +217,7 @@ local missiles = {
 
 return test.suite({
     name = "complete Assassin trap definitions",
-    profile = "module",
+    profile = "authority",
     tier = "fast",
     records = {
         ["data/global/excel/skills.txt"] = skills,
@@ -233,6 +240,15 @@ return test.suite({
         ["data/global/excel/SkillDesc.txt"] = descriptions,
     },
     cases = {
+        test.case("uses_blade_fury_server_missile_instead_of_client_visual", function(t)
+            t:run(function()
+                local definition = require("d2legacy.data.trap_skills").load({ 266 })[266]
+                test.expect(definition.missile_id):equals("blade-fury-missile")
+                test.expect(definition.speed_per_tick):equals(67584 / 65536)
+                test.expect(definition.lifetime_ticks):equals(40)
+                test.expect(definition.complete_delay):equals(6)
+            end)
+        end),
         test.case("decodes_all_ten_exact_ids_by_six_record_shapes", function(t)
             t:run(function()
                 local ids = { 251, 256, 257, 261, 262, 266, 271, 272, 276, 277 }
@@ -253,6 +269,12 @@ return test.suite({
                     test.expect(definitions[id].skill_id):equals(id)
                     test.expect(definitions[id].shape):equals(shapes[id])
                 end
+                test.expect(definitions[261].speed_per_tick):equals(36864 / 65536)
+                test.expect(definitions[271].speed_per_tick):equals(92160 / 65536)
+                test.expect(definitions[256].speed_per_tick):equals(0)
+                test.expect(definitions[261].lifetime_ticks):equals(77)
+                test.expect(definitions[262].lifetime_ticks):equals(25)
+                test.expect(definitions[271].lifetime_ticks):equals(98)
                 test.expect(definitions[251].field_count_base):equals(nil)
                 test.expect(definitions[256].field_count_synergy_skill_id):equals(261)
                 test.expect(definitions[257].weapon_fraction):equals(96)
@@ -261,6 +283,39 @@ return test.suite({
                 test.expect(definitions[277].requires_point_target):equals(false)
             end)
         end),
+        test.case("charged_helper_lifetime_reaches_projectile_expiry_and_checkpoint", {
+            test.submit_system(fixtures.command("system.player.enter", fixtures.player_entry(), {
+                tick = 1,
+                sequence = 1,
+            })),
+            test.step(1),
+            test.run(function()
+                local ecs = require("engine.ecs/v1")
+                local definition = require("d2legacy.data.trap_skills").load({ 261 })[261]
+                local player = ecs.query({ all = { "d2legacy.player.identity" } })[1]
+                local spawn = require("d2legacy.gameplay.projectile_spawn")
+                ecs.create(spawn.components(player, definition, {
+                    cast_id = "charged-lifetime",
+                    velocity_x = 0,
+                    velocity_y = 0,
+                    skill_level = 1,
+                }))
+                local projectile = ecs.query({ all = { "d2legacy.missile.projectile" } })[1]
+                test.expect(ecs.get(projectile, "d2legacy.missile.projectile"):get("remaining_ticks")):equals(77)
+            end),
+            test.step(76),
+            test.run(function()
+                local ecs = require("engine.ecs/v1")
+                local projectiles = ecs.query({ all = { "d2legacy.missile.projectile" } })
+                test.expect(#projectiles):equals(1)
+                test.expect(ecs.get(projectiles[1], "d2legacy.missile.projectile"):get("remaining_ticks")):equals(1)
+            end),
+            test.expect_checkpoint_parity(1),
+            test.run(function()
+                local ecs = require("engine.ecs/v1")
+                test.expect(#ecs.query({ all = { "d2legacy.missile.projectile" } })):equals(0)
+            end),
+        }),
         test.case("preserves_heterogeneous_damage_synergy_rates", function(t)
             t:run(function()
                 local definition = require("d2legacy.data.trap_skills").load({ 272 })[272]
