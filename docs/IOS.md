@@ -96,6 +96,17 @@ Settings, Spotlight, notification and App Store renditions from this single
 image. Both Debug and Release use `AppIcon`. iOS applies the corner mask and
 automatic dark/tinted appearances.
 
+The iPhone compatibility sizes below are derived from the master by Xcode and
+iOS; they do not need separate source files.
+
+| Use | Logical size | 2× / 3× pixels |
+| --- | --- | --- |
+| Notifications | 20 pt | 40 / 60 |
+| Settings | 29 pt | 58 / 87 |
+| Spotlight | 40 pt | 80 / 120 |
+| Home Screen | 60 pt | 120 / 180 |
+| App Store | 1024 px | 1024 |
+
 The artwork was generated with OpenAI image generation: a free-standing spectral
 blue town portal with a dark center and subdued earthy ground. The master was
 resized with Lanczos filtering and losslessly optimized with Xcode's `pngcrush`.
