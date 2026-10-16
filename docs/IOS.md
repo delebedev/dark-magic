@@ -103,10 +103,17 @@ Lobby screens share `d2legacy.ui.frontend_layout`, selected by the scene registr
 It centers the authored 800×600 controls inside the safe area, scales them down
 uniformly when needed, and applies the inverse transform to pointer hit testing
 and the software cursor. Tiled backgrounds preserve their authored center, including baked-in labels,
-over a dimmed, uniformly scaled backdrop filling the surrounding space. Resize updates cancel an old control capture.
+over a dimmed, uniformly scaled backdrop filling the surrounding space. Character
+selection and creation instead cover the canvas with their background art, without
+the framed center and side panels. Resize updates cancel an old control capture.
 Gameplay keeps its own world and HUD layout. Normal startup enters the main menu
 directly, skipping desktop startup warm-up. See [touch controls](IOS_TOUCH.md)
 for input, panels and diagnostic probes.
+
+Tapping a text field opens a native iOS editor with the system keyboard. Done
+applies the field's existing filter and character limit; Cancel keeps its value.
+The game pauses while editing. UIKit owns keyboard presentation in
+`ios/NativeTextInput.swift`; Lua controls retain validation and field ownership.
 
 ## Backend limitations
 

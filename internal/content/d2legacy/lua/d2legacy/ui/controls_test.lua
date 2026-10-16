@@ -10,6 +10,56 @@ return test.suite({
     profile = "module",
     tier = "fast",
     cases = {
+        test.case("native_text_edit_uses_existing_filter_limit_and_cancel", function(t)
+            t:run(function()
+                local accepted = true
+                test.mock_module("engine.input/v1", {
+                    cursor = function()
+                        return -1, -1
+                    end,
+                    pressed = function()
+                        return false
+                    end,
+                    released = function()
+                        return false
+                    end,
+                    down = function()
+                        return false
+                    end,
+                    text = function()
+                        return ""
+                    end,
+                    edit_text = function(value, title, secure)
+                        test.expect(title):equals("Name")
+                        test.expect(secure):equals(false)
+                        return 42
+                    end,
+                    text_edit_result = function(id)
+                        test.expect(id):equals(42)
+                        return true, accepted, "newname"
+                    end,
+                }, {})
+                local manager = require("d2legacy.ui.controls").new()
+                local field = manager:add_text_field({
+                    id = "name",
+                    label = "Name",
+                    x = 0,
+                    y = 0,
+                    width = 100,
+                    height = 30,
+                    value = "old",
+                    max_length = 5,
+                    filter = string.upper,
+                })
+                manager:activate(field)
+                manager:update()
+                test.expect(field.value):equals("NEWNA")
+                accepted = false
+                manager:activate(field)
+                manager:update()
+                test.expect(field.value):equals("NEWNA")
+            end)
+        end),
         test.case("pointer_trace_distinguishes_capture_from_activation", function(t)
             t:run(function()
                 local frame = { x = 220, y = 20 }

@@ -201,6 +201,14 @@ end
 
 function Manager:add_text_field(control)
     control.role = "textbox"
+    local activate = control.on_activate
+    control.on_activate = function(current)
+        if input.edit_text then
+            local id = input.edit_text(current.value, current.label or current.id, current.mask == true)
+            if id > 0 then current.native_edit = id end
+        end
+        if activate then activate(current) end
+    end
     control.value = control.value or ""
     -- `math.huge` acts like "no practical maximum" when max_length is omitted.
     control.max_length = control.max_length or math.huge
@@ -520,6 +528,21 @@ function Manager:update(elapsed)
 
     -- Keyboard/controller confirm activates the focused control on press.
     if input.pressed("confirm") then self:activate(self.focus) end
+
+    for _, control in ipairs(self.controls) do
+        if control.native_edit then
+            local done, accepted, value = input.text_edit_result(control.native_edit)
+            if done then
+                control.native_edit = nil
+                if accepted and self.focus == control and eligible(self, control) then
+                    value = control.filter and control.filter(value) or value
+                    control.value = first_characters(value, control.max_length)
+                    control.cursor = character_count(control.value)
+                    if control.on_change then control.on_change(control, control.value) end
+                end
+            end
+        end
+    end
 
     -- Text editing runs only for a focused textbox, so normal Left/Right
     -- navigation cannot accidentally edit an unfocused field.

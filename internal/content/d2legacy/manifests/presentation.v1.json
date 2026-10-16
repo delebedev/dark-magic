@@ -469,8 +469,8 @@
       ]
     },
     "character_select": {
-      "background": "data/global/ui/CharSelect/characterselectscreenEXP.dc6",
-      "palette": "sky",
+      "background": "data/global/ui/FrontEnd/charactercreationscreenEXP.dc6",
+      "palette": "fechar",
       "selection": "data/global/ui/CharSelect/charselectbox.dc6",
       "selection_palette": "sky",
       "metadata_style": "character_select_metadata",

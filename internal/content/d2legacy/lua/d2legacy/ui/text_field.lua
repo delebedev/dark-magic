@@ -182,6 +182,7 @@ function M.create(root, manager, id, definition, label, options)
         height = height,
         value = definition.value or "",
         max_length = definition.max_length,
+        mask = definition.mask,
 
         -- Compact conditional: a custom filter wins. Otherwise name fields get
         -- our ASCII name filter; other field kinds accept the manager's text as-is.

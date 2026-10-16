@@ -31,6 +31,31 @@ type mobileGame struct {
 	content       *content.FS
 	mods          *distribution.ModSet
 	geometry      atomic.Pointer[modruntime.ScreenGeometry]
+	textEditor    *modruntime.TextEditor
+}
+
+// TextInputHandler presents platform editing on the UIKit thread.
+type TextInputHandler interface {
+	EditText(id int64, value, title string, secure bool)
+}
+
+func SetTextInputHandler(handler TextInputHandler) {
+	game.mu.Lock()
+	defer game.mu.Unlock()
+	if handler == nil {
+		game.textEditor = nil
+		return
+	}
+	game.textEditor = modruntime.NewTextEditor(func(request modruntime.TextEditRequest) {
+		handler.EditText(request.ID, request.Value, request.Title, request.Secure)
+	})
+}
+
+func CompleteTextInput(id int64, value string, accepted bool) error {
+	game.mu.Lock()
+	editor := game.textEditor
+	game.mu.Unlock()
+	return editor.Complete(id, value, accepted)
 }
 
 // SetScreenGeometry receives UIKit points, never framebuffer pixels.
@@ -90,6 +115,7 @@ func (g *mobileGame) start() error {
 		return errors.New("call Configure before creating the Ebitengine view controller")
 	}
 	options, err := hostedOptions(g.startScene)
+	options.TextEditor = g.textEditor
 	if err != nil {
 		return err
 	}

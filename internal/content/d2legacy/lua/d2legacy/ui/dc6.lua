@@ -74,7 +74,7 @@ function M.frontend_background(parent, layer, path, palette, layout)
 end
 
 -- Preserve the labeled center over a uniformly scaled, dimmed backdrop.
-function M.resize_frontend_background(parent, width, height, x, y, content_scale)
+function M.resize_frontend_background(parent, width, height, x, y, content_scale, preserve_center)
     local background = backgrounds[parent]
     if not background then return end
     local authored_width, authored_height = 0, 0
@@ -87,7 +87,7 @@ function M.resize_frontend_background(parent, width, height, x, y, content_scale
     local function place(key, origin_x, scale_x, clip_x, clip_width)
         local copy = background.copies[key] or {}
         background.copies[key] = copy
-        local vertical_scale = key == "center" and scale or cover
+        local vertical_scale = key == "center" and preserve_center ~= false and scale or cover
         local origin_y = (height - authored_height * vertical_scale) / 2
         local tint = key == "center" and 255 or 90
         local index, tile_y = 1, 0
@@ -111,6 +111,10 @@ function M.resize_frontend_background(parent, width, height, x, y, content_scale
             end
             tile_y = tile_y + tile_height
         end
+    end
+    if preserve_center == false then
+        place("center", (width - authored_width * cover) / 2, cover, 0, width)
+        return
     end
     place("center", left, scale, math.max(0, left), math.min(width, authored_width * scale))
     if left > 0 or background.copies.left then

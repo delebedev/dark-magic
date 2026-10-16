@@ -37,7 +37,7 @@ function M.geometry(width, height, safe)
     return left + (available_width - 800 * scale) / 2, top + (available_height - 600 * scale) / 2, scale
 end
 
-function M.wrap(scene)
+function M.wrap(scene, background_fit)
     local create, enter, update = scene.create, scene.enter, scene.update
     local function layout(self)
         if not self.root then
@@ -76,7 +76,7 @@ function M.wrap(scene)
         if self.cursor then
             self.cursor.canvas_x, self.cursor.canvas_y, self.cursor.canvas_scale = x, y, scale
         end
-        dc6.resize_frontend_background(self.root, width, height, x, y, scale)
+        dc6.resize_frontend_background(self.root, width, height, x, y, scale, background_fit ~= "cover")
     end
     scene.create = function(self)
         if create then

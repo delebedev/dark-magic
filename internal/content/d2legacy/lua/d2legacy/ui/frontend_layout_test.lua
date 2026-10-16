@@ -128,6 +128,11 @@ return test.suite({
                 test.expect(nodes[1].x):equals(200)
                 test.expect(nodes[1].y):equals(150)
                 test.expect(nodes[5].visible):equals(false)
+                dc6.resize_frontend_background(root, 1200, 600, 200, 0, 1, false)
+                test.expect(nodes[1].sx):equals(1.5)
+                test.expect(nodes[1].sy):equals(1.5)
+                test.expect(nodes[1].clip_x):equals(0)
+                test.expect(nodes[1].clip_width):equals(1200)
             end)
         end),
     },

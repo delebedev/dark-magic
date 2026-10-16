@@ -59,6 +59,7 @@ type Options struct {
 	ShowClicks             bool
 	TouchControls          bool
 	ScreenGeometry         func() modruntime.ScreenGeometry
+	TextEditor             *modruntime.TextEditor
 	FixturePointerMove     bool
 	OutputPalette          string
 	ViewportFit            string
