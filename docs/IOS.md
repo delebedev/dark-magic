@@ -126,8 +126,10 @@ SENTRY_ORG = YOUR_ORG
 SENTRY_PROJECT = YOUR_PROJECT
 ```
 
-An empty DSN disables reporting. The pinned Sentry Cocoa 8.x package preserves
-the host's iOS 13 deployment target. The host reports native crashes and explicitly
+An empty DSN disables reporting. Simulator builds clear the configured DSN by
+default. For a deliberate reporting check, pass `SENTRY_DSN=YOUR_DSN` on the
+`xcodebuild` command line. Configured phone builds report even in Debug.
+The pinned Sentry Cocoa 8.x package preserves the host's iOS 13 deployment target. The host reports native crashes and explicitly
 captures startup and game-update errors, including the original Lua traceback.
 Go-bound errors use their error text as the issue title. Lua errors use the
 source path and cause for grouping, so changing command sequences or source line
