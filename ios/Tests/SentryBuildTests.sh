@@ -9,20 +9,21 @@ git -C "$trial/repo" -c user.name=Test -c user.email=test@example.invalid commit
 export PROJECT_DIR="$trial/repo/ios" TARGET_BUILD_DIR="$trial/build"
 export UNLOCALIZED_RESOURCES_FOLDER_PATH=DarkMagic.app
 export DWARF_DSYM_FOLDER_PATH="$trial/build" DWARF_DSYM_FILE_NAME=DarkMagic.app.dSYM
-export SENTRY_DSN=https://public@example.invalid/1 SENTRY_AUTH_TOKEN=test-only
+export SENTRY_DSN=https://public@example.invalid/1
 export PATH="$trial/bin:$PATH" UPLOAD_RECEIPT="$trial/upload"
-cat > "$trial/bin/sentry-cli" <<'CLI'
+cat > "$trial/bin/sentry" <<'CLI'
 #!/bin/bash
+if [[ "$1" == auth ]]; then exit "${AUTH_EXIT:-0}"; fi
 printf '%s\n' "$@" > "$UPLOAD_RECEIPT"
 exit "${UPLOAD_EXIT:-0}"
 CLI
-chmod +x "$trial/bin/sentry-cli"
+chmod +x "$trial/bin/sentry"
 export PLATFORM_NAME=iphonesimulator
 bash "$script"
 test -s "$trial/build/DarkMagic.app/build-revision.txt"
 test ! -e "$UPLOAD_RECEIPT"
 export PLATFORM_NAME=iphoneos
-SENTRY_AUTH_TOKEN= bash "$script" > "$trial/warning"
+AUTH_EXIT=1 bash "$script" > "$trial/warning"
 test ! -e "$UPLOAD_RECEIPT"
 rg -q 'symbols were not uploaded' "$trial/warning"
 bash "$script"

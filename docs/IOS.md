@@ -122,6 +122,8 @@ Sentry is opt-in. Put your project's public ingestion DSN in ignored
 
 ```text
 SENTRY_DSN = https:/$()/PUBLIC_KEY@HOST/PROJECT_ID
+SENTRY_ORG = YOUR_ORG
+SENTRY_PROJECT = YOUR_PROJECT
 ```
 
 An empty DSN disables reporting. The pinned Sentry Cocoa 8.x package preserves
@@ -133,13 +135,15 @@ automatic breadcrumbs, tracing, screenshots and view hierarchies are disabled.
 No save files or assets are attached. A process crash is sent on a subsequent
 launch. Handled errors can be sent while the stopped-game view remains open.
 
-Debug and Release builds generate dSYMs. For symbol uploads, install `sentry-cli`
-and supply `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` to `xcodebuild`.
-Keep the token in your shell's secret store or CI secrets, never in xcconfig or
-Git. The final build phase uploads phone symbols when a DSN and token are present.
-Without a token it warns and keeps the build usable. Upload failures fail the build.
-Simulator builds skip symbol upload. The DSN permits ingestion, not reading issues
-or uploading symbols. Agent investigation requires separate authenticated access.
+Debug and Release builds generate dSYMs. Install the current CLI with
+`brew install getsentry/tools/sentry` and run `sentry auth login` once.
+Browser authorization stores credentials outside the checkout and supports
+refreshing OAuth tokens. The phone build phase uses that login to upload symbols.
+Missing CLI/authentication warns and keeps the build usable. Upload failures fail
+the build. Simulator builds skip symbol upload. CI can supply `SENTRY_AUTH_TOKEN`
+instead. Keep tokens in a secret store, never in xcconfig or Git. The DSN permits
+ingestion only. Authenticated agents can read errors with
+`sentry issue list YOUR_ORG/YOUR_PROJECT`.
 Embedded Go fatal crashes still need their own stack-reporting qualification.
 
 ## Backend limitations

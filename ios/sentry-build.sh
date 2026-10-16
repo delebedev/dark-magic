@@ -7,8 +7,8 @@ git describe --always --dirty > "$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER
 
 # Simulator symbols and builds without reporting need no upload.
 if [[ "$PLATFORM_NAME" != iphoneos || -z "${SENTRY_DSN:-}" ]]; then exit 0; fi
-if [[ -z "${SENTRY_AUTH_TOKEN:-}" ]]; then
-    echo 'warning: SENTRY_AUTH_TOKEN absent; native crash symbols were not uploaded.'
+if ! command -v sentry >/dev/null || ! sentry auth status >/dev/null 2>&1; then
+    echo 'warning: Run sentry auth login; native crash symbols were not uploaded.'
     exit 0
 fi
-sentry-cli debug-files upload "$DWARF_DSYM_FOLDER_PATH/$DWARF_DSYM_FILE_NAME"
+sentry debug-files upload "$DWARF_DSYM_FOLDER_PATH/$DWARF_DSYM_FILE_NAME"
