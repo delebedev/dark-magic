@@ -115,6 +115,33 @@ applies the field's existing filter and character limit; Cancel keeps its value.
 The game pauses while editing. UIKit owns keyboard presentation in
 `ios/NativeTextInput.swift`; Lua controls retain validation and field ownership.
 
+## Error reporting
+
+Sentry is opt-in. Put your project's public ingestion DSN in ignored
+`ios/Sentry.local.xcconfig` (xcconfig URLs escape the double slash):
+
+```text
+SENTRY_DSN = https:/$()/PUBLIC_KEY@HOST/PROJECT_ID
+```
+
+An empty DSN disables reporting. The pinned Sentry Cocoa 8.x package preserves
+the host's iOS 13 deployment target. The host reports native crashes and explicitly
+captures startup and game-update errors, including the original Lua traceback.
+Events carry the launch scene and a release based on the build's Git revision
+(with a dirty marker for uncommitted changes). App hangs, session tracking,
+automatic breadcrumbs, tracing, screenshots and view hierarchies are disabled.
+No save files or assets are attached. A process crash is sent on a subsequent
+launch. Handled errors can be sent while the stopped-game view remains open.
+
+Debug and Release builds generate dSYMs. For symbol uploads, install `sentry-cli`
+and supply `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` to `xcodebuild`.
+Keep the token in your shell's secret store or CI secrets, never in xcconfig or
+Git. The final build phase uploads phone symbols when a DSN and token are present.
+Without a token it warns and keeps the build usable. Upload failures fail the build.
+Simulator builds skip symbol upload. The DSN permits ingestion, not reading issues
+or uploading symbols. Agent investigation requires separate authenticated access.
+Embedded Go fatal crashes still need their own stack-reporting qualification.
+
 ## Backend limitations
 
 Ebitengine currently discards audio mixer commands on desktop and iOS. Renderer

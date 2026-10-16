@@ -1,0 +1,3 @@
+// Reporting is opt-in per checkout. DSNs are public ingestion addresses.
+SENTRY_DSN =
+#include? "Sentry.local.xcconfig"

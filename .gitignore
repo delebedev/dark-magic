@@ -17,3 +17,6 @@ asset-catalog/
 /ios/build/
 /ios/__pycache__/
 xcuserdata/
+
+/ios/Sentry.local.xcconfig
+.sentryclirc

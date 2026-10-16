@@ -4,6 +4,7 @@ test:
 	go test ./...
 
 test-mobile:
+	bash ios/Tests/SentryBuildTests.sh
 	@trial_dir=$$(mktemp -d); swiftc ios/DeveloperSettings.swift ios/Tests/DeveloperSettingsTests.swift -o "$$trial_dir/settings-test" && "$$trial_dir/settings-test"
 	go test -tags ebitengine ./mobile/...
 	go test -tags ebitengine ./internal/app/clientapp ./internal/platform/desktop ./internal/runtime/lua -run 'Test(Hosted|ContactProbe|PointerTapProbe|TouchPointer|InputModuleReadsLogicalFrameSnapshot)'
