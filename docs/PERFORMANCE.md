@@ -35,8 +35,10 @@ and writes raw profiles, diagnostics, captures, and
 Compare captures as well as timings: a faster backend that renders a different
 scene has not won.
 
-Current Ebitengine limitations are explicit. Native audio commands are drained
-muted, the developer shell session has no native text overlay, final-display
+Ebitengine plays WAV effects and streamed music through its native audio adapter,
+including loops, volume, stereo pan and fades. Cinematic PCM remains muted.
+Both backends support `--native-audio=false` for matched rendering measurements.
+Current Ebitengine limitations are explicit. The developer shell session has no native text overlay, final-display
 `pal.dat` quantization is rejected, and per-node palettes use cached CPU
 quantization rather than the Raylib GPU lookup shader. These keep the adapter
 useful for graphics/input experimentation without pretending it is ready to
@@ -66,7 +68,7 @@ term.
 
 This single simple-world run says the experimental adapter is competitive; it
 does not establish a replacement decision. Repeat runs, dense combat, palette-
-heavy creatures/effects, native audio, console, and final-palette parity remain
+heavy creatures/effects, complete audio, console, and final-palette parity remain
 required before changing the default.
 
 With dependencies already downloaded and separate empty Go build caches, the

@@ -180,8 +180,13 @@ Embedded Go fatal crashes still need their own stack-reporting qualification.
 
 ## Backend limitations
 
-Ebitengine currently discards audio mixer commands on desktop and iOS. Renderer
-palette/effect gaps are documented in [PERFORMANCE.md](PERFORMANCE.md). Automap,
+The mobile host enables Ebitengine's WAV effect and music adapter. Cinematic PCM
+remains muted. The optional `d2xmusic.mpq` supplies the expansion title track, while
+`d2music.mpq` supplies base-game music. The required five-archive seed alone does
+not contain these tracks. Import optional music archives into the same `Documents/Assets` directory when music is wanted.
+The WAV adapter accepts the pinned decoder's PCM encodings and rejects odd-sized
+pre-data chunks. Cinematic audio and device-consumed PCM timing remain deferred.
+Renderer palette/effect gaps are documented in [PERFORMANCE.md](PERFORMANCE.md). Automap,
 quests and skill allocation retain the existing incomplete scene implementations.
 UIKit may terminate a suspended process. Durable gameplay checkpoints are needed
 before claiming save safety. The rendered canvas has no VoiceOver elements.

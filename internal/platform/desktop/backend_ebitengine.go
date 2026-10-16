@@ -67,6 +67,7 @@ type ebitRenderer struct {
 	composer *render.Composer
 	backend  *ebitComposition
 	mixer    *audio.Mixer
+	audio    *ebitAudioBackend
 
 	currentScreen                 *ebiten.Image
 	drawableWidth, drawableHeight int
@@ -157,6 +158,9 @@ func (r *ebitRenderer) Stop(context.Context) error {
 	if r.backend != nil {
 		r.backend.close()
 	}
+	if r.audio != nil {
+		r.audio.close()
+	}
 
 	return nil
 }
@@ -234,8 +238,7 @@ func (r *ebitRenderer) AttachComposer(composer *render.Composer) error {
 	return nil
 }
 
-// AttachAudio accepts one mixer and drains commands into the muted adapter every frame. Draining is still required to
-// advance mixer ownership even though this backend currently emits no native sound.
+// AttachAudio installs the platform player adapter or the explicitly muted command sink.
 func (r *ebitRenderer) AttachAudio(mixer *audio.Mixer) error {
 	if mixer == nil {
 		return errors.New("ebitengine backend: nil audio mixer")
@@ -246,11 +249,9 @@ func (r *ebitRenderer) AttachAudio(mixer *audio.Mixer) error {
 	}
 
 	r.mixer = mixer
-	r.SubscribeFrame(func() {
-		if err := mixer.Drain(discardAudioBackend{}); err != nil {
-			r.logger.Error("draining muted Ebitengine audio", "error", err)
-		}
-	})
+	if r.options.NativeAudio {
+		r.audio = newEbitAudioBackend(mixer, r.logger)
+	}
 
 	return nil
 }
@@ -406,6 +407,19 @@ func (g *ebitGame) Update() error {
 	}
 	g.lastUpdate = now
 	g.renderer.frames.run()
+	if mixer := g.renderer.mixer; mixer != nil {
+		mixer.Advance(delta)
+		var backend audio.Backend = discardAudioBackend{}
+		if g.renderer.audio != nil {
+			backend = g.renderer.audio
+		}
+		if err := mixer.Drain(backend); err != nil {
+			g.renderer.logger.Error("draining Ebitengine audio", "error", err)
+		}
+		if g.renderer.audio != nil {
+			g.renderer.audio.update()
+		}
+	}
 
 	if g.renderer.backend != nil {
 		g.renderer.backend.advance(delta)
