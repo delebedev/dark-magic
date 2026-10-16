@@ -28,11 +28,21 @@ final class DeveloperPanel: UITableViewController {
         tableView.reloadData()
     }
 
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { 2 }
+    override func numberOfSections(in tableView: UITableView) -> Int { 2 }
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { section == 0 ? 2 : 1 }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = UITableViewCell(style: .value1, reuseIdentifier: nil)
-        if indexPath.row == 0 {
+        if indexPath.section == 1 {
+            cell.textLabel?.text = "Performance overlay"
+            cell.selectionStyle = .none
+            let toggle = UISwitch()
+            toggle.isOn = settings.performanceOverlay
+            toggle.accessibilityLabel = "Performance overlay"
+            toggle.accessibilityIdentifier = "developer.performance-overlay-toggle"
+            toggle.addTarget(self, action: #selector(performanceChanged(_:)), for: .valueChanged)
+            cell.accessoryView = toggle
+        } else if indexPath.row == 0 {
             cell.textLabel?.text = "Launch mode"
             cell.detailTextLabel?.text = settings.launchMode.title
             cell.accessoryType = .disclosureIndicator
@@ -50,9 +60,12 @@ final class DeveloperPanel: UITableViewController {
         return cell
     }
 
-    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? { "Next launch" }
+    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        section == 0 ? "Next launch" : "Display"
+    }
 
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
+        if section == 1 { return "FPS, frame pacing, memory and thermal state. Applies when you close this panel." }
         let current = LaunchMode(rawValue: runningScene.isEmpty ? "normal" : runningScene)?.title ?? runningScene
         return "Force-close and reopen to apply changes. Experiments use disposable characters.\n\nRunning: \(current). Game paused while this panel is open."
             + (overridden ? "\nLaunch environment overrides are active for this run." : "")
@@ -60,10 +73,13 @@ final class DeveloperPanel: UITableViewController {
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        if indexPath.row == 0 { navigationController?.pushViewController(LaunchModePicker(settings: settings), animated: true) }
+        if indexPath.section == 0 && indexPath.row == 0 {
+            navigationController?.pushViewController(LaunchModePicker(settings: settings), animated: true)
+        }
     }
 
     @objc private func diagnosticsChanged(_ sender: UISwitch) { settings.inputDiagnostics = sender.isOn }
+    @objc private func performanceChanged(_ sender: UISwitch) { settings.performanceOverlay = sender.isOn }
     @objc private func done() { onDone?() }
 }
 

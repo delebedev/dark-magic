@@ -124,6 +124,19 @@ Lab and UI Lab. Changes apply after force-closing and reopening the app. The
 panel pauses the game until Done, including across background/foreground changes.
 It remains available in optimized private builds.
 
+Shake → Developer → Display → Performance overlay enables a persistent,
+non-interactive readout at the top-left safe area. It applies on closing the
+panel without restarting. The default is off.
+
+The line shows Ebitengine FPS, the 95th percentile of the last 120 draw callback
+intervals in milliseconds, app physical memory footprint in MiB, and iOS thermal
+state (nominal, fair, serious or critical). Timing measures frame delivery to the
+renderer, not GPU execution time. Thermal state reports system heat pressure,
+not degrees Celsius. Values refresh once per second and stay on this device.
+Collection stops when disabled, backgrounded or paused by a native panel, and
+resuming starts a fresh timing window. Simulator readings describe the Simulator
+process on the Mac, not phone memory or thermal behavior.
+
 Agents can open the same panel in a running process through LLDB. After attaching:
 
 ```text
