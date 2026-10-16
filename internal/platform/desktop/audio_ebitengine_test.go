@@ -4,9 +4,11 @@ package desktop
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"io"
 	"log/slog"
+	"sync"
 	"testing"
 	"time"
 
@@ -198,5 +200,65 @@ func TestEbitAudioPCMDoesNotBlockSoundsAndCloseReleases(t *testing.T) {
 	}
 	if err := mixer.Drain(backend); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestEbitAudioAttachmentDiagnostics(t *testing.T) {
+	for _, native := range []bool{false, true} {
+		name, expected := "muted", "muted"
+		if native {
+			name, expected = "native", "native"
+		}
+		t.Run(name, func(t *testing.T) {
+			renderer := newEbitRenderer(Options{NativeAudio: native, Logger: slog.New(slog.NewTextHandler(io.Discard, nil))})
+			before := renderer.BackendDiagnostics().(EbitengineDiagnostics)
+			if before.Audio != "muted" {
+				t.Fatalf("unattached audio = %q", before.Audio)
+			}
+			if err := renderer.AttachAudio(nil); err == nil {
+				t.Fatal("nil mixer accepted")
+			}
+			if got := renderer.BackendDiagnostics().(EbitengineDiagnostics).Audio; got != "muted" {
+				t.Fatalf("failed attachment audio = %q", got)
+			}
+			var readers sync.WaitGroup
+			readers.Add(1)
+			go func() {
+				defer readers.Done()
+				for range 1000 {
+					got := renderer.BackendDiagnostics().(EbitengineDiagnostics).Audio
+					if got != "muted" && got != "native" {
+						t.Errorf("concurrent audio diagnostics = %q", got)
+						return
+					}
+				}
+			}()
+			defer readers.Wait()
+			if err := renderer.AttachAudio(&audio.Mixer{}); err != nil {
+				t.Fatal(err)
+			}
+			if got := renderer.BackendDiagnostics().(EbitengineDiagnostics).Audio; got != expected {
+				t.Fatalf("attached audio = %q, want %q", got, expected)
+			}
+			if (renderer.audio != nil) != native {
+				t.Fatal("diagnostics disagree with attached native adapter")
+			}
+			if err := renderer.AttachAudio(&audio.Mixer{}); err == nil {
+				t.Fatal("duplicate mixer accepted")
+			}
+			if got := renderer.BackendDiagnostics().(EbitengineDiagnostics).Audio; got != expected {
+				t.Fatalf("rejected duplicate changed audio to %q", got)
+			}
+			if before.Audio != "muted" {
+				t.Fatal("previous diagnostics snapshot changed")
+			}
+			renderer.started.Store(true)
+			if err := renderer.Stop(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			if got := renderer.BackendDiagnostics().(EbitengineDiagnostics).Audio; got != "muted" {
+				t.Fatalf("stopped audio = %q", got)
+			}
+		})
 	}
 }

@@ -160,6 +160,7 @@ func (r *ebitRenderer) Stop(context.Context) error {
 	}
 	if r.audio != nil {
 		r.audio.close()
+		r.diagnostics.audioAttached.Store(false)
 	}
 
 	return nil
@@ -251,6 +252,7 @@ func (r *ebitRenderer) AttachAudio(mixer *audio.Mixer) error {
 	r.mixer = mixer
 	if r.options.NativeAudio {
 		r.audio = newEbitAudioBackend(mixer, r.logger)
+		r.diagnostics.audioAttached.Store(true)
 	}
 
 	return nil
@@ -492,6 +494,7 @@ func (g *ebitGame) DrawFinalScreen(
 }
 
 type ebitDiagnosticsCounters struct {
+	audioAttached      atomic.Bool
 	frames             atomic.Uint64
 	drawCalls          atomic.Uint64
 	nodesVisited       atomic.Uint64
@@ -524,6 +527,10 @@ type EbitengineDiagnostics struct {
 // snapshot loads every atomic counter independently and samples Ebitengine rates at call time, producing a detached
 // diagnostics value suitable for logging without sharing counter ownership.
 func (d *ebitDiagnosticsCounters) snapshot() EbitengineDiagnostics {
+	output := "muted"
+	if d.audioAttached.Load() {
+		output = "native"
+	}
 	return EbitengineDiagnostics{
 		Frames:                  d.frames.Load(),
 		DrawCalls:               d.drawCalls.Load(),
@@ -542,7 +549,7 @@ func (d *ebitDiagnosticsCounters) snapshot() EbitengineDiagnostics {
 		TextureUploadNS:         d.textureUploadNS.Load(),
 		ActualFPS:               ebiten.ActualFPS(),
 		ActualTPS:               ebiten.ActualTPS(),
-		Audio:                   "muted",
+		Audio:                   output,
 	}
 }
 
