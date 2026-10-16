@@ -1,4 +1,5 @@
 import UIKit
+import AVFAudio
 import Sentry
 import Darkmagicmobile
 
@@ -115,6 +116,14 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
             let nativeAudio = false
             #else
             let nativeAudio = true
+            let audioSession = AVAudioSession.sharedInstance()
+            do {
+                try audioSession.setCategory(.playback, mode: .default)
+                try audioSession.setActive(true)
+            } catch {
+                NSLog("Dark Magic audio session: %@", error.localizedDescription)
+                SentrySDK.capture(error: error) { scope in scope.setTag(value: "audio_session", key: "failure_phase") }
+            }
             #endif
             guard DarkmagicmobileConfigure(assets.path, support.path, scene, nativeAudio, &error) else {
                 throw error ?? NSError(domain: "DarkMagic", code: 1,
