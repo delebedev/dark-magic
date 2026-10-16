@@ -62,7 +62,11 @@ local function fixture()
     })
     test.mock_module("engine.data/v1", {
         load_manifest = function()
-            return { resolution = { width = 800, height = 600 }, screens = { game_world = { map = {} } }, palettes = {} }
+            return {
+                resolution = { width = 800, height = 600 },
+                screens = { game_world = { map = {} } },
+                palettes = {},
+            }
         end,
     })
     test.mock_module("engine.network/v1", {
