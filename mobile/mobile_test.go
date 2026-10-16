@@ -102,6 +102,23 @@ func TestHostedOptionsKeepUIProfileAndWorldFixtureSeparate(t *testing.T) {
 	}
 }
 
+func TestHostedOptionsHonorNativeAudioOverride(t *testing.T) {
+	for _, value := range []string{"", "0", "1"} {
+		t.Setenv("DARK_MAGIC_DISABLE_NATIVE_AUDIO", value)
+
+		for _, scene := range []string{"normal", "game_world"} {
+			options, err := hostedOptions(scene)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if options.DisableNativeAudio != (value == "1") {
+				t.Fatalf("scene %q with audio override %q: disabled = %v", scene, value, options.DisableNativeAudio)
+			}
+		}
+	}
+}
+
 func TestHostedOptionsRestrictSeamFixtureToDiagnostics(t *testing.T) {
 	t.Setenv("DARK_MAGIC_FIXTURE_WORLD_SPAWN", "seam")
 	t.Setenv("DARK_MAGIC_INPUT_DIAGNOSTICS", "0")

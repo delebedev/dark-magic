@@ -72,6 +72,17 @@ xcodebuild -project ios/DarkMagic.xcodeproj -scheme DarkMagic \
   -derivedDataPath /absolute/path/to/derived-data CODE_SIGNING_ALLOWED=NO build
 ```
 
+If Simulator cannot open the host audio device, use an explicitly muted launch
+for visual and input checks:
+
+```sh
+SIMCTL_CHILD_DARK_MAGIC_DISABLE_NATIVE_AUDIO=1 xcrun simctl launch \
+  --terminate-running-process booted org.darkmagic.experimental
+```
+
+This skips native audio creation and does not verify sound. Audio stays enabled
+when the launch override is absent.
+
 For a phone, select your signing team in Xcode, connect the unlocked device,
 enable Developer Mode and run the same scheme. Signing identities and team
 settings are local. A Personal Team build may need renewal after its profile
