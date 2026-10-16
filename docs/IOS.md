@@ -129,6 +129,12 @@ SENTRY_PROJECT = YOUR_PROJECT
 An empty DSN disables reporting. The pinned Sentry Cocoa 8.x package preserves
 the host's iOS 13 deployment target. The host reports native crashes and explicitly
 captures startup and game-update errors, including the original Lua traceback.
+Go-bound errors use their error text as the issue title. Lua errors use the
+source path and cause for grouping, so changing command sequences or source line
+numbers does not split the same failure. The complete original error, including
+the Lua traceback and command sequence, remains in the NSError mechanism details.
+Native crash grouping is unchanged.
+
 Events carry the launch scene and a release based on the build's Git revision
 (with a dirty marker for uncommitted changes). App hangs, session tracking,
 automatic breadcrumbs, tracing, screenshots and view hierarchies are disabled.

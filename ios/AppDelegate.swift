@@ -23,6 +23,20 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
                 options.dsn = dsn
                 options.releaseName = "org.darkmagic.experimental@0.1+\(revision)"
                 options.environment = "ios-iteration"
+                options.beforeSend = { event in
+                    guard let error = event.error as NSError?, error.domain == "go",
+                          let exception = event.exceptions?.last else { return event }
+                    let summary = GameErrorSummary(error.localizedDescription)
+                    exception.type = summary.type
+                    exception.value = summary.message
+                    event.fingerprint = summary.fingerprint
+                    if let source = summary.source {
+                        var tags = event.tags ?? [:]
+                        tags["lua_source"] = source
+                        event.tags = tags
+                    }
+                    return event
+                }
                 options.sendDefaultPii = false
                 options.tracesSampleRate = 0
                 options.enableAutoSessionTracking = false
