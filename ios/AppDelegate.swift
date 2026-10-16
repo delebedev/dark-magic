@@ -77,26 +77,36 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
         }
         self.textInput = textInput
         DarkmagicmobileSetTextInputHandler(textInput)
-        startGame(scene: runningScene)
+        prepareGame(scene: runningScene)
         window.makeKeyAndVisible()
         window.becomeFirstResponder()
         return true
     }
 
-    private func startGame(scene: String) {
+    private func prepareGame(scene: String) {
+        showLaunchMessage("Preparing game assets…")
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            do {
+                let files = FileManager.default
+                let support = try files.url(for: .applicationSupportDirectory,
+                    in: .userDomainMask, appropriateFor: nil, create: true)
+                    .appendingPathComponent("DarkMagic", isDirectory: true)
+                let documents = try files.url(for: .documentDirectory,
+                    in: .userDomainMask, appropriateFor: nil, create: true)
+                    .appendingPathComponent("Assets", isDirectory: true)
+                let bundled = Bundle.main.resourceURL!.appendingPathComponent("Assets", isDirectory: true)
+                let assets = DarkmagicmobileRequiresGameAssets()
+                    ? try GameAssets.prepare(documents: documents, bundled: bundled) : documents
+                DispatchQueue.main.async { self?.startGame(scene: scene, assets: assets, support: support) }
+            } catch {
+                DispatchQueue.main.async { self?.showStartupError(error) }
+            }
+        }
+    }
+
+    private func startGame(scene: String, assets: URL, support: URL) {
         guard let window = window else { return }
         do {
-            let support = try FileManager.default.url(for: .applicationSupportDirectory,
-                in: .userDomainMask, appropriateFor: nil, create: true)
-                .appendingPathComponent("DarkMagic", isDirectory: true)
-            let documents = try FileManager.default.url(for: .documentDirectory,
-                in: .userDomainMask, appropriateFor: nil, create: true)
-                .appendingPathComponent("Assets", isDirectory: true)
-            let bundled = Bundle.main.resourceURL!.appendingPathComponent("Assets", isDirectory: true)
-            var isDirectory: ObjCBool = false
-            let hasImportedAssets = FileManager.default.fileExists(atPath: documents.path, isDirectory: &isDirectory)
-                && isDirectory.boolValue
-            let assets = hasImportedAssets ? documents : bundled
             var error: NSError?
             guard DarkmagicmobileConfigure(assets.path, support.path, scene, &error) else {
                 throw error ?? NSError(domain: "DarkMagic", code: 1,
@@ -104,7 +114,6 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
             }
             let controller = GameViewController()
             gameController = controller
-            window.rootViewController = controller
             if scene != "ui_lab" || ProcessInfo.processInfo.environment["DARK_MAGIC_INPUT_DIAGNOSTICS"] == "1" {
                 let host = GameHostViewController()
                 host.addChild(controller)
@@ -135,24 +144,35 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
                     ])
                 }
                 window.rootViewController = host
+            } else {
+                window.rootViewController = controller
             }
+            if UIApplication.shared.applicationState != .active { controller.suspendGame() }
         } catch {
-            SentrySDK.capture(error: error) { scope in scope.setTag(value: "startup", key: "failure_phase") }
-            let controller = UIViewController()
-            controller.view.backgroundColor = .black
-            let label = UILabel()
-            label.textColor = .white
-            label.numberOfLines = 0
-            label.text = "Dark Magic could not start.\n\n\(error.localizedDescription)\n\nCopy original LoD MPQs into Documents/Assets, or bundle ios/Assets."
-            label.translatesAutoresizingMaskIntoConstraints = false
-            controller.view.addSubview(label)
-            NSLayoutConstraint.activate([
-                label.leadingAnchor.constraint(equalTo: controller.view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
-                label.trailingAnchor.constraint(equalTo: controller.view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
-                label.centerYAnchor.constraint(equalTo: controller.view.centerYAnchor)
-            ])
-            window.rootViewController = controller
+            showStartupError(error)
         }
+    }
+
+    private func showStartupError(_ error: Error) {
+        SentrySDK.capture(error: error) { scope in scope.setTag(value: "startup", key: "failure_phase") }
+        showLaunchMessage("Dark Magic could not start.\n\n\(error.localizedDescription)\n\nCopy the complete LoD archive set into Documents/Assets, or install and launch a seed build once.")
+    }
+
+    private func showLaunchMessage(_ message: String) {
+        let controller = UIViewController()
+        controller.view.backgroundColor = .black
+        let label = UILabel()
+        label.textColor = .white
+        label.numberOfLines = 0
+        label.text = message
+        label.translatesAutoresizingMaskIntoConstraints = false
+        controller.view.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: controller.view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
+            label.trailingAnchor.constraint(equalTo: controller.view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
+            label.centerYAnchor.constraint(equalTo: controller.view.centerYAnchor)
+        ])
+        window?.rootViewController = controller
     }
 
     func applicationWillResignActive(_ application: UIApplication) { gameController?.suspendGame() }
@@ -169,7 +189,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate, UIPopoverPresentati
             DispatchQueue.main.async { [weak self] in self?.showDeveloperPanel() }
             return
         }
-        guard !developerPanelOpen, UIApplication.shared.applicationState == .active,
+        guard gameController != nil, !developerPanelOpen, UIApplication.shared.applicationState == .active,
               let root = window?.rootViewController, root.presentedViewController == nil else { return }
         developerPanelOpen = true
         // Disabling interaction cancels UIKit touches before the native loop is suspended.

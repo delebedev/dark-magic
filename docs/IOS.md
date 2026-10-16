@@ -31,12 +31,36 @@ mobile Go packages and the focused shared hosted-input tests.
 Default `make test` excludes them. The fork's Mobile workflow runs that target
 on mobile branches and pull requests into `mobile`.
 
-Put legally acquired classic Diablo II + LoD MPQs in ignored `ios/Assets`, with
-lowercase filenames: `d2data.mpq`, `d2char.mpq`, `d2exp.mpq`, `patch_d2.mpq`, and
-`d2sfx.mpq`. Keep archives and original-art captures out of Git. The existing VFS
-retains patch precedence. A Documents/Assets directory supplied through Finder
-file sharing takes precedence over bundled assets. Preferences, profiles and
-asset hashing caches use Application Support, never the read-only bundle.
+Routine builds exclude `ios/Assets` from the app. Keep the same bundle identifier
+when updating so the phone retains its `Documents/Assets` directory.
+
+To seed a device once, put legally acquired classic Diablo II + LoD MPQs in ignored
+`ios/Assets`, with lowercase filenames: `d2data.mpq`, `d2char.mpq`, `d2exp.mpq`,
+`patch_d2.mpq`, and `d2sfx.mpq`. Build with the Xcode override
+`EXCLUDED_SOURCE_FILE_NAMES=` to include them. Install and launch that seed build
+before sending routine builds. Migration temporarily keeps both copies, so allow
+space for another asset set until the next lean update. A phone running an older bundled-assets build
+needs this migration launch before its first lean update.
+
+First launch copies bundled assets off the main thread into a staging directory,
+checks that every required archive is a readable, nonempty regular file, then
+renames it to `Documents/Assets`. An interrupted staging copy is retried on the
+next seed launch. Existing complete imported assets take precedence and are never
+overwritten by a seed. Incomplete imported sets fail with the missing filenames.
+The ordinary engine still validates archive contents when opening them.
+
+Subsequent builds omit the override and ship only the app code. Xcode removes the
+old bundled resource when switching the same derived-data directory back to a
+routine build. The installed app reuses its persistent archives without copying
+them again. Assets are excluded from device backups because they can be seeded
+again. Uninstalling removes this data; updating in place preserves it. A fresh
+lean installation needs a seed or a complete set imported through File Sharing.
+The smoke binding skips asset preparation and remains asset-free.
+
+Keep archives and original-art captures out of Git. The VFS retains patch
+precedence. Preferences, profiles and asset hashing caches use Application
+Support. Asset replacement is separate from app updates: close the app before
+replacing its complete `Documents/Assets` set.
 
 Select the shared DarkMagic scheme and an installed iPhone Simulator. For a CLI
 build, choose a derived-data directory outside the checkout:
@@ -52,8 +76,8 @@ For a phone, select your signing team in Xcode, connect the unlocked device,
 enable Developer Mode and run the same scheme. Signing identities and team
 settings are local. A Personal Team build may need renewal after its profile
 expires. Trust the developer profile on the phone if iOS requests it. If Xcode
-caches a missing-XCFramework error after regeneration, use a fresh derived-data
-directory.
+caches a missing-XCFramework or precompiled-header error after switching
+bindings, clean the target or use a fresh derived-data directory.
 
 ## Scenes and lifecycle
 

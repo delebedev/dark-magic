@@ -72,6 +72,9 @@ func SetScreenGeometry(width, height, left, top, right, bottom float64) error {
 	return nil
 }
 
+// RequiresGameAssets lets the native host skip asset preparation for the smoke binding.
+func RequiresGameAssets() bool { return true }
+
 // Configure must run once before creating the generated view controller.
 // Assets are read-only; all persistent output goes to Application Support.
 func Configure(assetDirectory, dataDirectory, startScene string) error {
