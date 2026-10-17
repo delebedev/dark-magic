@@ -1,6 +1,11 @@
 package clientapp
 
-import "testing"
+import (
+	"testing"
+
+	modruntime "github.com/gravestench/dark-magic/internal/runtime/lua"
+	lua "github.com/yuin/gopher-lua"
+)
 
 // TestFixtureNeedsSelectionForPlayableScenes ensures direct gameplay cannot start without an admitted fixture player.
 func TestFixtureNeedsSelectionForPlayableScenes(t *testing.T) {
@@ -118,5 +123,37 @@ func TestOrdinarySceneKeepsNormalWorldDefault(t *testing.T) {
 	options := applyDevelopmentSceneDefaults(Options{StartScene: "game_world"})
 	if options.FixtureCharacters != 0 || options.FixtureWorldLevel != 0 {
 		t.Fatalf("ordinary scene acquired lab fixtures: %+v", options)
+	}
+}
+
+func TestTouchWorldFixtureSkillsStayDisposable(t *testing.T) {
+	app := &application{options: Options{StartScene: "game_world", TouchControls: true, FixtureCharacters: 1}}
+	data := app.developmentSkillsBootstrapData()
+
+	state := lua.NewState()
+	defer state.Close()
+
+	module := modruntime.InitialDataModule(map[string]any{"skills": data})
+	state.PreloadModule(module.Name, module.Loader)
+
+	if err := state.DoString(`local s=require("engine.initial_data/v1").get("skills")
+assert(s.enabled and not s.replace and s.right==47)
+assert(#s.skill_ids==3 and s.skill_ids[1]==47 and s.skill_ids[2]==45 and s.skill_ids[3]==48)`); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, options := range []Options{
+		{StartScene: "game_world", TouchControls: true},
+		{StartScene: "game_world", FixtureCharacters: 1},
+		{StartScene: "title", TouchControls: true, FixtureCharacters: 1},
+	} {
+		app.options = options
+		if app.developmentSkillsBootstrapData()["enabled"] != false {
+			t.Fatalf("fixture skills leaked to %+v", options)
+		}
+	}
+
+	if DevelopmentCharacters(1)[0].Class != "Amazon" {
+		t.Fatal("fixture no longer uses Amazon")
 	}
 }

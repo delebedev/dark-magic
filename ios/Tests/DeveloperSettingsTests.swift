@@ -8,6 +8,11 @@ struct DeveloperSettingsTests {
         defer { defaults.removePersistentDomain(forName: suite) }
         let settings = DeveloperSettings(defaults: defaults)
         assert(settings.launchMode == .normal && !settings.inputDiagnostics && !settings.performanceOverlay)
+        assert(settings.haptics)
+        settings.haptics = false
+        assert(!DeveloperSettings(defaults: defaults).haptics)
+        settings.haptics = true
+        assert(DeveloperSettings(defaults: defaults).haptics)
         assert(settings.resolvedScene(environment: [:]) == "")
         settings.launchMode = .warpLab
         settings.inputDiagnostics = true

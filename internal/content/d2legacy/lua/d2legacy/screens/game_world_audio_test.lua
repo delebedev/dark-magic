@@ -98,6 +98,28 @@ local function fixture()
             }
         end,
     })
+    test.mock_module("engine.ecs/v1", {
+        get = function()
+            return nil
+        end,
+    })
+    test.mock_module("engine.input/v1", {
+        pressed = function()
+            return false
+        end,
+    })
+    test.mock_module("d2legacy.gameplay.cast_presentation", {
+        resolve = function()
+            return nil
+        end,
+    })
+    local pulses = {}
+    test.mock_module("engine.feedback/v1", {
+        emit = function(kind)
+            pulses[#pulses + 1] = kind
+        end,
+        clear = function() end,
+    })
     local played = {}
     test.mock_module("engine.audio/v1", {
         exists = function()
@@ -132,7 +154,14 @@ local function fixture()
         return {}
     end
     local scene = {
-        gameplay = { player = "local-player" },
+        gameplay = {
+            player = "local-player",
+            hero = {
+                id = function()
+                    return 123
+                end,
+            },
+        },
         world_level_id = 1,
         world_canvas_width = 800,
         world_canvas_height = 600,
@@ -173,12 +202,13 @@ local function fixture()
     local world = require("d2legacy.screens.game_world")
     return {
         played = played,
+        pulses = pulses,
         level = function(value)
             level = value
         end,
-        frame = function(snapshots, events)
+        frame = function(snapshots, events, active)
             live, cues = snapshots, events or {}
-            world.update(scene, 1 / 60, true, false, false)
+            world.update(scene, 1 / 60, true, active == true, false)
         end,
         close = function()
             world.destroy(scene)
@@ -214,6 +244,44 @@ return test.suite({
     profile = "module",
     tier = "fast",
     cases = {
+        test.case("emits_feedback_once_only_for_live_local_cast_release", {
+            test.run(function()
+                local f = fixture()
+                local function release(id, player, kind)
+                    return {
+                        entity_id = id,
+                        cue_type = "cast",
+                        kind = kind or "cast_effect",
+                        player = player,
+                        skill_id = 48,
+                        tick = id,
+                        caster_entity_id = 123,
+                    }
+                end
+                f.frame({}, { release(1, "local-player") }, true)
+                test.expect(#f.pulses):equals(0)
+                local local_proxy = release(2, "local-player")
+                local_proxy.caster_entity_id = 999
+                local events = {
+                    local_proxy,
+                    release(3, "remote-player"),
+                    release(4, "local-player", "cast_started"),
+                }
+                f.frame({}, events, true)
+                f.frame({}, events, true)
+                test.expect(#f.pulses):equals(1)
+                test.expect(f.pulses[1]):equals("release")
+                f.frame({}, { release(5, "local-player") }, false)
+                f.frame({}, { release(5, "local-player") }, true)
+                test.expect(#f.pulses):equals(1)
+                f.level(2)
+                f.frame({}, { release(6, "local-player") }, true)
+                test.expect(#f.pulses):equals(1)
+                f.frame({}, { release(7, "local-player") }, true)
+                test.expect(#f.pulses):equals(2)
+                f.close()
+            end),
+        }),
         test.case("stops_each_travel_loop_when_its_projectile_disappears", {
             test.run(function()
                 local f = fixture()

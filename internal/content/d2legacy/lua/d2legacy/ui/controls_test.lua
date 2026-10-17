@@ -10,6 +10,42 @@ return test.suite({
     profile = "module",
     tier = "fast",
     cases = {
+        test.case("feedback_follows_accepted_activation_only", function(t)
+            t:run(function()
+                local pulses, actions = 0, 0
+                test.mock_module("engine.feedback/v1", {
+                    emit = function(kind)
+                        test.expect(kind):equals("activate")
+                        pulses = pulses + 1
+                    end,
+                })
+                local manager = load_controls().new()
+                local control = manager:add({
+                    id = "open",
+                    x = 0,
+                    y = 0,
+                    width = 10,
+                    height = 10,
+                    on_activate = function()
+                        actions = actions + 1
+                    end,
+                })
+                manager:activate(control)
+                control.enabled = false
+                manager:activate(control)
+                control.enabled, control.visible = true, false
+                manager:activate(control)
+                manager:activate(nil)
+                test.expect(actions):equals(1)
+                test.expect(pulses):equals(1)
+                control.visible = true
+                control.on_activate = function()
+                    return false
+                end
+                manager:activate(control)
+                test.expect(pulses):equals(1)
+            end)
+        end),
         test.case("native_text_edit_preserves_validation_cancel_and_confirm", function(t)
             t:run(function()
                 local accepted, confirm = true, false

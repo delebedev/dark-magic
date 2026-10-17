@@ -40,6 +40,8 @@ func (app *application) updateFrame() {
 		scene = "none"
 	}
 
+	app.options.Feedback.SetScene(scene)
+
 	frameContext := app.scenes.FrameContext(context.Background())
 	pprof.SetGoroutineLabels(frameContext)
 	app.publishInput(frameContext)

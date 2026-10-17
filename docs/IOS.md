@@ -118,8 +118,7 @@ included in routine lean builds.
 
 The host defaults to the title screen. Tap once to reach the ordinary main menu,
 then continue to the character roster. Shake opens a native Developer panel
-with two remembered preferences: launch mode and Input
-diagnostics. Launch modes are Normal game, Game World · Amazon, Spell Lab, Warp
+with remembered launch and presentation preferences. Launch modes are Normal game, Game World · Amazon, Spell Lab, Warp
 Lab and UI Lab. Changes apply after force-closing and reopening the app. The
 panel pauses the game until Done, including across background/foreground changes.
 It remains available in optimized private builds.
@@ -136,6 +135,18 @@ not degrees Celsius. Values refresh once per second and stay on this device.
 Collection stops when disabled, backgrounded or paused by a native panel, and
 resuming starts a fresh timing window. Simulator readings describe the Simulator
 process on the Mac, not phone memory or thermal behavior.
+
+Shake → Developer → Feedback → Haptics enables soft skill-pad presses, quiet
+menu activation ticks and a stronger pulse on the local hero's spell release.
+It defaults to on, persists and applies on closing the panel. Disabled controls,
+unchanged skill selections and cancelled casts produce no success pulse. Rapid
+feedback is coalesced and release pulses are capped at four per second.
+
+The disposable touch Game World Amazon also receives level-one Fire Ball,
+Ice Blast and Nova through the existing development bootstrap. Ordinary characters
+and saves retain their own skills. The fixture retains its normal mana pool, so
+repeated casting can exhaust it. Simulator verifies routing and UI only and does
+not play haptics. Judge tactile quality on a physical iPhone.
 
 Agents can open the same panel in a running process through LLDB. After attaching:
 

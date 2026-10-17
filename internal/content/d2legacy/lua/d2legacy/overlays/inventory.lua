@@ -166,12 +166,11 @@ end
 local function activate_equipment(self, body_loc)
     if self.touch then
         if self.touch.moving then
-            touch_inventory.request(self, {container="equipment",slot=body_loc,
+            return touch_inventory.request(self, {container="equipment",slot=body_loc,
                 weapon_set=uses_weapon_set(body_loc) and self.item_snapshot.active_weapon_set or 0})
         else
-            touch_inventory.select(self, equipment_item(self.item_snapshot, body_loc))
+            return touch_inventory.select(self, equipment_item(self.item_snapshot, body_loc))
         end
-        return
     end
     local held = held_item(self.item_snapshot)
 
@@ -273,7 +272,7 @@ return {
                 height = geometry.height,
                 -- `body_loc` is a local created for this loop iteration, so the
                 -- callback remembers the correct slot later.
-                on_activate = function() activate_equipment(self, body_loc) end,
+                on_activate = function() return activate_equipment(self, body_loc) end,
             })
         end
 
@@ -303,9 +302,9 @@ return {
                     local x,y=input.cursor()
                     x=x-self.controls.offset_x
                     if self.touch.moving then
-                        touch_inventory.request(self,{container="inventory",x=math.floor((x-self.grid_left)/self.cell_width),
+                        return touch_inventory.request(self,{container="inventory",x=math.floor((x-self.grid_left)/self.cell_width),
                             y=math.floor((y-self.grid_top)/self.cell_height)})
-                    else touch_inventory.select(self,touch_inventory.item_at(self,x,y)) end
+                    else return touch_inventory.select(self,touch_inventory.item_at(self,x,y)) end
                 end})
         end
 

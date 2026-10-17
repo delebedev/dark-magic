@@ -1,3 +1,4 @@
+local feedback = require("engine.feedback/v1")
 -- Reusable retained-mode control manager for d2legacy screens.
 --
 -- THIS FILE IS THE INPUT BRAIN FOR MOST D2LEGACY WIDGETS.
@@ -392,7 +393,9 @@ function Manager:activate(control)
     -- Safe no-op for missing/disabled/hidden targets. This makes keyboard and
     -- pointer code able to call one helper without repeating all three guards.
     if not control or not control.enabled or not control.visible then return false end
-    if control.on_activate then control.on_activate(control) end
+    local changed
+    if control.on_activate then changed = control.on_activate(control) end
+    if changed ~= false and control.role ~= "textbox" and not is_range(control) then feedback.emit("activate") end
     if self.pointer_trace then
         self.pointer_trace.activation = control.id
         self.pointer_trace.activations = (self.pointer_trace.activations or 0) + 1

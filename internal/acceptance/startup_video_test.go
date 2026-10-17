@@ -226,6 +226,7 @@ func newStartupHarnessWithSaves(t *testing.T, entries ...d2save.Character) *star
 		modruntime.DataModule(contentFS),
 		modruntime.RecordsModule(recordstore.New(contentFS)),
 		modruntime.InputModule(&input),
+		modruntime.FeedbackModule(nil),
 		modruntime.DisplayModule(func() (int, int) { return 800, 600 }),
 		modruntime.DevModule(nil),
 		modruntime.NewECSCapability(runtime, gameecs.New()).Module(),

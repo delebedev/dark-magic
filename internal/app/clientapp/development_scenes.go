@@ -90,8 +90,15 @@ func shouldActivateDevelopmentSession(options Options) bool {
 		(fixtureNeedsSelection(options.StartScene) || developmentGameplayScene(options.StartScene))
 }
 
-// developmentSkillsBootstrapData gives Spell Lab broad ephemeral skills while leaving ordinary sessions untouched.
+// developmentSkillsBootstrapData supplies disposable lab skills without changing ordinary character learning.
 func (app *application) developmentSkillsBootstrapData() map[string]any {
+	if app.options.StartScene == "game_world" && app.options.TouchControls && app.options.FixtureCharacters > 0 {
+		return map[string]any{
+			"enabled": true, "replace": false, "skill_ids": []any{float64(47), float64(45), float64(48)},
+			"skill_level": float64(1), "right": float64(47),
+		}
+	}
+
 	if app.options.StartScene != "spell_lab" {
 		return map[string]any{"enabled": false}
 	}

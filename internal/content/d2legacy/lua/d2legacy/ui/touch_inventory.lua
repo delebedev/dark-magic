@@ -45,18 +45,22 @@ function M.selected(self)
 end
 
 function M.select(self, item)
-    if self.touch.pending then return end
+    if self.touch.pending then return false end
+    local selected = item and item.id
+    local changed = self.touch.selected_id ~= selected or self.touch.ground ~= nil or self.touch.moving == true
     self.touch.ground = nil
-    self.touch.selected_id = item and item.id
+    self.touch.selected_id = selected
     self.touch.moving, self.touch.feedback = false, nil
+    return changed
 end
 
 function M.request(self, destination)
     local state, item = self.touch, M.selected(self)
-    if not item or state.pending or state.ground then return end
+    if not item or state.pending or state.ground then return false end
     state.pending = {token = self.items.move(item.id, destination, item.container == "held"),
         item_id = item.id, destination = destination}
     state.feedback = "[gold]Waiting...[/]"
+    return true
 end
 
 function M.open_inventory(id)
@@ -80,14 +84,14 @@ function M.create(self, palette, options)
     for index = 1, 3 do
         state.buttons[index] = widgets.button(root, self.controls, "item_action_" .. index, "Equip", function()
             local item = M.selected(self)
-            if not item or state.pending then return end
+            if not item or state.pending then return false end
             if state.ground then
                 state.options.take(item)
             elseif index == 3 and state.options.inventory then
                 state.options.inventory(item.id)
             elseif index <= 2 then
                 local slot = state.equip_slots[index]
-                M.request(self, {container="equipment", slot=slot,
+                return M.request(self, {container="equipment", slot=slot,
                     weapon_set=(slot=="rarm" or slot=="larm") and self.item_snapshot.active_weapon_set or 0})
             else
                 state.moving = not state.moving
