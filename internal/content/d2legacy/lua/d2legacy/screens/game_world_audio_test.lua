@@ -154,11 +154,14 @@ local function fixture()
         return {}
     end
     local scene = {
-        gameplay = { player = "local-player", hero = {
-            id = function()
-                return 123
-            end,
-        } },
+        gameplay = {
+            player = "local-player",
+            hero = {
+                id = function()
+                    return 123
+                end,
+            },
+        },
         world_level_id = 1,
         world_canvas_width = 800,
         world_canvas_height = 600,
@@ -257,11 +260,10 @@ return test.suite({
                 end
                 f.frame({}, { release(1, "local-player") }, true)
                 test.expect(#f.pulses):equals(0)
-                local other_caster = release(10, "local-player")
-                other_caster.caster_entity_id = 999
+                local local_proxy = release(2, "local-player")
+                local_proxy.caster_entity_id = 999
                 local events = {
-                    other_caster,
-                    release(2, "local-player"),
+                    local_proxy,
                     release(3, "remote-player"),
                     release(4, "local-player", "cast_started"),
                 }

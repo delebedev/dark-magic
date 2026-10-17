@@ -812,8 +812,7 @@ local function observe_semantic_cues(self, feedback_allowed)
             end
             if cue.cue_type == "cast" then
                 if self.feedback_ready and feedback_allowed and cue.kind == "cast_effect"
-                    and cue.player == self.gameplay.player and self.gameplay.hero
-                    and cue.caster_entity_id == self.gameplay.hero:id() then feedback.emit("release") end
+                    and cue.player == self.gameplay.player and self.gameplay.hero then feedback.emit("release") end
                 local recipe = cast_presentation.resolve(cue.skill_id)
                 if recipe then
                     if cue.kind == "cast_started" then

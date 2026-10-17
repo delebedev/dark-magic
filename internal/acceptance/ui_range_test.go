@@ -25,6 +25,10 @@ func TestLuaControlsSliderKeyboardAndDragSemantics(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if err := runtime.RegisterModule(modruntime.FeedbackModule(nil)); err != nil {
+		t.Fatal(err)
+	}
+
 	if err := runtime.Start(ctx); err != nil {
 		t.Fatal(err)
 	}

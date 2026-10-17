@@ -13,6 +13,7 @@ type Feedback struct {
 	play        func(string)
 	enabled     bool
 	skipFrame   bool
+	scene       string
 	pending     string
 	lastPulse   time.Time
 	lastRelease time.Time
@@ -43,6 +44,20 @@ func (f *Feedback) Clear() {
 	f.mu.Lock()
 	f.pending = ""
 	f.mu.Unlock()
+}
+
+// SetScene drops the first update's cues after a covered scene regains focus.
+func (f *Feedback) SetScene(scene string) {
+	if f == nil {
+		return
+	}
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	if f.scene != scene {
+		f.scene, f.pending, f.skipFrame = scene, "", true
+	}
 }
 
 func feedbackPriority(kind string) int {

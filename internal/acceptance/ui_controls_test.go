@@ -25,6 +25,10 @@ func TestLuaControlsPointerKeyboardFocusAndAccessibility(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if err := runtime.RegisterModule(modruntime.FeedbackModule(nil)); err != nil {
+		t.Fatal(err)
+	}
+
 	if err := runtime.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -112,6 +116,10 @@ func TestLuaControlsFormFieldsAndFocusScopes(t *testing.T) {
 	}
 
 	if err := runtime.RegisterModule(modruntime.InputModule(&input)); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := runtime.RegisterModule(modruntime.FeedbackModule(nil)); err != nil {
 		t.Fatal(err)
 	}
 

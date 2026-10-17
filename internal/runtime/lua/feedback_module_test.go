@@ -80,6 +80,36 @@ func TestFeedbackWithoutHost(t *testing.T) {
 	}
 }
 
+func TestFeedbackSceneChangesDiscardCoveredCast(t *testing.T) {
+	var feedback Feedback
+
+	var played []string
+
+	feedback.SetHandler(func(kind string) { played = append(played, kind) })
+	feedback.SetEnabled(true)
+
+	now := time.Unix(100, 0)
+
+	feedback.SetScene("world")
+	feedback.Flush(now)
+	feedback.request("activate")
+	feedback.Flush(now.Add(time.Second))
+	feedback.SetScene("inventory")
+	feedback.Flush(now.Add(2 * time.Second))
+	feedback.request("activate")
+	feedback.Flush(now.Add(3 * time.Second))
+	feedback.SetScene("world")
+	feedback.request("release")
+	feedback.Flush(now.Add(4 * time.Second))
+	feedback.SetScene("world")
+	feedback.request("release")
+	feedback.Flush(now.Add(5 * time.Second))
+
+	if !reflect.DeepEqual(played, []string{"activate", "activate", "release"}) {
+		t.Fatalf("scene transition replayed covered cast or dropped fresh input: %v", played)
+	}
+}
+
 func TestFeedbackConcurrentActivity(t *testing.T) {
 	var feedback Feedback
 

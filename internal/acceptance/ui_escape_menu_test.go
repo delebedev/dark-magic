@@ -37,6 +37,7 @@ func TestLuaEscapeMenuRecoveredNavigation(t *testing.T) {
 
 	for _, module := range []modruntime.Module{
 		modruntime.InputModule(&input),
+		modruntime.FeedbackModule(nil),
 		modruntime.DataModule(contentFS),
 		modruntime.RenderModule(runtime, &composer),
 		modruntime.AudioModule(runtime, &mixer, contentFS),
@@ -107,6 +108,7 @@ func assertLuaOptionsBackdropCenter(t *testing.T, profile string, wantX, wantY f
 	scenes := modruntime.NewScenes(runtime, navigation.New())
 	for _, module := range []modruntime.Module{
 		modruntime.InputModule(&input),
+		modruntime.FeedbackModule(nil),
 		modruntime.DataModule(contentFS, d2presentation.ManifestTransforms(profile)),
 		modruntime.RenderModule(runtime, &composer),
 		modruntime.AudioModule(runtime, &mixer, contentFS),
