@@ -171,6 +171,8 @@ func (g *mobileGame) start() error {
 func hostedOptions(scene string, nativeAudio bool) (clientapp.Options, error) {
 	options := clientapp.Options{StartScene: "ui_lab", ViewportFit: "contain", InputDiagnostics: os.Getenv("DARK_MAGIC_INPUT_DIAGNOSTICS") == "1"}
 	options.DisableNativeAudio = !nativeAudio
+	options.RenderDensity = os.Getenv("DARK_MAGIC_RENDER_DENSITY")
+	options.MaxRenderDensity = 2
 	switch scene {
 	case "ui_lab":
 	case "spell_lab", "warp_lab":

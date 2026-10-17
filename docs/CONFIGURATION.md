@@ -67,3 +67,24 @@ directory. Set `DARK_MAGIC_ASSET_SET_CACHE` to relocate that cache or
 `DARK_MAGIC_ASSET_SET_REHASH=1` for an explicit full byte revalidation. These
 are process-environment controls rather than committed machine-specific
 defaults.
+
+## Render density
+
+Both Raylib and Ebitengine keep scene coordinates independent of raster size.
+`--render-density 1` is the default. `2` doubles both raster dimensions without
+changing the camera, UI layout or input coordinates. `native` matches the physical
+display density up to `--max-render-density` (default 2, allowed range 1–4).
+`DARK_MAGIC_RENDER_DENSITY` supplies the density when the flag is omitted.
+
+`--expand-viewport` exposes extra horizontal scene space while preserving the
+presentation profile's height. It is independent of density. `--viewport-fit`
+continues to select `contain` or `stretch`.
+
+`--native-resolution` is a workspace mode: scene coordinates follow physical
+window pixels. It cannot be combined with density `2` or `native`.
+Renderer diagnostics include `Surface`, with logical, raster, host-point and
+physical-pixel dimensions plus the presentation rectangle. Effective raster
+density is `RenderWidth / Width` and `RenderHeight / Height`.
+
+Higher density increases render-target memory and drawing work. It preserves
+available image detail; it does not add detail to original low-resolution art.

@@ -2,51 +2,6 @@ package raylibRenderer
 
 import "testing"
 
-// TestGameViewportContainsAndCentersAspectRatio verifies centered letterboxing when window and game aspect ratios
-// differ.
-func TestGameViewportContainsAndCentersAspectRatio(t *testing.T) {
-	viewport, err := gameViewport(1920, 1080, 800, 600, "contain")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if viewport.X != 240 || viewport.Y != 0 || viewport.Width != 1440 || viewport.Height != 1080 {
-		t.Fatalf("viewport = %#v", viewport)
-	}
-}
-
-// TestGameViewportCanStretch verifies the explicit compatibility mode that fills every native window pixel.
-func TestGameViewportCanStretch(t *testing.T) {
-	viewport, err := gameViewport(1920, 1080, 800, 600, "stretch")
-	if err != nil || viewport != (Viewport{Width: 1920, Height: 1080}) {
-		t.Fatalf("viewport = %#v, %v", viewport, err)
-	}
-}
-
-// TestScreenToGameRejectsLetterboxAndMapsViewport verifies that input uses the same letterbox geometry as presentation.
-func TestScreenToGameRejectsLetterboxAndMapsViewport(t *testing.T) {
-	viewport, _ := gameViewport(1920, 1080, 800, 600, "contain")
-	if _, _, inside := mapScreenToGame(viewport, 800, 600, 100, 500); inside {
-		t.Fatal("letterbox was treated as game input")
-	}
-
-	x, y, inside := mapScreenToGame(viewport, 800, 600, 960, 540)
-	if !inside || x != 400 || y != 300 {
-		t.Fatalf("center = %d,%d inside=%v", x, y, inside)
-	}
-}
-
-// TestNativeScreenToGameAccountsForHighDPIDrawableScale keeps pointer coordinates aligned on Retina displays.
-func TestNativeScreenToGameAccountsForHighDPIDrawableScale(t *testing.T) {
-	x, y, inside := mapNativeScreenToGame(3200, 2000, 1600, 1000, 800, 500)
-	if !inside || x != 1600 || y != 1000 {
-		t.Fatalf("native center = %d,%d inside=%v", x, y, inside)
-	}
-	if _, _, inside := mapNativeScreenToGame(3200, 2000, 1600, 1000, 1600, 20); inside {
-		t.Fatal("native right edge was treated as in bounds")
-	}
-}
-
 // TestLogicalMonitorSizeConvertsRetinaVideoModeToWindowPoints protects visible window placement on high-DPI monitors.
 func TestLogicalMonitorSizeConvertsRetinaVideoModeToWindowPoints(t *testing.T) {
 	width, height := logicalMonitorSize(3024, 1964, 2, 2)
@@ -79,5 +34,48 @@ func TestFitWindowToMonitorCentersWithinSecondaryDisplay(t *testing.T) {
 	width, height, x, y = fitWindowToMonitor(1000, 700, 1440, 900, -1440, 40)
 	if width != 1000 || height != 700 || x != -1220 || y != 140 {
 		t.Fatalf("secondary fit = %dx%d at %d,%d", width, height, x, y)
+	}
+}
+
+func TestDensityMapsHighDPIInputWithoutChangingLogicalSize(t *testing.T) {
+	config := DefaultConfig()
+	config.Resolution.Density = "2"
+	service := &Service{config: &config}
+
+	g, err := service.surfacePolicy().Resolve(1000, 600, 2000, 1200)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	service.surface.Store(g)
+
+	if w, h := service.Resolution(); w != 800 || h != 600 {
+		t.Fatalf("density changed logical size: %d,%d", w, h)
+	}
+
+	if w, h := service.frameResolution(); w != 1600 || h != 1200 {
+		t.Fatalf("render size: %d,%d", w, h)
+	}
+
+	if x, y, inside := service.ScreenToGame(500, 300); x != 400 || y != 300 || !inside {
+		t.Fatalf("host center: %d,%d %v", x, y, inside)
+	}
+
+	if _, _, inside := service.ScreenToGame(0, 300); inside {
+		t.Fatal("letterbox accepted")
+	}
+
+	config.Resolution.Expand = true
+	service.config = &config
+
+	g, err = service.surfacePolicy().Resolve(900, 400, 2700, 1200)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	service.surface.Store(g)
+
+	if w, h := service.Resolution(); w != 1350 || h != 600 {
+		t.Fatalf("expanded size: %d,%d", w, h)
 	}
 }

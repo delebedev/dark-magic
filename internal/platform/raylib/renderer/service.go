@@ -9,6 +9,7 @@ import (
 
 	"github.com/gravestench/dark-magic/internal/cache"
 	"github.com/gravestench/dark-magic/internal/presentation/render"
+	"github.com/gravestench/dark-magic/internal/presentation/surface"
 )
 
 // Service owns the Raylib window, GPU resources, audio device, and native owner
@@ -43,6 +44,7 @@ type Service struct {
 
 	paletteQuantizer        *paletteQuantizer
 	gameTarget              rl.RenderTexture2D
+	surface                 atomic.Value
 	frames                  atomic.Uint64
 	drawCalls               atomic.Uint64
 	nodesVisited            atomic.Uint64
@@ -66,6 +68,7 @@ type Service struct {
 // BackendDiagnostics reports native-adapter work without exposing Raylib
 // handles. Values are cumulative for the renderer lifetime.
 type BackendDiagnostics struct {
+	Surface                                                         surface.Geometry
 	Frames, DrawCalls, NodesVisited, SubtreesCulled, TextureUpdates uint64
 	LastFrameDrawCalls, LastFrameNodesVisited                       uint64
 	LastFrameSubtreesCulled, LastFrameTextureUpdates                uint64
@@ -77,7 +80,8 @@ type BackendDiagnostics struct {
 // the owner-thread renderer without stalling frame production.
 func (s *Service) BackendDiagnostics() BackendDiagnostics {
 	return BackendDiagnostics{
-		Frames: s.frames.Load(), DrawCalls: s.drawCalls.Load(),
+		Surface: s.surfaceGeometry(),
+		Frames:  s.frames.Load(), DrawCalls: s.drawCalls.Load(),
 		NodesVisited: s.nodesVisited.Load(), SubtreesCulled: s.subtreesCulled.Load(),
 		TextureUpdates:          s.textureUpdates.Load(),
 		LastFrameDrawCalls:      s.lastFrameDrawCalls.Load(),

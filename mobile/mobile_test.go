@@ -142,3 +142,19 @@ func TestHostedOptionsRestrictSeamFixtureToDiagnostics(t *testing.T) {
 		t.Fatal("overrode lab fixture")
 	}
 }
+
+func TestHostedOptionsKeepRenderDensitySeparateFromLayout(t *testing.T) {
+	for _, density := range []string{"1", "2", "native"} {
+		t.Setenv("DARK_MAGIC_RENDER_DENSITY", density)
+
+		options, err := hostedOptions("normal", false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if options.RenderDensity != density || options.MaxRenderDensity != 2 ||
+			!options.ExpandViewport || options.NativeResolution {
+			t.Fatalf("density changed mobile layout: %+v", options)
+		}
+	}
+}

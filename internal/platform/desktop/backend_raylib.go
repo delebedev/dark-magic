@@ -65,6 +65,14 @@ func New(options Options) (*Bundle, error) {
 	config.Resolution.Height = options.LogicalHeight
 	config.Resolution.Fit = options.ViewportFit
 	config.Resolution.Native = options.NativeResolution
+	config.Resolution.Expand = options.ExpandViewport
+	config.Resolution.Density = options.RenderDensity
+
+	config.Resolution.MaxDensity = options.MaxRenderDensity
+	if err := options.surfacePolicy().Validate(); err != nil {
+		return nil, err
+	}
+
 	service.Configure(config)
 
 	if options.PalettePath != "" {

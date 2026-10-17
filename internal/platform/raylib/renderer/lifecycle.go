@@ -43,6 +43,10 @@ func (s *Service) prepareStart() error {
 		return errors.New("renderer: configuration is required")
 	}
 
+	if err := s.surfacePolicy().Validate(); err != nil {
+		return err
+	}
+
 	if s.logger == nil {
 		s.logger = slog.Default()
 	}
@@ -220,6 +224,11 @@ func installWindowIcon(logger *slog.Logger) {
 // startFrameTargets initializes logical rendering and optional palette quantization as one recoverable phase. Failure
 // releases the window and any target allocated earlier so callers may safely retry Start.
 func (s *Service) startFrameTargets() error {
+	if err := s.resolveSurface(); err != nil {
+		rl.CloseWindow()
+		return err
+	}
+
 	if s.paletteQuantizer == nil {
 		if err := s.startGameTarget(); err != nil {
 			rl.CloseWindow()
@@ -251,6 +260,10 @@ func (s *Service) applyCursorVisibility() {
 // maximization so startup uses the monitor work area without entering exclusive fullscreen.
 func windowConfigFlags(config Config) uint32 {
 	var flags uint32
+	if config.Resolution.Native || config.Resolution.Density != "" && config.Resolution.Density != "1" {
+		flags |= rl.FlagWindowHighdpi
+	}
+
 	if config.Window.Resizable {
 		flags |= rl.FlagWindowResizable
 	}

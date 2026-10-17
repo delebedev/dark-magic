@@ -22,6 +22,9 @@ type Config struct {
 		Width, Height int
 		Fit           string
 		Native        bool
+		Expand        bool
+		Density       string
+		MaxDensity    float64
 	}
 	Cache struct {
 		BudgetMB int
