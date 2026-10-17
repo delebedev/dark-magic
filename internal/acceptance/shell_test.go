@@ -146,6 +146,7 @@ func TestEmbeddedD2LegacyNavigationAndResourceLifetime(t *testing.T) {
 		modruntime.RecordsModule(shellD2Records{}),
 		modruntime.CommandIntentModule(intentController),
 		modruntime.InputModule(&input),
+		modruntime.FeedbackModule(nil),
 		modruntime.DisplayModule(func() (int, int) { return 800, 600 }),
 		modruntime.DevModule(nil),
 		modruntime.AudioModule(runtime, &mixer, contentFS),
