@@ -20,7 +20,10 @@ type clientConfig struct {
 	fixturePointerMove    bool
 	outputPalette         string
 	viewportFit           string
+	expandViewport        bool
 	nativeResolution      bool
+	renderDensity         string
+	maxRenderDensity      float64
 	windowSize            string
 	fullscreen            bool
 	nativeAudio           bool

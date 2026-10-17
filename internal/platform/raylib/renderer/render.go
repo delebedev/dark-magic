@@ -52,7 +52,10 @@ func (s *Service) renderRecursively(renderable *node, inheritedClip *rl.Rectangl
 		}
 
 		if clip != nil {
-			rl.BeginScissorMode(int32(clip.X), int32(clip.Y), int32(clip.Width), int32(clip.Height))
+			sx, sy := s.surfaceGeometry().RasterScale()
+			left, top := math.Floor(float64(clip.X)*sx), math.Floor(float64(clip.Y)*sy)
+			right, bottom := math.Ceil(float64(clip.X+clip.Width)*sx), math.Ceil(float64(clip.Y+clip.Height)*sy)
+			rl.BeginScissorMode(int32(left), int32(top), int32(right-left), int32(bottom-top))
 		}
 
 		s.renderNode(renderable)

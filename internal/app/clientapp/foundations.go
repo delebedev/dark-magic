@@ -125,6 +125,9 @@ func (app *application) desktopOptions() desktop.Options {
 	options.ExpandViewport = app.options.ExpandViewport
 
 	options.NativeResolution = app.options.NativeResolution
+	options.RenderDensity = app.options.RenderDensity
+
+	options.MaxRenderDensity = app.options.MaxRenderDensity
 	if app.options.WindowWidth > 0 && app.options.WindowHeight > 0 {
 		options.WindowWidth = app.options.WindowWidth
 		options.WindowHeight = app.options.WindowHeight

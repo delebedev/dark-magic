@@ -4,6 +4,7 @@ package desktop
 
 import (
 	"context"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -46,11 +47,13 @@ func (i *ebitInput) Snapshot() inputstate.Frame {
 // sample translates backend-native keyboard, pointer, wheel, and text state into one engine frame.
 func (i *ebitInput) sample() {
 	x, y := ebiten.CursorPosition()
+	x, y = i.logicalPosition(x, y)
 	scrollX, scrollY := ebiten.Wheel()
 	pointer := ebitMouseAction(ebiten.MouseButtonLeft)
 	points := make([]touchPoint, 0)
 	for _, id := range ebiten.AppendTouchIDs(nil) {
 		tx, ty := ebiten.TouchPosition(id)
+		tx, ty = i.logicalPosition(tx, ty)
 		points = append(points, touchPoint{id: int(id), x: tx, y: ty})
 	}
 	contacts := make([]inputstate.Contact, 0, len(points))
@@ -173,3 +176,8 @@ func mergeEbitActions(actions ...inputstate.ActionState) inputstate.ActionState 
 }
 
 var _ Input = (*ebitInput)(nil)
+
+func (i *ebitInput) logicalPosition(x, y int) (int, int) {
+	gx, gy, _ := i.renderer.surfaceGeometry().RasterInputToLogical(float64(x), float64(y))
+	return int(math.Floor(gx)), int(math.Floor(gy))
+}

@@ -179,9 +179,13 @@ client discards large elapsed gaps, retains the session's bounded fixed-tick
 clock and performs idempotent cleanup. Scene errors retain their original text
 in the native error view.
 
-The mobile surface keeps a 600-pixel logical height and expands to the landscape
+The mobile surface keeps a 600-unit logical height and expands to the landscape
 aspect ratio, including after ordinary menu-to-game transitions. UI Lab alone
-retains the fixed 800×600 diagnostic canvas.
+retains the fixed 800×600 diagnostic canvas. These are layout units, independent
+of raster pixels. Set the launch environment `DARK_MAGIC_RENDER_DENSITY=2` or
+`native` to opt into higher-density rendering. Native density is capped at 2×.
+The default remains 1×. Safe-area layout and touch coordinates remain logical.
+See [render density](CONFIGURATION.md#render-density) for the shared backend policy.
 
 Lobby screens share `d2legacy.ui.frontend_layout`, selected by the scene registry.
 It centers the authored 800×600 controls inside the safe area, scales them down

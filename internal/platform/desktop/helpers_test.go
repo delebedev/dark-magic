@@ -8,28 +8,6 @@ import (
 	"testing"
 )
 
-// TestViewportPolicies verifies contain centers an aspect-preserving surface while stretch uses every window pixel;
-// input mapping and final presentation both rely on these exact coordinates.
-func TestViewportPolicies(t *testing.T) {
-	contained, err := calculateViewport(1000, 600, 800, 600, "contain")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if contained.x != 100 || contained.y != 0 || contained.width != 800 || contained.height != 600 {
-		t.Fatalf("contained viewport = %+v", contained)
-	}
-
-	stretched, err := calculateViewport(1000, 600, 800, 600, "stretch")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if stretched.x != 0 || stretched.y != 0 || stretched.width != 1000 || stretched.height != 600 {
-		t.Fatalf("stretched viewport = %+v", stretched)
-	}
-}
-
 // TestPaletteQuantizationPreservesAlpha verifies nearest-color selection does not make translucent pixels opaque or
 // disturb fully transparent pixels.
 func TestPaletteQuantizationPreservesAlpha(t *testing.T) {

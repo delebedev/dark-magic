@@ -22,6 +22,7 @@ import (
 
 	"github.com/gravestench/dark-magic/internal/audio"
 	"github.com/gravestench/dark-magic/internal/presentation/render"
+	"github.com/gravestench/dark-magic/internal/presentation/surface"
 )
 
 // New validates Ebitengine-specific limits before allocating renderer and input adapters; unsupported palette policy
@@ -50,6 +51,9 @@ func New(options Options) (*Bundle, error) {
 		)
 	}
 
+	if err := options.surfacePolicy().Validate(); err != nil {
+		return nil, err
+	}
 	renderer := newEbitRenderer(options)
 
 	return &Bundle{Renderer: renderer, Input: newEbitInput(renderer)}, nil
@@ -71,6 +75,8 @@ type ebitRenderer struct {
 
 	currentScreen                 *ebiten.Image
 	drawableWidth, drawableHeight int
+	surface                       atomic.Value
+	layoutErr                     error
 
 	textureUploadBudget atomic.Uint64
 	textureCacheBudget  atomic.Uint64
@@ -314,44 +320,27 @@ func (r *ebitRenderer) WindowSize() (int, int) {
 // Resolution returns the fixed logical surface, unless native rendering was requested. In native mode every
 // drawable-window pixel is a render pixel, so no final screen scaling occurs.
 func (r *ebitRenderer) Resolution() (int, int) {
-	if r.options.NativeResolution {
-		return r.WindowSize()
-	}
-	if r.options.ExpandViewport && r.drawableWidth > 0 && r.drawableHeight > 0 {
-		return expandedResolution(r.options.LogicalWidth, r.options.LogicalHeight, r.drawableWidth, r.drawableHeight)
-	}
-	return r.options.LogicalWidth, r.options.LogicalHeight
+	g := r.surfaceGeometry()
+	return g.Width, g.Height
 }
 
-// ScreenToGame rejects letterbox and out-of-window coordinates before mapping accepted native pixels into the logical
+func (r *ebitRenderer) surfaceGeometry() surface.Geometry {
+	if value := r.surface.Load(); value != nil {
+		return value.(surface.Geometry)
+	}
+
+	g, _ := r.options.surfacePolicy().Resolve(
+		r.options.WindowWidth, r.options.WindowHeight, r.options.WindowWidth, r.options.WindowHeight,
+	)
+
+	return g
+}
+
+// ScreenToGame rejects letterbox and out-of-window coordinates before mapping accepted host points into the logical
 // surface, preventing edge clicks from becoming game actions.
 func (r *ebitRenderer) ScreenToGame(x, y int) (int, int, bool) {
-	windowWidth, windowHeight := r.WindowSize()
-	if r.options.NativeResolution {
-		if x < 0 || y < 0 || x >= windowWidth || y >= windowHeight {
-			return 0, 0, false
-		}
-		return x, y, true
-	}
-
-	gameWidth, gameHeight := r.Resolution()
-	viewport, err := calculateViewport(
-		windowWidth,
-		windowHeight,
-		gameWidth,
-		gameHeight,
-		r.options.ViewportFit,
-	)
-	if err != nil || float64(x) < viewport.x || float64(y) < viewport.y ||
-		float64(x) >= viewport.x+viewport.width ||
-		float64(y) >= viewport.y+viewport.height {
-		return 0, 0, false
-	}
-
-	gameX := int((float64(x) - viewport.x) * float64(gameWidth) / viewport.width)
-	gameY := int((float64(y) - viewport.y) * float64(gameHeight) / viewport.height)
-
-	return gameX, gameY, true
+	gx, gy, inside := r.surfaceGeometry().PointToLogical(float64(x), float64(y))
+	return int(math.Floor(gx)), int(math.Floor(gy)), inside
 }
 
 // SetWindowTitle stores pre-start changes in options and applies post-start changes immediately to the native window.
@@ -374,7 +363,12 @@ func (r *ebitRenderer) SetTextureUploadBudget(bytes uint64) { r.textureUploadBud
 func (r *ebitRenderer) SetTextureCacheBudget(bytes uint64) { r.textureCacheBudget.Store(bytes) }
 
 // BackendDiagnostics snapshots atomic renderer counters without exposing their mutable storage.
-func (r *ebitRenderer) BackendDiagnostics() any { return r.diagnostics.snapshot() }
+func (r *ebitRenderer) BackendDiagnostics() any {
+	d := r.diagnostics.snapshot()
+	d.Surface = r.surfaceGeometry()
+
+	return d
+}
 
 // CacheDiagnostics reports the configured budget even before a composition attaches, then includes live cache state.
 func (r *ebitRenderer) CacheDiagnostics() any {
@@ -395,6 +389,9 @@ type ebitGame struct {
 // Update terminates the native loop when the caller's context ends, then runs frame subscribers before advancing
 // retained animations by the elapsed wall-clock delta.
 func (g *ebitGame) Update() error {
+	if g.renderer.layoutErr != nil {
+		return g.renderer.layoutErr
+	}
 	select {
 	case <-g.ctx.Done():
 		return ebiten.Termination
@@ -451,46 +448,37 @@ func (g *ebitGame) Draw(screen *ebiten.Image) {
 	r.currentScreen = nil
 }
 
-// Layout keeps the fixed logical surface for game profiles, while native mode keeps the offscreen surface exactly
-// matched to the drawable window. This is Ebitengine's no-scale path.
+// Layout resolves host points and physical pixels while keeping scene coordinates independent of raster density.
 func (g *ebitGame) Layout(outsideWidth, outsideHeight int) (int, int) {
-	g.renderer.drawableWidth, g.renderer.drawableHeight = outsideWidth, outsideHeight
-	if g.renderer.options.NativeResolution {
-		return outsideWidth, outsideHeight
+	r := g.renderer
+	r.drawableWidth, r.drawableHeight = outsideWidth, outsideHeight
+	dpi := ebiten.Monitor().DeviceScaleFactor()
+	geometry, err := r.options.surfacePolicy().Resolve(
+		outsideWidth, outsideHeight,
+		int(math.Ceil(float64(outsideWidth)*dpi)), int(math.Ceil(float64(outsideHeight)*dpi)),
+	)
+
+	r.layoutErr = err
+	if err != nil {
+		return 1, 1
 	}
-	return g.renderer.Resolution()
+
+	if previous := r.surface.Load(); previous == nil || previous.(surface.Geometry) != geometry {
+		r.surface.Store(geometry)
+	}
+
+	return geometry.RenderWidth, geometry.RenderHeight
 }
 
-// DrawFinalScreen applies stretch only when requested; contain uses Ebitengine's supplied letterbox transform. Nearest
-// filtering and disabled mipmaps preserve pixel-art sampling in both modes.
-func (g *ebitGame) DrawFinalScreen(
-	screen ebiten.FinalScreen,
-	offscreen *ebiten.Image,
-	geoM ebiten.GeoM,
-) {
-	if g.renderer.options.NativeResolution {
-		// The offscreen surface already is the final native resolution. Preserve
-		// Ebitengine's identity transform instead of applying any fit policy.
-		options := &ebiten.DrawImageOptions{Filter: ebiten.FilterNearest, DisableMipmaps: true}
-		screen.DrawImage(offscreen, options)
-		return
-	}
-	if g.renderer.options.ViewportFit == "stretch" {
-		width, height := screen.Bounds().Dx(), screen.Bounds().Dy()
+// DrawFinalScreen presents the raster using the same physical viewport that maps input.
+func (g *ebitGame) DrawFinalScreen(screen ebiten.FinalScreen, offscreen *ebiten.Image, _ ebiten.GeoM) {
+	geometry := g.renderer.surfaceGeometry()
+	v := geometry.Viewport
 
-		geoM.Reset()
-		geoM.Scale(
-			float64(width)/float64(offscreen.Bounds().Dx()),
-			float64(height)/float64(offscreen.Bounds().Dy()),
-		)
-	}
-
-	options := &ebiten.DrawImageOptions{
-		GeoM:           geoM,
-		Filter:         ebiten.FilterNearest,
-		DisableMipmaps: true,
-	}
-	screen.DrawImage(offscreen, options)
+	var matrix ebiten.GeoM
+	matrix.Scale(v.Width/float64(geometry.RenderWidth), v.Height/float64(geometry.RenderHeight))
+	matrix.Translate(v.X, v.Y)
+	screen.DrawImage(offscreen, &ebiten.DrawImageOptions{GeoM: matrix, Filter: ebiten.FilterNearest, DisableMipmaps: true})
 }
 
 type ebitDiagnosticsCounters struct {
@@ -514,6 +502,7 @@ type ebitDiagnosticsCounters struct {
 
 // EbitengineDiagnostics is a detached snapshot of cumulative and most-recent-frame renderer work.
 type EbitengineDiagnostics struct {
+	Surface                                                         surface.Geometry
 	Frames, DrawCalls, NodesVisited, SubtreesCulled, TextureUpdates uint64
 	TextureUploads, TextureUploadBytes                              uint64
 	LastFrameDrawCalls, LastFrameNodesVisited                       uint64
@@ -830,6 +819,7 @@ func (b *ebitComposition) draw(screen *ebiten.Image) {
 	})
 
 	transforms := make(map[render.NodeID]ebiten.GeoM, len(nodes))
+	scaleX, scaleY := b.renderer.surfaceGeometry().RasterScale()
 
 	for _, node := range nodes {
 		b.renderer.diagnostics.nodesVisited.Add(1)
@@ -854,6 +844,7 @@ func (b *ebitComposition) draw(screen *ebiten.Image) {
 
 		geometry.Translate(-node.OriginX*float64(bounds.Dx()), -node.OriginY*float64(bounds.Dy()))
 		geometry.Concat(b.worldTransform(node.ID, transforms, make(map[render.NodeID]bool)))
+		geometry.Scale(scaleX, scaleY)
 
 		// Cull against transformed geometry before allocating draw options or clip
 		// subimages; this is an optimization only and does not change node order.
@@ -886,10 +877,10 @@ func (b *ebitComposition) draw(screen *ebiten.Image) {
 
 		if clip := b.effectiveClip(node.ID, make(map[render.NodeID]bool)); clip != nil {
 			rect := image.Rect(
-				int(math.Floor(clip.X)),
-				int(math.Floor(clip.Y)),
-				int(math.Ceil(clip.X+clip.Width)),
-				int(math.Ceil(clip.Y+clip.Height)),
+				int(math.Floor(clip.X*scaleX)),
+				int(math.Floor(clip.Y*scaleY)),
+				int(math.Ceil((clip.X+clip.Width)*scaleX)),
+				int(math.Ceil((clip.Y+clip.Height)*scaleY)),
 			).
 				Intersect(screen.Bounds())
 			if rect.Empty() {

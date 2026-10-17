@@ -28,7 +28,10 @@ type clientFlags struct {
 	fixturePointerMove  *bool
 	outputPalette       *string
 	viewportFit         *string
+	expandViewport      *bool
 	nativeResolution    *bool
+	renderDensity       *string
+	maxRenderDensity    *float64
 	windowSize          *string
 	fullscreen          *bool
 	nativeAudio         *bool
@@ -175,6 +178,14 @@ func registerDisplayFlags(flags *clientFlags) {
 		nativeResolutionDefault,
 		"render at the current native window resolution without scaling a logical surface",
 	)
+	flags.expandViewport = flag.Bool(
+		"expand-viewport", false, "expand the logical viewport horizontally to fit the window",
+	)
+	flags.renderDensity = flag.String(
+		"render-density", environmentDefault("DARK_MAGIC_RENDER_DENSITY", "1"),
+		"raster density without changing layout: 1, 2, or native",
+	)
+	flags.maxRenderDensity = flag.Float64("max-render-density", 2, "native raster density cap (1 to 4)")
 	flags.windowSize = flag.String(
 		"window-size",
 		os.Getenv("DARK_MAGIC_WINDOW_SIZE"),
@@ -218,7 +229,10 @@ func (flags clientFlags) config() (clientConfig, error) {
 		fixturePointerMove:    *flags.fixturePointerMove,
 		outputPalette:         *flags.outputPalette,
 		viewportFit:           *flags.viewportFit,
+		expandViewport:        *flags.expandViewport,
 		nativeResolution:      *flags.nativeResolution,
+		renderDensity:         *flags.renderDensity,
+		maxRenderDensity:      *flags.maxRenderDensity,
 		windowSize:            *flags.windowSize,
 		fullscreen:            *flags.fullscreen,
 		nativeAudio:           *flags.nativeAudio,

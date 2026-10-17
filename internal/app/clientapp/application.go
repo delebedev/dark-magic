@@ -67,6 +67,8 @@ type Options struct {
 	ViewportFit            string
 	ExpandViewport         bool
 	NativeResolution       bool
+	RenderDensity          string
+	MaxRenderDensity       float64
 	WindowWidth            int
 	WindowHeight           int
 	BorderlessFullscreen   bool

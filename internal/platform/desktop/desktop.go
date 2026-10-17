@@ -17,6 +17,7 @@ import (
 )
 
 // Options contains backend-independent window and logical-surface policy.
+// RenderDensity is 1 (default), 2, or native. MaxRenderDensity caps native at 2 by default.
 type Options struct {
 	Content       fs.FS
 	PalettePath   string
@@ -25,11 +26,13 @@ type Options struct {
 	WindowHeight  int
 	LogicalWidth  int
 	LogicalHeight int
-	// NativeResolution renders directly at the current drawable window size.
+	// NativeResolution uses physical pixels as scene coordinates for native workspaces.
 	// It avoids the logical render target's final upscale and is intended for
 	// tools such as the map editor that need a large, responsive workspace.
 	ExpandViewport       bool
 	NativeResolution     bool
+	RenderDensity        string
+	MaxRenderDensity     float64
 	ViewportFit          string
 	BorderlessFullscreen bool
 	ShowSystemCursor     bool

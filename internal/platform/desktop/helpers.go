@@ -1,55 +1,12 @@
 package desktop
 
 import (
-	"errors"
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
-	"math"
+
+	"github.com/gravestench/dark-magic/internal/presentation/surface"
 )
-
-type viewport struct{ x, y, width, height float64 }
-
-// calculateViewport maps the logical surface into the native window. Contain preserves aspect ratio with centered
-// letterboxing, while stretch occupies the entire window; invalid dimensions fail before any division occurs.
-func calculateViewport(
-	windowWidth, windowHeight, gameWidth, gameHeight int,
-	fit string,
-) (viewport, error) {
-	if windowWidth <= 0 || windowHeight <= 0 || gameWidth <= 0 || gameHeight <= 0 {
-		return viewport{}, errors.New("viewport dimensions must be positive")
-	}
-
-	if fit == "stretch" {
-		return viewport{width: float64(windowWidth), height: float64(windowHeight)}, nil
-	}
-
-	if fit != "" && fit != "contain" {
-		return viewport{}, fmt.Errorf("unknown viewport fit %q", fit)
-	}
-
-	scale := math.Min(
-		float64(windowWidth)/float64(gameWidth),
-		float64(windowHeight)/float64(gameHeight),
-	)
-	width, height := float64(gameWidth)*scale, float64(gameHeight)*scale
-
-	return viewport{
-		x:      (float64(windowWidth) - width) / 2,
-		y:      (float64(windowHeight) - height) / 2,
-		width:  width,
-		height: height,
-	}, nil
-}
-
-// expandedResolution preserves authored pixel scale while exposing extra horizontal world space.
-func expandedResolution(width, height, outsideWidth, outsideHeight int) (int, int) {
-	if outsideWidth <= 0 || outsideHeight <= 0 {
-		return width, height
-	}
-	return max(width, int(math.Round(float64(height)*float64(outsideWidth)/float64(outsideHeight)))), height
-}
 
 // contiguousRGBA copies any image and non-zero origin into tightly packed, zero-origin RGBA storage required by native
 // texture upload paths.
@@ -94,4 +51,11 @@ func quantizeImage(source image.Image, palette color.Palette) *image.RGBA {
 	}
 
 	return rgba
+}
+
+func (o Options) surfacePolicy() surface.Policy {
+	return surface.Policy{
+		Width: o.LogicalWidth, Height: o.LogicalHeight, Expand: o.ExpandViewport, Native: o.NativeResolution,
+		Fit: o.ViewportFit, Density: o.RenderDensity, MaxDensity: o.MaxRenderDensity,
+	}
 }
