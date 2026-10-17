@@ -34,7 +34,24 @@ type mobileGame struct {
 	mods          *distribution.ModSet
 	geometry      atomic.Pointer[modruntime.ScreenGeometry]
 	textEditor    *modruntime.TextEditor
+	feedback      modruntime.Feedback
 }
+
+// FeedbackHandler plays a bounded tactile intent on the native host.
+type FeedbackHandler interface {
+	Pulse(kind string)
+}
+
+func SetFeedbackHandler(handler FeedbackHandler) {
+	if handler == nil {
+		game.feedback.SetHandler(nil)
+		return
+	}
+
+	game.feedback.SetHandler(handler.Pulse)
+}
+
+func SetFeedbackEnabled(enabled bool) { game.feedback.SetEnabled(enabled) }
 
 // TextInputHandler presents platform editing on the UIKit thread.
 type TextInputHandler interface {
@@ -124,6 +141,7 @@ func (g *mobileGame) start() error {
 
 	options, err := hostedOptions(g.startScene, g.nativeAudio)
 	options.TextEditor = g.textEditor
+	options.Feedback = &g.feedback
 	if err != nil {
 		return err
 	}
@@ -227,6 +245,8 @@ func (g *mobileGame) Update() error {
 	if err := g.client.Update(); err != nil {
 		return errors.Join(err, g.close())
 	}
+
+	g.feedback.Flush(time.Now())
 	return nil
 }
 
@@ -253,6 +273,7 @@ func (g *mobileGame) DrawFinalScreen(screen ebiten.FinalScreen, offscreen *ebite
 }
 
 func (g *mobileGame) close() error {
+	g.feedback.SetEnabled(false)
 	var err error
 	if g.client != nil {
 		err = g.client.Close()

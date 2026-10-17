@@ -481,7 +481,7 @@ function M.snapshot(hud, stats)
 
     update_skill(hud, "left", stats.left_skill_detail, stats.left_skill or 0)
     update_skill(hud, "right", stats.right_skill_detail, stats.right_skill or 0)
-    skill_selector.set_skills(hud.skill_selector, stats.learned_skills or {})
+    skill_selector.set_skills(hud.skill_selector, stats.learned_skills or {}, stats.left_skill, stats.right_skill)
 
     if hud.running ~= running then
         hud.running = running

@@ -28,12 +28,21 @@ final class DeveloperPanel: UITableViewController {
         tableView.reloadData()
     }
 
-    override func numberOfSections(in tableView: UITableView) -> Int { 2 }
+    override func numberOfSections(in tableView: UITableView) -> Int { 3 }
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { section == 0 ? 2 : 1 }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = UITableViewCell(style: .value1, reuseIdentifier: nil)
-        if indexPath.section == 1 {
+        if indexPath.section == 2 {
+            cell.textLabel?.text = "Haptics"
+            cell.selectionStyle = .none
+            let toggle = UISwitch()
+            toggle.isOn = settings.haptics
+            toggle.accessibilityLabel = "Haptics"
+            toggle.accessibilityIdentifier = "developer.haptics-toggle"
+            toggle.addTarget(self, action: #selector(hapticsChanged(_:)), for: .valueChanged)
+            cell.accessoryView = toggle
+        } else if indexPath.section == 1 {
             cell.textLabel?.text = "Performance overlay"
             cell.selectionStyle = .none
             let toggle = UISwitch()
@@ -61,10 +70,11 @@ final class DeveloperPanel: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        section == 0 ? "Next launch" : "Display"
+        ["Next launch", "Display", "Feedback"][section]
     }
 
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
+        if section == 2 { return "Soft controls, quiet menu ticks and spell release. Applies when you close this panel." }
         if section == 1 { return "FPS, frame pacing, memory and thermal state. Applies when you close this panel." }
         let current = LaunchMode(rawValue: runningScene.isEmpty ? "normal" : runningScene)?.title ?? runningScene
         return "Force-close and reopen to apply changes. Experiments use disposable characters.\n\nRunning: \(current). Game paused while this panel is open."
@@ -78,6 +88,7 @@ final class DeveloperPanel: UITableViewController {
         }
     }
 
+    @objc private func hapticsChanged(_ sender: UISwitch) { settings.haptics = sender.isOn }
     @objc private func diagnosticsChanged(_ sender: UISwitch) { settings.inputDiagnostics = sender.isOn }
     @objc private func performanceChanged(_ sender: UISwitch) { settings.performanceOverlay = sender.isOn }
     @objc private func done() { onDone?() }

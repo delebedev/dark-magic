@@ -35,6 +35,11 @@ final class DeveloperSettings {
         set { defaults.set(newValue, forKey: Self.diagnosticsKey) }
     }
 
+    var haptics: Bool {
+        get { defaults.object(forKey: "feedback.haptics") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "feedback.haptics") }
+    }
+
     var performanceOverlay: Bool {
         get { defaults.bool(forKey: Self.performanceKey) }
         set { defaults.set(newValue, forKey: Self.performanceKey) }

@@ -55,6 +55,12 @@ return test.suite({
                         return false
                     end,
                 }, {})
+                local pulses = {}
+                test.mock_module("engine.feedback/v1", {
+                    emit = function(kind)
+                        pulses[#pulses + 1] = kind
+                    end,
+                })
                 local controls = require("d2legacy.ui.touch_controls")
                 local state = controls.create(nil, "palette")
                 local skills = {}
@@ -79,6 +85,14 @@ return test.suite({
                 test.expect(output.skill.id):equals(45)
                 test.expect(output.skill_pressed):equals(true)
                 test.expect(output.consumed):equals(true)
+                controls.sample(state, 1304, 600, true)
+                test.expect(#pulses):equals(1)
+                test.expect(pulses[1]):equals("press")
+                state.slots = {}
+                state.gesture = {}
+                controls.sample(state, 1304, 600, true)
+                test.expect(#pulses):equals(1)
+                controls.skills(state, { right_skill = 47, learned_skills = skills })
                 state.assignment = 45
                 controls.skills(state, { right_skill = 45, learned_skills = skills })
                 test.expect(state.slots[1].id):equals(47)

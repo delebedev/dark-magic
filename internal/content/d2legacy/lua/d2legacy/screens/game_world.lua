@@ -1,3 +1,4 @@
+local feedback = require("engine.feedback/v1")
 -- Minimal interactive GAME WORLD orchestration scene.
 --
 -- This is a capstone file: it does not try to implement every subsystem itself.
@@ -136,6 +137,8 @@ local function install_current_world(self)
     if self.world_level_id == level_id then
         return false
     end
+    self.feedback_ready = false
+    feedback.clear()
     local next_world, recipe = world_capability.current()
     assert(next_world and recipe, "session world is unavailable")
     if self.hero and self.hero:exists() then
@@ -765,7 +768,7 @@ local function update_state_overlays(self, elapsed)
     end
 end
 
-local function observe_semantic_cues(self)
+local function observe_semantic_cues(self, feedback_allowed)
     self.missile_sounds = self.missile_sounds or {}
     self.observed_cues = self.observed_cues or {}
     self.semantic_cues = {}
@@ -808,6 +811,9 @@ local function observe_semantic_cues(self)
                 end
             end
             if cue.cue_type == "cast" then
+                if self.feedback_ready and feedback_allowed and cue.kind == "cast_effect"
+                    and cue.player == self.gameplay.player and self.gameplay.hero
+                    and cue.caster_entity_id == self.gameplay.hero:id() then feedback.emit("release") end
                 local recipe = cast_presentation.resolve(cue.skill_id)
                 if recipe then
                     if cue.kind == "cast_started" then
@@ -822,6 +828,7 @@ local function observe_semantic_cues(self)
             end
         end
     end
+    self.feedback_ready = true
 end
 
 local function update_missiles(self, snapshots)
@@ -1006,7 +1013,7 @@ return {
             update_warps(self)
             if self.ground_items then self.ground_items:update() end
             if self.corpse_markers then self.corpse_markers:update() end
-            observe_semantic_cues(self)
+            observe_semantic_cues(self, focused and input_allowed)
             missile_audio.reconcile(self.missile_sounds, missiles, self.world_level_id)
             update_state_overlays(self, elapsed)
         end
@@ -1411,6 +1418,7 @@ return {
     end,
 
     destroy = function(self)
+        feedback.clear()
         click_indicator.destroy(self.click_indicator)
         input_diagnostics.destroy(self.input_diagnostic)
         touch_controls.destroy(self.touch_controls)

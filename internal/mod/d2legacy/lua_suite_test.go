@@ -643,6 +643,9 @@ func startLuaSuiteProfile(
 	}
 
 	runtime := modruntime.New()
+	if err := runtime.RegisterModule(modruntime.FeedbackModule(nil)); err != nil {
+		return nil, err
+	}
 	if config.disableBudget {
 		if err := runtime.SetExecutionBudget(0); err != nil {
 			return nil, err

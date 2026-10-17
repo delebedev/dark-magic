@@ -46,6 +46,7 @@ func TestVersionedCapabilityConformance(t *testing.T) {
 		DataModule(contentFS),
 		WorldModule(contentFS),
 		InputModule(&input),
+		FeedbackModule(nil),
 		AudioModule(runtime, &mixer, source),
 		SettingsModule(preferences.NewTransient(), &mixer),
 		VideoModule(runtime, video.Unavailable{}, source),
@@ -60,7 +61,8 @@ func TestVersionedCapabilityConformance(t *testing.T) {
 		scenes.Module(),
 	}
 	expected := map[string][]string{
-		"engine.app/v1": {"request_exit", "version"},
+		"engine.feedback/v1": {"emit", "clear"},
+		"engine.app/v1":      {"request_exit", "version"},
 		"engine.vfs/v1": {
 			"list",
 			"read",

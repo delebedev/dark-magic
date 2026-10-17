@@ -88,8 +88,10 @@ local function add_button(selector, side, skill, x, y)
         on_activate = function()
             -- `assign` is supplied by the HUD/game scene. In the real game it
             -- submits the assignment intent to authoritative player state.
-            selector.assign(side, skill.id)
+            local changed = not selector.selected or selector.selected[side] ~= skill.id
+            if changed then selector.assign(side, skill.id) end
             M.close(selector)
+            return changed
         end,
 
         on_state = function(_, state)
@@ -129,7 +131,8 @@ end
 
 -- Learned skills change rarely. Build retained nodes only once for the current
 -- selector data instead of recreating buttons every HUD frame.
-function M.set_skills(selector, skills)
+function M.set_skills(selector, skills, left, right)
+    selector.selected = {left=left, right=right}
     if selector.signature == nil then
         if #skills == 0 then return end
         selector.signature = true

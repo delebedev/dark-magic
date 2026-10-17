@@ -90,6 +90,10 @@ return test.suite({
                 selector.buttons[1].control.on_activate()
                 test.expect(selected):deep_equals({ "left", 36 })
                 test.expect(selector.open):equals(nil)
+                module.set_skills(selector, skills, 36, 47)
+                selected = nil
+                test.expect(selector.buttons[1].control.on_activate()):equals(false)
+                test.expect(selected):equals(nil)
             end)
         end),
     },

@@ -1,3 +1,4 @@
+local feedback = require("engine.feedback/v1")
 local dev = require("engine.dev/v1")
 local input = require("engine.input/v1")
 local render = require("engine.render/v1")
@@ -127,6 +128,7 @@ function M.sample(state, width, height, allowed)
         button.root:set_scale(scale,scale)
     end
     output.skill = state.slots[output.button or 0]
+    if output.skill_pressed and output.skill then feedback.emit("press") end
     return output
 end
 

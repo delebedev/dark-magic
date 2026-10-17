@@ -59,6 +59,7 @@ type Options struct {
 	ShowClicks             bool
 	TouchControls          bool
 	ScreenGeometry         func() modruntime.ScreenGeometry
+	Feedback               *modruntime.Feedback
 	TextEditor             *modruntime.TextEditor
 	FixturePointerMove     bool
 	GameDifficulty         int

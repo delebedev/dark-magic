@@ -61,3 +61,9 @@ type TextInputHandler interface {
 
 func SetTextInputHandler(handler TextInputHandler)                  {}
 func CompleteTextInput(id int64, value string, accepted bool) error { return nil }
+
+// FeedbackHandler matches the ordinary mobile binding.
+type FeedbackHandler interface{ Pulse(kind string) }
+
+func SetFeedbackHandler(handler FeedbackHandler) {}
+func SetFeedbackEnabled(enabled bool)            {}
