@@ -189,6 +189,7 @@ local function fixture()
             destroy = function() end,
             player_snapshots = empty,
             monster_snapshots = empty,
+            akara_snapshots = empty,
             warp_snapshots = empty,
             state_snapshots = empty,
             missile_snapshots = function()
