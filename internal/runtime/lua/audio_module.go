@@ -31,28 +31,37 @@ func (s *scopedSounds) add(scope *Scope, sound *ownedSound) error {
 	if s.scopes == nil {
 		s.scopes = make(map[*Scope]map[audio.SoundID]*ownedSound)
 	}
+
 	sounds := s.scopes[scope]
 	if sounds == nil {
 		sounds = make(map[audio.SoundID]*ownedSound)
+
 		if err := scope.Add(func() error {
 			s.mu.Lock()
 			defer s.mu.Unlock()
+
 			for _, entry := range sounds {
 				entry.mixer.Release(entry.id)
 			}
+
 			delete(s.scopes, scope)
+
 			return nil
 		}); err != nil {
 			return err
 		}
+
 		s.scopes[scope] = sounds
 	}
+
 	for id, entry := range sounds {
 		if !entry.mixer.Active(id) {
 			delete(sounds, id)
 		}
 	}
+
 	sounds[sound.id] = sound
+
 	return nil
 }
 

@@ -7,7 +7,6 @@ local engine_audio = require("engine.audio/v1")
 local records = require("engine.records/v1")
 local M = {}
 local path = "data/global/excel/Sounds.txt"
-local rows, sound_indices
 
 local function number(row, ...)
     for index = 1, select("#", ...) do
@@ -23,6 +22,21 @@ local function text(row, ...)
         if value ~= nil and value ~= "" then return tostring(value) end
     end
     return ""
+end
+
+local cached_rows, cached_indices, cached_revision
+
+local function sound_records()
+    local revision = records.revision and records.revision()
+    if revision ~= nil and revision == cached_revision then return cached_rows, cached_indices end
+    local rows = assert(records.load(path))
+    local indices = {}
+    for index, row in ipairs(rows) do
+        local name = string.lower(text(row, "Sound", "sound"))
+        if indices[name] == nil then indices[name] = index end
+    end
+    if revision ~= nil then cached_rows, cached_indices, cached_revision = rows, indices, revision end
+    return rows, indices
 end
 
 local function choose_group(rows, first, count, seed)
@@ -71,15 +85,8 @@ end
 
 function M.play_record(name, seed)
     seed = math.max(0, math.floor(tonumber(seed) or 0))
-    if not rows then
-        rows = assert(records.load(path))
-        sound_indices = {}
-        for index, row in ipairs(rows) do
-            local key = string.lower(text(row, "Sound", "sound"))
-            if not sound_indices[key] then sound_indices[key] = index end
-        end
-    end
-    local first = sound_indices[string.lower(name)]
+    local rows, indices = sound_records()
+    local first = indices[string.lower(name)]
     assert(first, "unknown sound record: " .. tostring(name))
     local row = rows[first]
     local redirect = tonumber(text(row, "Redirect", "redirect"))

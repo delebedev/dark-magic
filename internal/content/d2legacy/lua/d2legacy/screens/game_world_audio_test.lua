@@ -91,6 +91,9 @@ local function fixture()
         end,
     })
     test.mock_module("engine.records/v1", {
+        revision = function()
+            return "1"
+        end,
         load = function()
             return {
                 { Sound = "travel", FileName = "loop.wav", Loop = "1", ["Volume Min"] = "255" },
@@ -189,7 +192,7 @@ local function fixture()
             destroy = function() end,
             player_snapshots = empty,
             monster_snapshots = empty,
-            akara_snapshots = empty,
+            npc_snapshots = empty,
             warp_snapshots = empty,
             state_snapshots = empty,
             missile_snapshots = function()

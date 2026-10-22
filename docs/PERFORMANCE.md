@@ -35,10 +35,10 @@ and writes raw profiles, diagnostics, captures, and
 Compare captures as well as timings: a faster backend that renders a different
 scene has not won.
 
-Ebitengine plays WAV effects and streamed music through its native audio adapter,
-including loops, volume, stereo pan and fades. Cinematic PCM remains muted.
-Both backends support `--native-audio=false` for matched rendering measurements.
-Current Ebitengine limitations are explicit. The developer shell session has no native text overlay, final-display
+Ebitengine plays WAV cues and streams WAV music through its native audio adapter.
+The explicit native-audio-disabled path still drains commands without playback.
+Cinematic PCM remains muted. Current presentation limitations are explicit:
+the developer shell session has no native text overlay, final-display
 `pal.dat` quantization is rejected, and per-node palettes use cached CPU
 quantization rather than the Raylib GPU lookup shader. These keep the adapter
 useful for graphics/input experimentation without pretending it is ready to

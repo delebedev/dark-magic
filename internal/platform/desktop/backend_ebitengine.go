@@ -164,6 +164,7 @@ func (r *ebitRenderer) Stop(context.Context) error {
 	if r.backend != nil {
 		r.backend.close()
 	}
+
 	if r.audio != nil {
 		r.audio.close()
 		r.diagnostics.audioAttached.Store(false)

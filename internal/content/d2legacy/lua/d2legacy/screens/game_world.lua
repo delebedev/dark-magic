@@ -508,7 +508,7 @@ local function update_monsters(self, elapsed)
     self.monsters = self.monsters or {}
     local seen = {}
     local snapshots = self.gameplay_world.monster_snapshots()
-    for _, snapshot in ipairs(self.gameplay_world.akara_snapshots()) do
+    for _, snapshot in ipairs(self.gameplay_world.npc_snapshots()) do
         snapshots[#snapshots + 1] = snapshot
     end
     for _, snapshot in ipairs(snapshots) do
@@ -1036,6 +1036,10 @@ return {
         if self.hud then
             game_hud.set_item_cursor_visible(self.hud, input_allowed)
         end
+        -- Hover labels belong only to the frame that resolves world pointer input.
+        if self.world_hover_tip then
+            self.world_hover_tip:set_visible(false)
+        end
 
         if not input_allowed then
             touch_loot.close(self.touch_loot)
@@ -1063,6 +1067,12 @@ return {
                 end
             end
             self.touch_toolbar.opened = false
+            return
+        end
+
+        if self.interaction and self.interaction.dialogue().active then
+            self.pending_interaction = nil
+            scenes.push("npc_interaction")
             return
         end
 

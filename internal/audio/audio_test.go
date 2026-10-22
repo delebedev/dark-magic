@@ -8,19 +8,25 @@ import (
 
 func TestReleaseCannotRetireReusedGeneration(t *testing.T) {
 	var mixer Mixer
+
 	old, err := mixer.Play(".wav", []byte("wave"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	mixer.Release(old)
+
 	current, err := mixer.Play(".wav", []byte("wave"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	mixer.Release(old)
+
 	if mixer.Active(old) || !mixer.Active(current) {
 		t.Fatal("completion crossed handle generations")
 	}
+
 	if old.Slot != current.Slot || old.Generation == current.Generation {
 		t.Fatal("slot was not reused safely")
 	}
